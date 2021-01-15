@@ -1,2 +1,55 @@
 # coverage-pool
+
 A governable, fee-earning asset pool to cover low-likelihood on-chain events.
+
+## What is it?
+
+A coverage pool is a flexible new money lego that can be used as a back-stop or
+"buyer of last resort" in on-chain financial systems.
+
+Across DeFi, young systems are hiding and shuffling around risk for perceived
+security. These risks are part of what drive yield; but stacked atop eachother,
+risks are multiplied.
+
+Coverage pools can be used in these systems to offset risk, allowing human or
+algorithmic governance to reward underwriters. They're designed as building
+blocks rather than a standalone product, allowing system designers and
+communities to tailor risk management to their circumstances.
+
+## Goals
+
+1. Pool assets to back risk denominated in a particular asset.
+2. Manage those assets without unnecessary reliance on oracles.
+3. Allow underwriters to choose the asset exposure that best fits their
+   portfolio, increasing capital participation.
+4. Share risks and rewards across all underwriters, subject to their asset
+   exposure.
+
+The first iteration of the design focuses on backing a single system authority
+than can file and approve its own claims against the pool, in the asset the
+pool is configured to support. Governance and underwriters are expected to
+review and judge the risk of that system authority, as it has the power to
+liquidate the pool.
+
+Future iterations could introduce explicit synthetic asset minting for claim
+management, though that functionality should be easy to build atop the initial
+design.
+
+## Questions
+
+> Doesn't this already exist?
+
+Probably. The ideas behind coverage pools have been picked from a number of
+DeFi and TradFi systems. The sum of the parts— choose-your-own-asset pools with
+socialized rewards and losses, without outside oracles — is what's interesting
+as a building block.
+
+> Why shouldn't I just use Nexus Mutual, Opyn, or another risk management
+> solution?
+
+You should! Coverage pools are a component for new on-chain financial systems,
+not a replacement for end user applications. If you need to cover a particular
+risk of yours, there are a variety of centralized and decentralized options on
+the market. If you need to cover risk in a new system... maybe because you're
+building a synthetic asset exchange, or a lending platform — coverage pools
+might be for you.
