@@ -1,6 +1,6 @@
-# Components
+= Components
 
-## The collateral pool
+== The collateral pool
 
 The collateral pool is a collection of single-specific pools that share losses
 if coverage is required.
@@ -21,7 +21,7 @@ suffering any sort of impermanent loss, as they would in an AMM.
 Underwriters are still, however, entering into positions relative to the asset
 the coverage pool is backing.
 
-## The risk manager
+== The risk manager
 
 The risk manager is a person or smart contract with the exclusive right to
 demand coverage from the pool.
@@ -33,7 +33,7 @@ position could bankrupt the collateral pool.
 
 Coverage is always paid out in the pool's covered asset.
 
-## The earnings pool
+== The earnings pool
 
 The earnings pool is a collection of different assets that grows as underwriters
 earn fees and refunds.
@@ -49,7 +49,7 @@ earnings pool tokens at a rate of 2 to 1.
 As earnings accrue, earnings pool tokens can be withdrawn by underwriters and
 redeemed for the underlying earnings.
 
-# Efficient collateral liquidation
+= Efficient collateral liquidation
 
 When coverage is demanded by the risk manager, some part of the collateral
 pool must be sold to obtain enough of the covered asset to fulfill the claim.
@@ -70,9 +70,9 @@ buyer is found.
 If the risk manager has made a fill-or-kill claim, the auction will expire and
 notify the risk manager. If not, all funds will remain locked on offer.
 
-# Governance and the market feedback loop
+= Governance and the market feedback loop
 
-# Solving early exits
+= Solving early exits
 
 Underwriters will always be able to front-run on-chain claims against the
 coverage pool.  Rational players can withdraw their liquidity and rewards
@@ -90,7 +90,7 @@ as increased risk of merchanism failure at transitions.
 
 Instead of a fixed delay, we introduce exit markets.
 
-## Exit markets
+== Exit markets
 
 At a given moment, whether or not a liquidation is ongoing, a mass exit from
 the collateral pool implies a pending spike in risk.
