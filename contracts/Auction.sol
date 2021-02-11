@@ -94,7 +94,7 @@ contract Auction {
         }
     }
 
-    function open() external view returns (bool) {
+    function isOpen() external view returns (bool) {
         return self.amountOutstanding > 0;
     }
 
@@ -181,7 +181,7 @@ contract Auctioneer is CloneFactory, Ownable {
         // from the collateral pool.
         collateralPool.seizeFunds(portionOfPool, taker);
 
-        if (!auction.open()) {
+        if (!auction.isOpen()) {
             emit AuctionClosed(msg.sender);
             delete auctions[msg.sender];
         }
