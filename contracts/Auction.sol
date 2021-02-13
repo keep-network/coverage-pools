@@ -78,7 +78,7 @@ contract Auction {
         // offer, and slow the price velocity.
         if (amountToTransfer != self.amountOutstanding) {
             uint256 newOffer = _onOffer() * (self.amountOutstanding - amountToTransfer) / self.amountOutstanding;
-            self.auctionLength *= uint64(self.amountOutstanding / (self.amountOutstanding / amountToTransfer));
+            self.auctionLength *= uint64(self.amountOutstanding / amountToTransfer);
             self.timeOffset = uint64(block.timestamp);
             self.offsetPercentOnOffer = uint64(newOffer);
         }
