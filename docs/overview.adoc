@@ -33,21 +33,21 @@ position could bankrupt the collateral pool.
 
 Coverage is always paid out in the pool's covered asset.
 
-== The earnings pool
+== The rewards pool
 
-The earnings pool is a collection of different assets that grows as underwriters
-earn fees and refunds.
+The xref:rewards-pool.adoc[rewards pool] is a collection of different assets
+that grows as underwriters earn fees and refunds.
 
-The earnings pool mints a single earnings token, which is periodically
+The rewards pool mints a single rewards token, which is periodically
 distributed to the collateral pool. Each asset in the collateral pool earns
-based on its earnings rate.
+based on its rewards rate.
 
 Over a period of a week, if a collateral pool contains two assets — WBTC at a
-earnings rate of 2, and ETH at an earnings rate of 1 — each will be allocated
-earnings pool tokens at a rate of 2 to 1.
+rewards rate of 2, and ETH at an rewards rate of 1 — each will be allocated
+rewards pool tokens at a rate of 2 to 1.
 
-As earnings accrue, earnings pool tokens can be withdrawn by underwriters and
-redeemed for the underlying earnings.
+As rewards accrue, rewards pool tokens can be withdrawn by underwriters and
+redeemed for the underlying rewards.
 
 = Efficient collateral liquidation
 
