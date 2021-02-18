@@ -1,0 +1,75 @@
+= The risk manager
+
+The risk manager holds a privileged role over the coverage pool. It maintains
+the ability to claim coverage from the pool, liquidating enough collateral from
+the pool to cover an outstanding obligation.
+
+Because of the nature of the role, the risk manager is a critical component of
+the coverage pool. Depending on the implementation, a risk manager can determine
+whether to put assets at capped or uncapped risk; how quickly auctions should
+put collateral up on offer; whether to end an auction early; and whether to
+remunerate existing underwriters in the case of "extra" assets on hand from an
+auction.
+
+== An example pool
+
+The tBTC v1 coverage pool has one purpose — to backstop the TBTC peg and
+simplify the lives of signers by guaranteeing to take any outstanding TBTC
+liquidation, trading TBTC for ETH.
+
+Because we have no guaranteed bounds on the ETHBTC price, the risk to the pool
+is technically uncapped; if the price of BTC suddenly 10x's relative to ETH, the
+pool is still on the hook for a fixed amount of BTC. On the other hand, once the
+pool takes a TBTC https://docs.keep.network/tbtc/#liquidation[liquidation
+auction], the resulting ETH proceeds should be distributed back to the pool.
+
+== Auctions
+
+When the risk manager claims coverage, it specifies an amount denominated in
+the asset the pool covers. An auction is opened across across all assets in the
+pool, increasing the portion of the pool on offer over time. Eventually, the
+entire collateral pool is on offer.
+
+For an auction to be filled, a participant pays the asking price, and in return
+receives a portion of each asset in the pool.
+
+Consider a collateral pool containing 10 WBTC and 100 WETH, and claim of 1 TBTC.
+
+.A collateral pool under auction
+[frame="topbot",options="header"]
+|============================================
+|Time | Offer | WBTC on offer | WETH on offer
+|1    |1%     |0.1            |1
+|2    |2%     |0.2            |2
+|3    |3%     |0.3            |3
+|4    |4%     |0.4            |4
+|5    |5%     |0.5            |5
+|6    |6%     |0.6            |6
+|7    |7%     |0.7            |7
+|8    |8%     |0.8            |8
+|9    |8%     |0.9            |9
+|10   |10%    |1              |10
+|============================================
+
+For simplicity, assume WBTC and TBTC trade at parity. Regardless of the ETH/WBTC
+exchange rate, there is a point between `t=1` and `t=10` where it makes sense to
+buy all assets on offer.
+
+An efficient on-chain implementation can allow partial and atomic fills, opening
+up arbitrage opportunities with lower total liquidity requirements.
+
+In addition to claiming coverage and opening an auction, the risk manager
+determines the parameters that govern the auction, including the velocity of the
+falling price based on market conditions, and whether to withdraw a claim and
+end an auction early.
+
+== Returning funds
+
+If there are funds to return to the pool after a coverage claim, a risk manager
+implementation can do one of two things
+
+1. Deposit the funds in the rewards pool, effectively distributing them across
+   underwriters based on the relative reward rate, regardless of the asset.
+2. Deposit the funds directly in the collateral pool, requiring funds to be
+   traded to match the existing collateral distribution, or intentionally
+   distributing funds in a way that favors a particular underwritten asset.
