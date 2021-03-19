@@ -1,3 +1,5 @@
+require("@nomiclabs/hardhat-waffle");
+
 import { HardhatUserConfig } from 'hardhat/config'
 import 'hardhat-typechain'
 
