@@ -21,7 +21,8 @@ suffering any sort of impermanent loss, as they would in an AMM.
 Underwriters are still, however, entering into positions relative to the asset
 the coverage pool is backing.
 
-== The risk manager
+
+== <<risk-manager.adoc,The risk manager>>
 
 The risk manager is a person or smart contract with the exclusive right to
 demand coverage from the pool.
@@ -33,9 +34,9 @@ position could bankrupt the collateral pool.
 
 Coverage is always paid out in the pool's covered asset.
 
-== The rewards pool
+== <<rewards-pool.adoc,The rewards pool>>
 
-The <<rewards-pool.adoc,rewards pool>> is a collection of different assets
+The rewards pool is a collection of different assets
 that grows as underwriters earn fees and refunds.
 
 The rewards pool mints a single rewards token, which is periodically
@@ -90,7 +91,7 @@ as increased risk of merchanism failure at transitions.
 
 Instead of a fixed delay, we introduce exit markets.
 
-== Exit markets
+== <<exit-markets.adoc,Exit markets>>
 
 At a given moment, whether or not a liquidation is ongoing, a mass exit from
 the collateral pool implies a pending spike in risk.
