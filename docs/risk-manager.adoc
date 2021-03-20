@@ -26,7 +26,7 @@ auction], the resulting ETH proceeds should be distributed back to the pool.
 == Auctions
 
 When the risk manager claims coverage, it specifies an amount denominated in
-the asset the pool covers. An auction is opened across across all assets in the
+the asset the pool covers. An auction is opened across all assets in the
 pool, increasing the portion of the pool on offer over time. Eventually, the
 entire collateral pool is on offer.
 
