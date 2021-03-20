@@ -34,17 +34,17 @@ realized, then the virtual minting continues at the new rate.
 
 .Virtual and real rewards
 [frame="topbot",options="header"]
-|==========================================================================================
-|Time | WETH virtual rewards | WETH real rewards | WBTC virtual rewards | WBTC real rewards
-|1    |1                     |1                  |2                     |2
-|2    |2                     |1                  |4                     |2
-|3    |3                     |1                  |6                     |2
-|4    |4                     |1                  |8                     |2
-|5    |5                     |5                  |9                     |9
-|6    |6                     |5                  |10                    |9
-|7    |7                     |5                  |11                    |9
-|8    |8                     |5                  |12                    |9
-|==========================================================================================
+|========================================================================================================
+|Time | WETH virtual rewards | WETH real rewards | WBTC virtual rewards | WBTC real rewards | Reward rate
+|1    |1                     |1                  |2                     |2                  | 2 : 1
+|2    |2                     |1                  |4                     |2                  | 2 : 1
+|3    |3                     |1                  |6                     |2                  | 2 : 1
+|4    |4                     |1                  |8                     |2                  | 2 : 1
+|5    |5                     |5                  |9                     |9                  | 1 : 1
+|6    |6                     |5                  |10                    |9                  | 1 : 1
+|7    |7                     |5                  |11                    |9                  | 1 : 1
+|8    |8                     |5                  |12                    |9                  | 1 : 1
+|========================================================================================================
 
 Similarly, any rewards tokens that are exchanged and burned for the underlying
 pool rewards realizes all reward token minting before the exchange occurs.
