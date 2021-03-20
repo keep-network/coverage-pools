@@ -58,10 +58,19 @@ buy all assets on offer.
 An efficient on-chain implementation can allow partial and atomic fills, opening
 up arbitrage opportunities with lower total liquidity requirements.
 
+=== Auction velocity
+
 In addition to claiming coverage and opening an auction, the risk manager
 determines the parameters that govern the auction, including the velocity of the
 falling price based on market conditions, and whether to withdraw a claim and
 end an auction early.
+
+A risk manager might slow the velocity of a falling price auction because it
+believes that the auction is close to "market" price. Alternatively, a manager
+might speed up an auction because it believes the auction is far from "market".
+
+Finally, a risk manager might decide to end an auction early if coverage is no
+longer needed.
 
 == Returning funds
 
