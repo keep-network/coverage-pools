@@ -62,7 +62,7 @@ The portion of each single-asset pool on offer will increase over time, slowing
 until the entirety of the pool is on offer.
 
 The auction is meant to be flash-loan friendly, allowing easy integration with
-AMMs and other liquidity sources.
+AMMs (automated market makers) and other on-chain liquidity sources.
 
 Once the entirety of the pool is on offer, the auction will remain open until a
 buyer is found.
