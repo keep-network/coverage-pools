@@ -66,6 +66,11 @@ underwriter token sent to the rewards pool. Following this pattern means a more
 capital-efficient coverage rewards mechanism, though it also means rewards are
 subject to exit markets.
 
+For example, in a coverage pool meant to back claims demoninated in `TBTC`, with
+a collateral pool containing `WETH` and `WBTC`, any `ETH` earned by the
+underwriters should be deposited into the reward pool as `covETH` rather than
+`WETH`.
+
 == On-chain efficiency
 
 There are two bottlenecks in efficient runtime on the EVM with this structure.
@@ -75,8 +80,8 @@ burn require iterating through all recipients, computing rewards, and minting
 tokens. These costs are ultimately shouldered by reward beneficiaries, and place
 a ceiling on the number of simultaneous reward recipients.
 
-The second is the number of assets being rewarded. Anyone can send a reward pool
-whatever tokens they'd like. Instead of using an allowlist or pushing the cost
-onto reward token holders at redemption time, a short denylist can be used to
-avoid mischief, and reward token holders can decide which tokens they'd like to
-be sent at redemption.
+The second is the number of different assets being distributed as reward. Anyone
+can send a reward pool whatever tokens they'd like. Instead of using an allowlist
+or pushing the cost onto reward token holders at redemption time, a short
+denylist can be used to avoid mischief, and reward token holders can decide
+which tokens they'd like to be sent at redemption.
