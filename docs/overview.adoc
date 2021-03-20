@@ -35,7 +35,7 @@ Coverage is always paid out in the pool's covered asset.
 
 == The rewards pool
 
-The xref:rewards-pool.adoc[rewards pool] is a collection of different assets
+The <<rewards-pool.adoc,rewards pool>> is a collection of different assets
 that grows as underwriters earn fees and refunds.
 
 The rewards pool mints a single rewards token, which is periodically
