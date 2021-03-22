@@ -2,25 +2,23 @@
 
 == The collateral pool
 
-The collateral pool is a collection of single-specific pools that share losses
+The collateral pool is a collection of single asset pools that share losses
 if coverage is required.
 
-Each asset-specific pool accepts a single ERC-20 token as collateral, and
-returns an underwriter token. For example, an asset-specific pool might accept
-deposits in WETH in return for covETH underwriter tokens. Underwriter tokens
-represent an ownership share in the underlying collateral of the asset-specific
-pool.
+Each asset pool accepts a single ERC-20 token as collateral, and returns an
+underwriter token. For example, an asset pool might accept deposits in WETH in
+return for covETH underwriter tokens. Underwriter tokens represent an ownership
+share in the underlying collateral of the asset pool.
 
 Entering the collateral pool exposes an underwriter to the shared risk of
-liquidation across all asset-specific pools, but it *doesn't* require the
-underwriter to enter into any positions relative to other assets in the pool.
-If an underwriter deposits ETH into a collateral pool that accepts ETH and
-WBTC, the underwriter isn't entering into a position relative to WBTC, or
-suffering any sort of impermanent loss, as they would in an AMM.
+liquidation across all asset pools, but it *doesn't* require the underwriter to
+enter into any positions relative to other assets in the pool. If an underwriter
+deposits ETH into a collateral pool that with ETH adn WBTC asset pools, the
+underwriter isn't entering into a position relative to WBTC, or suffering any
+sort of impermanent loss, as they would in an automated market maker.
 
 Underwriters are still, however, entering into positions relative to the asset
 the coverage pool is backing.
-
 
 == <<risk-manager.adoc,The risk manager>>
 
@@ -40,11 +38,11 @@ The rewards pool is a collection of different assets
 that grows as underwriters earn fees and refunds.
 
 The rewards pool mints a single rewards token, which is periodically
-distributed to the collateral pool. Each asset in the collateral pool earns
-based on its rewards rate.
+distributed across the collateral pool. Each asset pool in the collateral pool
+earns based on its rewards rate.
 
-Over a period of a week, if a collateral pool contains two assets — WBTC at a
-rewards rate of 2, and ETH at an rewards rate of 1 — each will be allocated
+Over a period of a week, if a collateral pool contains two asset pools — WBTC at
+a rewards rate of 2, and ETH at an rewards rate of 1 — each will be allocated
 rewards pool tokens at a rate of 2 to 1.
 
 As rewards accrue, rewards pool tokens can be withdrawn by underwriters and
@@ -59,8 +57,8 @@ Liquidating the coverage pool fairly means selling a basket of assets, in a
 fixed ratio, with good price discovery. For this reason, collateral is
 liquidated using a Dutch auction.
 
-The portion of each single-asset pool on offer will increase over time, slowing
-until the entirety of the pool is on offer.
+The portion of each asset pool on offer will increase over time, slowing until
+the entirety of the pool is on offer.
 
 The auction is meant to be flash-loan friendly, allowing easy integration with
 AMMs (automated market makers) and other on-chain liquidity sources.
