@@ -53,6 +53,7 @@ contract Auction {
         uint64 _auctionLength
     ) public {
         require(self.startTime == 0, "Auction already initialized");
+        require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.startTime = uint64(block.timestamp);
         self.auctioneer = IAuctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
@@ -67,7 +68,6 @@ contract Auction {
     function takeOffer(uint256 amount) public {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
-        require(self.amountOutstanding > 0, "Auction is closed");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         self.tokenAccepted.safeTransferFrom(msg.sender, address(self.auctioneer), amountToTransfer);
 
