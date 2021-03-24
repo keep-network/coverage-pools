@@ -3,7 +3,7 @@ const { pastEvents } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
-describe.only("Auctioneer", function () {
+describe("Auctioneer", function () {
   const auctionAmountDesired = ethers.utils.parseUnits("100", "ether") // coverts to wei
   const auctionLength = 3600 // sec
   const testTokensToMint = ethers.utils.parseUnits("500", "ether")
