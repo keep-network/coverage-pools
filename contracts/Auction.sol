@@ -26,17 +26,22 @@ contract Auction {
     uint64 constant PORTION_ON_OFFER_DIVISOR = 10000;
 
     struct AuctionStorage {
-        IERC20 tokenAccepted;
         // the auction price, denominated in tokenAccepted
-        uint256 amountOutstanding;
+        IERC20 tokenAccepted;
         IAuctioneer auctioneer;
-        uint64 startTime;
-        uint64 timeOffset;
-        uint64 auctionLength;
-        uint64 offsetPercentOnOffer;
+        uint256 amountOutstanding;
+        uint256 startTime;
+        uint256 origanalStartTime;
+        uint256 updatedStartTime;
+        uint256 auctionLength;
+        uint256 velocityPoolOnOfferRate;
     }
 
     AuctionStorage public self;
+
+    function isOpen() external view returns (bool) {
+        return self.amountOutstanding > 0;
+    }
 
     /// @dev
     /// @param _auctioneer    the auctioneer contract responsible for seizing
@@ -52,13 +57,17 @@ contract Auction {
         uint256 _amountDesired,
         uint64 _auctionLength
     ) public {
-        require(self.startTime == 0, "Auction already initialized");
+        require(self.origanalStartTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
-        self.startTime = uint64(block.timestamp);
         self.auctioneer = IAuctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
+        self.origanalStartTime = uint64(block.timestamp);
+        self.updatedStartTime = uint64(block.timestamp);
         self.auctionLength = _auctionLength;
+        self.velocityPoolOnOfferRate =
+            (PORTION_ON_OFFER_DIVISOR * 100) /
+            _auctionLength;
     }
 
     /// @notice
@@ -69,45 +78,71 @@ contract Auction {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
-        self.tokenAccepted.safeTransferFrom(msg.sender, address(self.auctioneer), amountToTransfer);
+        uint256 onOffer = _onOffer();
+        self.tokenAccepted.safeTransferFrom(
+            msg.sender,
+            address(self.auctioneer),
+            amountToTransfer
+        );
 
-        uint256 portionToSeize = _onOffer() * amountToTransfer / self.amountOutstanding;
+        // in %
+        uint256 portionToSeize =
+            (onOffer * amountToTransfer) /
+                self.amountOutstanding /
+                PORTION_ON_OFFER_DIVISOR;
 
-        // If eg only 50% of the offer is taken, put up only half of what was on
-        // offer, and slow the price velocity.
         if (amountToTransfer != self.amountOutstanding) {
-            uint256 newOffer = _onOffer() * (self.amountOutstanding - amountToTransfer) / self.amountOutstanding;
-            self.auctionLength *= uint64(self.amountOutstanding / amountToTransfer);
-            self.timeOffset = uint64(block.timestamp);
-            self.offsetPercentOnOffer = uint64(newOffer);
+            // ratio is in %, should be 0.5 but because of solidity it is 50%
+            uint256 ratioAmountPaid =
+                (PORTION_ON_OFFER_DIVISOR *
+                    (self.amountOutstanding - amountToTransfer)) /
+                    self.amountOutstanding;
+
+            // this is to capture time difference between a new set startTime and how far it moved
+            uint256 localStartTimeOffset =
+                ((block.timestamp - self.updatedStartTime) * ratioAmountPaid) /
+                    PORTION_ON_OFFER_DIVISOR;
+            self.updatedStartTime =
+                self.updatedStartTime +
+                (localStartTimeOffset); // reset the auction start
+
+            // time offset between an original startTime and the startTime at this moment
+            uint256 globalStartTimeOffset =
+                self.updatedStartTime - self.origanalStartTime;
+
+            self.velocityPoolOnOfferRate =
+                (PORTION_ON_OFFER_DIVISOR * self.auctionLength) /
+                (self.auctionLength - globalStartTimeOffset);
         }
+
         self.amountOutstanding -= amountToTransfer;
 
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
         // proceeds
-        self.auctioneer.offerTaken(msg.sender, self.tokenAccepted, amountToTransfer, portionToSeize);
+        self.auctioneer.offerTaken(
+            msg.sender,
+            self.tokenAccepted,
+            amountToTransfer,
+            portionToSeize
+        );
 
         if (self.amountOutstanding == 0) {
             harikari();
         }
     }
 
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
-    }
-
     /// @notice how much of the collateral pool can currently be purchased at
-    ///         auction, across all assets
+    ///         auction, across all assets.
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() public view returns (uint256, uint256) {
         return (_onOffer(), PORTION_ON_OFFER_DIVISOR);
     }
 
     function _onOffer() internal view returns (uint256) {
-        uint256 timeOfOffsetAmountOnOffer = self.startTime + self.timeOffset;
-        return ((PORTION_ON_OFFER_DIVISOR - self.offsetPercentOnOffer) *
-                (block.timestamp - timeOfOffsetAmountOnOffer) / self.auctionLength);
+        return
+            (block.timestamp - self.updatedStartTime) *
+            self.velocityPoolOnOfferRate;
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
