@@ -1,26 +1,23 @@
 const chai = require("chai")
 
 const expect = chai.expect
-const { pastEvents } = require("./helpers/contract-test-helpers")
+const { pastEvents, increaseTime } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
-describe("Auction", () => {
-  let auctionAmountDesired
-  const auctionLength = 3600 // sec
-  let testTokensToMint
+const defaultAuctionLength = 86400 // 24h in sec
+const defaultAuctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi. Should represent ex. 1 TBTC
+const testTokensToMint = 100000000
 
+describe("Auction", () => {
   let auctioneer
   let testToken
-  let masterAuction
+  let auction
+  let auctionAsSigner1
   let owner
-  let auctionAddress
   let signer1
 
   beforeEach(async () => {
-    auctionAmountDesired = await ethers.utils.parseUnits("100", "ether") // coverts to wei
-    testTokensToMint = await ethers.utils.parseUnits("500", "ether")
-
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction")
@@ -34,7 +31,7 @@ describe("Auction", () => {
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
 
-    masterAuction = await Auction.deploy()
+    const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
     keepCollateralPool = await KEEPCollateralPool.deploy()
@@ -52,33 +49,30 @@ describe("Auction", () => {
     await testToken.mint(signer1.address, testTokensToMint)
     await testToken.approve(signer1.address, testTokensToMint)
 
-    const createAuctionTx = await auctioneer.createAuction(
-      testToken.address,
-      auctionAmountDesired,
-      auctionLength
+    auction = await createAuction(
+      defaultAuctionAmountDesired,
+      defaultAuctionLength
     )
 
-    const receipt = await createAuctionTx.wait()
-    const events = pastEvents(receipt, auctioneer, "AuctionCreated")
-    auctionAddress = events[0].args["auctionAddress"]
+    const testTokenAsSigner1 = await testToken.connect(signer1)
+    await testTokenAsSigner1.approve(
+      auction.address,
+      defaultAuctionAmountDesired
+    )
+
+    auctionAsSigner1 = await auction.connect(signer1)
   })
 
   describe("initialize", async () => {
     it("should not initialize already initialized auction", async () => {
-      const auction = new ethers.Contract(
-        auctionAddress,
-        AuctionJSON.abi,
-        owner
-      )
-
       expect(await auction.isOpen()).to.equal(true)
 
       await expect(
         auction.initialize(
           auctioneer.address,
           testToken.address,
-          auctionAmountDesired,
-          auctionLength
+          defaultAuctionAmountDesired,
+          defaultAuctionLength
         )
       ).to.be.revertedWith("Auction already initialized")
     })
@@ -89,159 +83,105 @@ describe("Auction", () => {
         auctioneer.createAuction(
           testToken.address,
           auctionAmountDesired,
-          auctionLength
+          defaultAuctionLength
         )
       ).to.be.revertedWith("Amount desired must be greater than zero")
     })
   })
 
   describe("on offer", async () => {
-    it("should return a portion of a collateral pool which is available for taken when auction length is 100", async () => {
+    it("should return a portion of a collateral pool which is available for taken when auction length is 100000", async () => {
       const auctionAmountDesired = 10000
-      const auctionLength = 100
-
-      const createAuctionTx = await auctioneer.createAuction(
-        testToken.address,
-        auctionAmountDesired,
-        auctionLength
-      )
-
-      const receipt = await createAuctionTx.wait()
-      const events = pastEvents(receipt, auctioneer, "AuctionCreated")
-      const auctionAddress = events[0].args["auctionAddress"]
-
-      const auction = new ethers.Contract(
-        auctionAddress,
-        AuctionJSON.abi,
-        owner
-      )
+      const auctionLength = 100000 // sec -> ~28h
+      const auction = await createAuction(auctionAmountDesired, auctionLength)
 
       expect(await auction.isOpen()).to.be.equal(true)
 
-      // TODO: extract to a helper file
-      // add 24 sec to current a block.timestamp
-      await ethers.provider.send("evm_increaseTime", [24])
-      await ethers.provider.send("evm_mine")
-
+      await increaseTime(24000)
       const onOffer = await auction.onOffer()
 
-      // auction length: 100sec
-      // 24 sec passed, which means 24% of a collateral pool is on offer
+      // auction length: 100000 sec
+      // 24000 sec passed, which means 24% of a collateral pool is on offer
       expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.24, 0.01)
     })
 
-    it("should return a portion of a collateral pool which is available for taken when auction length is 50", async () => {
-      const auctionAmountDesired = await ethers.utils.parseUnits("10", "kwei") // coverts to wei
-      const auctionLength = 50
-
-      const createAuctionTx = await auctioneer.createAuction(
-        testToken.address,
-        auctionAmountDesired,
-        auctionLength
-      )
-
-      const receipt = await createAuctionTx.wait()
-      const events = pastEvents(receipt, auctioneer, "AuctionCreated")
-      const auctionAddress = events[0].args["auctionAddress"]
-
-      const auction = new ethers.Contract(
-        auctionAddress,
-        AuctionJSON.abi,
-        owner
-      )
+    it("should return a portion of a collateral pool which is available for taken when auction length is 50000", async () => {
+      const auctionAmountDesired = 10000
+      const auctionLength = 50000 // sec -> ~14h
+      const auction = await createAuction(auctionAmountDesired, auctionLength)
 
       expect(await auction.isOpen()).to.be.equal(true)
 
-      // TODO: extract to a helper file
-      // add 24 sec to current a block.timestamp
-      await ethers.provider.send("evm_increaseTime", [24])
-      await ethers.provider.send("evm_mine")
-
+      await increaseTime(24000)
       const onOffer = await auction.onOffer()
 
-      // auction length: 50sec
-      // 24 sec passed, which means 48% of a collateral pool is on offer
+      // auction length: 50000sec
+      // 24000 sec passed, which means 48% of a collateral pool is on offer
       expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.48, 0.01)
+    })
+
+    it("should return a portion of a collateral pool which is available for taken when requesting a couple of times", async () => {
+      const auctionAmountDesired = 10000
+      const auctionLength = 100000 // sec -> ~28h
+      const auction = await createAuction(auctionAmountDesired, auctionLength)
+
+      expect(await auction.isOpen()).to.be.equal(true)
+
+      await increaseTime(24000)
+      let onOffer = await auction.onOffer()
+
+      // auction length: 100000 sec
+      // 24000 sec passed, which means 24% of a collateral pool is on offer
+      expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.24, 0.01)
+
+      await increaseTime(26000)
+      onOffer = await auction.onOffer()
+
+      // auction length: 100000 sec
+      // 50000 sec passed, which means 50% of a collateral pool is on offer
+      expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.5, 0.01)
     })
   })
 
   describe("take offer", async () => {
     it("should pay more than 0 tokens", async () => {
-      const auction = new ethers.Contract(
-        auctionAddress,
-        AuctionJSON.abi,
-        owner
-      )
       await expect(auction.takeOffer(0)).to.be.revertedWith(
         "Can't pay 0 tokens"
       )
     })
 
     it("should take the entire auction", async () => {
-      const paidAmount = auctionAmountDesired // 100% of the desired amount
-      const auction = new ethers.Contract(
-        auctionAddress,
-        AuctionJSON.abi,
-        owner
-      )
-
-      const testTokenAsSigner1 = await testToken.connect(signer1)
-      await testTokenAsSigner1.approve(auction.address, auctionAmountDesired)
-
-      const auctionAsSigner1 = await auction.connect(signer1)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(0)
 
-      await auctionAsSigner1.takeOffer(paidAmount)
+      // Increase time 1h -> 3600sec
+      await increaseTime(3600)
+
+      await auctionAsSigner1.takeOffer(defaultAuctionAmountDesired)
 
       // entire amount paid for an auction should be transferred to auctioneer
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-        paidAmount
+        defaultAuctionAmountDesired
       )
 
       // when a desired amount is collected, a contract should be destroyed
-      expect(await ethers.provider.getCode(auctionAddress)).to.equal("0x")
+      expect(await ethers.provider.getCode(auction.address)).to.equal("0x")
     })
 
     it("should take a partial offer from the same signer", async () => {
-      const auctionAmountDesired = 100000000 // 100,000,000 satoshi, which can mimics ex 1 TBTC
-      const auctionLength = 86400 // 24h in sec
-
-      const createAuctionTx = await auctioneer.createAuction(
-        testToken.address,
-        auctionAmountDesired,
-        auctionLength
-      )
-
-      const receipt = await createAuctionTx.wait()
-      const events = pastEvents(receipt, auctioneer, "AuctionCreated")
-      const auctionAddress = events[0].args["auctionAddress"]
-
-      const auction = new ethers.Contract(
-        auctionAddress,
-        AuctionJSON.abi,
-        owner
-      )
-
-      const testTokenAsSigner1 = await testToken.connect(signer1)
-      await testTokenAsSigner1.approve(auctionAddress, auctionAmountDesired)
-
-      auctionAsSigner1 = await auction.connect(signer1)
-
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(0)
 
       // For testing calculation purposes assume the auction start time is 0
-      // On blockchain we calculate time diffs
+      // On blockchain we calculate the time diffs
 
       // Increase time 1h -> 3600sec
-      await ethers.provider.send("evm_increaseTime", [3600])
-      await ethers.provider.send("evm_mine")
+      await increaseTime(3600)
       let onOfferObj = await auctionAsSigner1.onOffer()
       // Velocity pool depleating rate: 1
       // Percent on offer after 1h of auction start time: 3,600 * 1 * / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
       // ~4.16% on offer of a collateral pool after 1h
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
       // Pay 50% of the desired amount for an auction 50,000,000
-      let partialOfferAmount = auctionAmountDesired / 2
+      let partialOfferAmount = defaultAuctionAmountDesired / 2
       await auctionAsSigner1.takeOffer(partialOfferAmount)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
         50000000
@@ -254,8 +194,7 @@ describe("Auction", () => {
 
       // Increase time 45min -> 2,700 sec
       // Now: 3,600 + 2,700 = 6,300
-      await ethers.provider.send("evm_increaseTime", [2700])
-      await ethers.provider.send("evm_mine")
+      await increaseTime(2700)
       // (6,300 - 1,800) * 1.0212 / 86,400 = 0.0531875 +/- 0.0002
       // ~5.31% on offer of a collateral pool after 1h45min
       onOfferObj = await auctionAsSigner1.onOffer()
@@ -275,8 +214,7 @@ describe("Auction", () => {
 
       // Increase time 20min -> 1,200 sec
       // Now: 6,300 + 1,200 = 7,500
-      await ethers.provider.send("evm_increaseTime", [1200])
-      await ethers.provider.send("evm_mine")
+      await increaseTime(1200)
       // 60% of the desired amount was paid. 50,000,000 + 10,000,000 out of 100,000,000
       onOfferObj = await auctionAsSigner1.onOffer()
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0573, 0.0002)
@@ -288,11 +226,25 @@ describe("Auction", () => {
       )
 
       // when a desired amount is collected, this auction should be destroyed
-      expect(await ethers.provider.getCode(auctionAddress)).to.equal("0x")
+      expect(await ethers.provider.getCode(auction.address)).to.equal("0x")
     })
 
     it("should take a partial offer from multiple signers", async () => {
       // TODO: implement
     })
   })
+
+  async function createAuction(auctionAmountDesired, auctionLength) {
+    const createAuctionTx = await auctioneer.createAuction(
+      testToken.address,
+      auctionAmountDesired,
+      auctionLength
+    )
+
+    const receipt = await createAuctionTx.wait()
+    const events = pastEvents(receipt, auctioneer, "AuctionCreated")
+    const auctionAddress = events[0].args["auctionAddress"]
+
+    return new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
+  }
 })

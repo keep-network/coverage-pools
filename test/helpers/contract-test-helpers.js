@@ -15,4 +15,10 @@ function pastEvents(receipt, contract, eventName) {
   return events
 }
 
+async function increaseTime(time) {
+  await ethers.provider.send("evm_increaseTime", [time])
+  await ethers.provider.send("evm_mine")
+}
+
 module.exports.pastEvents = pastEvents
+module.exports.increaseTime = increaseTime
