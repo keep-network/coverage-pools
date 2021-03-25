@@ -34,7 +34,7 @@ contract Auction {
         uint256 origanalStartTime;
         uint256 updatedStartTime;
         uint256 auctionLength;
-        uint256 velocityPoolOnOfferRate;
+        uint256 velocityPoolDepleatingRate;
     }
 
     AuctionStorage public self;
@@ -66,7 +66,7 @@ contract Auction {
         self.updatedStartTime = uint64(block.timestamp);
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
-        self.velocityPoolOnOfferRate = 1 * PORTION_ON_OFFER_DIVISOR;
+        self.velocityPoolDepleatingRate = 1 * PORTION_ON_OFFER_DIVISOR;
     }
 
     /// @notice
@@ -101,7 +101,7 @@ contract Auction {
                 (localStartTimeOffset); // update the auction start time "forward"
             uint256 globalStartTimeOffset =
                 self.updatedStartTime - self.origanalStartTime;
-            self.velocityPoolOnOfferRate =
+            self.velocityPoolDepleatingRate =
                 (PORTION_ON_OFFER_DIVISOR * self.auctionLength) /
                 (self.auctionLength - globalStartTimeOffset);
         }
@@ -133,7 +133,7 @@ contract Auction {
     function _onOffer() internal view returns (uint256) {
         return
             ((block.timestamp - self.updatedStartTime) *
-                self.velocityPoolOnOfferRate) / self.auctionLength;
+                self.velocityPoolDepleatingRate) / self.auctionLength;
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called

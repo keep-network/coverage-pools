@@ -236,7 +236,7 @@ describe("Auction", () => {
       await ethers.provider.send("evm_increaseTime", [3600])
       await ethers.provider.send("evm_mine")
       let onOfferObj = await auctionAsSigner1.onOffer()
-      // Velocity pool offer rate: 1
+      // Velocity pool depleating rate: 1
       // Percent on offer after 1h of auction start time: 3,600 * 1 * / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
       // ~4.16% on offer of a collateral pool after 1h
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
@@ -249,7 +249,7 @@ describe("Auction", () => {
 
       // Ratio amount paid: (50,000,000) / 100,000,000 = 0.5
       // Updated start time: 0 + (3,600 - 0) * 0.5 = 1,800
-      // Velocity pool offer rate: 86,400 / (86,400 - 1,800) ~ 1.0212
+      // Velocity pool depleating rate: 86,400 / (86,400 - 1,800) ~ 1.0212
       // Availability of assets in the collateral pool: 100% - (4.16% / 2) = 97.92%
 
       // Increase time 45min -> 2,700 sec
@@ -270,7 +270,7 @@ describe("Auction", () => {
 
       // Ratio amount paid: (10,000,000) / 50,000,000 = 0.2
       // Updated start time: 1,800 + (6,300 - 1,800) * 0.2 = 2,700
-      // Velocity pool offer rate: 86,400 / (86,400 - 2,700) ~ 1.03225
+      // Velocity pool depleating rate: 86,400 / (86,400 - 2,700) ~ 1.03225
       // Availability of assets in a collateral pool: 97.92% - (5.31% * 0.2) ~ 96.86%
 
       // Increase time 20min -> 1,200 sec
