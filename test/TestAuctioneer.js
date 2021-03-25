@@ -3,11 +3,14 @@ const { pastEvents } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
-describe("Auctioneer", function () {
-  const auctionAmountDesired = ethers.utils.parseUnits("100", "ether") // coverts to wei
-  const auctionLength = 3600 // sec
-  const testTokensToMint = ethers.utils.parseUnits("500", "ether")
+const auctionLength = 86400 // 24h in sec
+const auctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi. Should represent ex. 1 TBTC
+const testTokensToMint = 100000000
+// amount of test tokens that an auction (aka spender) is allowed
+// to transfer on behalf of signer1 (aka token owner) from signer1 balance
+const defaultAuctionTokenAllowance = 100000000
 
+describe("Auctioneer", () => {
   let auctioneer
   let testToken
   let masterAuction
@@ -111,12 +114,9 @@ describe("Auctioneer", function () {
 
       testTokenAsSigner1 = await testToken.connect(signer1)
 
-      // amount of test tokens that an auction (aka spender) is allowed
-      // to transfer on behalf of signer1 (aka token owner) from signer1 balance
-      const auctionTokenAllowance = "100"
       await testTokenAsSigner1.approve(
         auction.address,
-        ethers.utils.parseUnits(auctionTokenAllowance, "ether")
+        defaultAuctionTokenAllowance
       )
 
       // we need to connect signer1 to auction so that signer1 can initiate a call
@@ -124,31 +124,27 @@ describe("Auctioneer", function () {
     })
 
     it("should take an offer but leave the auction opened", async () => {
-      const amountPaidForCollateral = ethers.utils.parseUnits("99", "ether")
-      const takeOfferTx = await auctionAsSigner1.takeOffer(
-        amountPaidForCollateral
-      )
+      const amountPaidForAuction = 99999999
+      const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
       await expect(takeOfferTx)
         .to.emit(auctioneer, "AuctionOfferTaken")
-        .withArgs(auctionAddress, testToken.address, amountPaidForCollateral)
+        .withArgs(auctionAddress, testToken.address, amountPaidForAuction)
 
-      // auction needs to collect 100 test tokens
-      // tokens paid: 99
+      // auction desired amount is 100,000,000 of test tokens (ex. TBTC in satoshi)
+      // tokens paid: 99999999
       // remaining tokens to collect is 1, hence the auction cannot be closed yet
       await expect(takeOfferTx).to.not.emit(auctioneer, "AuctionClosed")
       expect(await auctioneer.auctions(auctionAddress)).to.equal(true)
     })
 
     it("should take an offer and close the auction", async () => {
-      const amountPaidForCollateral = ethers.utils.parseUnits("100", "ether")
-      const takeOfferTx = await auctionAsSigner1.takeOffer(
-        amountPaidForCollateral
-      )
+      const amountPaidForAuction = 100000000
+      const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
       await expect(takeOfferTx)
         .to.emit(auctioneer, "AuctionOfferTaken")
-        .withArgs(auctionAddress, testToken.address, amountPaidForCollateral)
+        .withArgs(auctionAddress, testToken.address, amountPaidForAuction)
 
       // auction was fully paid off and should be closed
       await expect(takeOfferTx)

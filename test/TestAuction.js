@@ -7,6 +7,9 @@ const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const defaultAuctionLength = 86400 // 24h in sec
 const defaultAuctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi. Should represent ex. 1 TBTC
+// amount of test tokens that an auction (aka spender) is allowed
+// to transfer on behalf of signer1 (aka token owner) from signer1 balance
+const defaultAuctionTokenAllowance = 100000000
 const testTokensToMint = 100000000
 
 describe("Auction", () => {
@@ -57,7 +60,7 @@ describe("Auction", () => {
     const testTokenAsSigner1 = await testToken.connect(signer1)
     await testTokenAsSigner1.approve(
       auction.address,
-      defaultAuctionAmountDesired
+      defaultAuctionTokenAllowance
     )
 
     auctionAsSigner1 = await auction.connect(signer1)
