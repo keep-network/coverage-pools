@@ -2,6 +2,8 @@
 
 pragma solidity <0.8.0;
 
+import "./AssetPool.sol";
+
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IUnderwriterToken.sol";
 
@@ -16,7 +18,6 @@ import "./interfaces/IUnderwriterToken.sol";
 ///         Anyone can submit this signature on the user's behalf by calling the
 ///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
-/// @dev Contract can be deployed directly or cloned using EIP1167 mechanism.
 contract UnderwriterToken is IUnderwriterToken {
     using SafeMath for uint256;
 
@@ -34,8 +35,9 @@ contract UnderwriterToken is IUnderwriterToken {
         0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
     mapping(address => uint256) public override nonces;
 
-    function initialize() public {
-        require(uint256(DOMAIN_SEPARATOR) == 0, "Token already initialized");
+    address public assetPool;
+
+    constructor(address _assetPool) {
         uint256 chainId;
         assembly {
             chainId := chainid()
@@ -51,6 +53,12 @@ contract UnderwriterToken is IUnderwriterToken {
                 address(this)
             )
         );
+        assetPool = _assetPool;
+    }
+
+    modifier onlyAssetPool() {
+        require(msg.sender == assetPool, "Caller is not the asset pool");
+        _;
     }
 
     function transfer(address recipient, uint256 amount)
@@ -136,6 +144,23 @@ contract UnderwriterToken is IUnderwriterToken {
         _approve(owner, spender, amount);
     }
 
+    function mint(address recipient, uint256 amount) external onlyAssetPool {
+        require(recipient != address(0), "Mint to the zero address");
+        totalSupply = totalSupply.add(amount);
+        balanceOf[recipient] = balanceOf[recipient].add(amount);
+        emit Transfer(address(0), recipient, amount);
+    }
+
+    function burn(address owner, uint256 amount) external onlyAssetPool {
+        require(owner != address(0), "Burn from the zero address");
+        balanceOf[owner] = balanceOf[owner].sub(
+            amount,
+            "Burn amount exceeds balance"
+        );
+        totalSupply = totalSupply.sub(amount);
+        emit Transfer(owner, address(0), amount);
+    }
+
     function _transfer(
         address sender,
         address recipient,
@@ -160,22 +185,5 @@ contract UnderwriterToken is IUnderwriterToken {
         require(spender != address(0), "Approve to the zero address");
         allowance[owner][spender] = amount;
         emit Approval(owner, spender, amount);
-    }
-
-    function _mint(address recipient, uint256 amount) internal {
-        require(recipient != address(0), "Mint to the zero address");
-        totalSupply = totalSupply.add(amount);
-        balanceOf[recipient] = balanceOf[recipient].add(amount);
-        emit Transfer(address(0), recipient, amount);
-    }
-
-    function _burn(address owner, uint256 amount) internal {
-        require(owner != address(0), "Burn from the zero address");
-        balanceOf[owner] = balanceOf[owner].sub(
-            amount,
-            "Burn amount exceeds balance"
-        );
-        totalSupply = totalSupply.sub(amount);
-        emit Transfer(owner, address(0), amount);
     }
 }

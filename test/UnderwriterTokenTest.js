@@ -7,6 +7,7 @@ describe("UnderwriterToken", () => {
 
   const initialSupply = to1e18(100)
 
+  let assetPool
   let initialHolder
   let recipient
   let anotherAccount
@@ -14,18 +15,16 @@ describe("UnderwriterToken", () => {
   let token
 
   beforeEach(async () => {
-    const UnderwriterToken = await ethers.getContractFactory(
-      "UnderwriterTokenStub"
-    )
-    token = await UnderwriterToken.deploy()
+    assetPool = await ethers.getSigner(0)
+    initialHolder = await ethers.getSigner(1)
+    recipient = await ethers.getSigner(2)
+    anotherAccount = await ethers.getSigner(3)
+
+    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
+    token = await UnderwriterToken.deploy(assetPool.address)
     await token.deployed()
-    await token.initialize()
 
-    initialHolder = await ethers.getSigner(0)
     await token.mint(initialHolder.address, initialSupply)
-
-    recipient = await ethers.getSigner(1)
-    anotherAccount = await ethers.getSigner(2)
   })
 
   it("has a name", async () => {
@@ -38,14 +37,6 @@ describe("UnderwriterToken", () => {
 
   it("has 18 decimals", async () => {
     expect(await token.decimals()).to.equal(18)
-  })
-
-  describe("initialization", async () => {
-    it("should happen only one time", async () => {
-      await expect(token.initialize()).to.be.revertedWith(
-        "Token already initialized"
-      )
-    })
   })
 
   describe("total supply", () => {
@@ -454,18 +445,28 @@ describe("UnderwriterToken", () => {
     })
   })
 
-  describe("_mint", () => {
+  describe("mint", () => {
     const amount = to1e18(50)
     it("rejects a zero account", async () => {
-      await expect(token.mint(ZERO_ADDRESS, amount)).to.be.revertedWith(
-        "Mint to the zero address"
-      )
+      await expect(
+        token.connect(assetPool).mint(ZERO_ADDRESS, amount)
+      ).to.be.revertedWith("Mint to the zero address")
+    })
+
+    describe("when called not by the asset pool", () => {
+      it("reverts", async () => {
+        await expect(
+          token.connect(initialHolder).mint(initialHolder.address, amount)
+        ).to.be.revertedWith("Caller is not the asset pool")
+      })
     })
 
     describe("for a non zero account", () => {
       let mintTx
       beforeEach("minting", async () => {
-        mintTx = await token.mint(anotherAccount.address, amount)
+        mintTx = await token
+          .connect(assetPool)
+          .mint(anotherAccount.address, amount)
       })
 
       it("increments totalSupply", async () => {
@@ -485,17 +486,29 @@ describe("UnderwriterToken", () => {
     })
   })
 
-  describe("_burn", () => {
+  describe("burn", () => {
     it("rejects a zero account", async () => {
-      await expect(token.burn(ZERO_ADDRESS, to1e18(1))).to.be.revertedWith(
-        "Burn from the zero address"
-      )
+      await expect(
+        token.connect(assetPool).burn(ZERO_ADDRESS, to1e18(1))
+      ).to.be.revertedWith("Burn from the zero address")
+    })
+
+    describe("when called not by the asset pool", () => {
+      it("reverts", async () => {
+        await expect(
+          token
+            .connect(initialHolder)
+            .burn(initialHolder.address, initialSupply)
+        ).to.be.revertedWith("Caller is not the asset pool")
+      })
     })
 
     describe("for a non zero account", () => {
       it("rejects burning more than balance", async () => {
         await expect(
-          token.burn(initialHolder.address, initialSupply.add(1))
+          token
+            .connect(assetPool)
+            .burn(initialHolder.address, initialSupply.add(1))
         ).to.be.revertedWith("Burn amount exceeds balance")
       })
 
@@ -503,7 +516,9 @@ describe("UnderwriterToken", () => {
         describe(description, () => {
           let burnTx
           beforeEach("burning", async () => {
-            burnTx = await token.burn(initialHolder.address, amount)
+            burnTx = await token
+              .connect(assetPool)
+              .burn(initialHolder.address, amount)
           })
 
           it("decrements totalSupply", async () => {

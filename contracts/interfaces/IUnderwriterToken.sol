@@ -12,8 +12,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///         natively support meta transactions. Users can authorize a transfer
 ///         of their underwriter tokens with a signature conforming EIP712
 ///         standard, rather than an on-chain transaction from their address.
-///         Anyone can submit this signature on the user's behalf by calling the 
-///         permit function, as specified in EIP2612 standard, paying gas fees, 
+///         Anyone can submit this signature on the user's behalf by calling the
+///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
 interface IUnderwriterToken is IERC20 {
     /// @notice Returns hash of EIP712 Domain struct with the token name as
@@ -29,7 +29,7 @@ interface IUnderwriterToken is IERC20 {
     /// provided token owner for a replay protection.
     /// Used to construct EIP2612 signature provided to `permit` function.
     function nonces(address owner) external view returns (uint256);
-    
+
     /// @notice EIP2612 approval made with secp256k1 signature.
     ///         Users can authorize a transfer of their tokens with a signature
     ///         conforming EIP712 standard, rather than an on-chain transaction
