@@ -1,3 +1,5 @@
+pragma solidity <0.9.0;
+
 import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./ICollateralPool.sol";
@@ -5,7 +7,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IAuctioneer {
-    function offerTaken(address taker, IERC20 tokenPaid, uint256 tokenAmountPaid, uint256 portionOfPool) external;
+    function offerTaken(
+        address taker,
+        IERC20 tokenPaid,
+        uint256 tokenAmountPaid,
+        uint256 portionOfPool
+    ) external;
 }
 
 // TODO auctioneer should be able to close an auction early
@@ -18,7 +25,7 @@ interface IAuctioneer {
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory, Ownable {
-// contract Auctioneer is CloneFactory {
+    // contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
@@ -29,14 +36,24 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @dev Initialize the auctioneer
     /// @param _collateralPool The address of the master deposit contract.
     /// @param _masterAuction  The address of the master auction contract.
-    function initialize(ICollateralPool _collateralPool, address _masterAuction) external {
+    function initialize(ICollateralPool _collateralPool, address _masterAuction)
+        external
+    {
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;
         masterAuction = _masterAuction;
     }
 
-    event AuctionCreated(address indexed tokenAccepted, uint256 amount, address auctionAddress);
-    event AuctionOfferTaken(address indexed auction, address tokenAccepted, uint256 amount);
+    event AuctionCreated(
+        address indexed tokenAccepted,
+        uint256 amount,
+        address auctionAddress
+    );
+    event AuctionOfferTaken(
+        address indexed auction,
+        address tokenAccepted,
+        uint256 amount
+    );
     event AuctionClosed(address indexed auction);
 
     /// @notice Informs the auctioneer to seize funds and log appropriate events
@@ -51,9 +68,15 @@ contract Auctioneer is CloneFactory, Ownable {
     ///                        This amount will be divided by PORTION_ON_OFFER_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
-    function offerTaken(address taker, address tokenPaid, uint256 tokenAmountPaid, uint256 portionOfPool) external {
+    function offerTaken(
+        address taker,
+        address tokenPaid,
+        uint256 tokenAmountPaid,
+        uint256 portionOfPool
+    ) external {
         require(auctions[msg.sender], "Sender isn't an auction");
 
+        // TODO: do we want to include a "taker" in this event?
         emit AuctionOfferTaken(msg.sender, tokenPaid, tokenAmountPaid);
 
         Auction auction = Auction(msg.sender);
@@ -93,6 +116,10 @@ contract Auctioneer is CloneFactory, Ownable {
 
         auctions[cloneAddress] = true;
 
-        emit AuctionCreated(address(tokenAccepted), amountDesired, cloneAddress);
+        emit AuctionCreated(
+            address(tokenAccepted),
+            amountDesired,
+            cloneAddress
+        );
     }
 }
