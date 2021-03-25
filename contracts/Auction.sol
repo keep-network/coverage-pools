@@ -23,7 +23,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 contract Auction {
     using SafeERC20 for IERC20;
 
-    uint64 constant PORTION_ON_OFFER_DIVISOR = 10000;
+    uint64 constant PORTION_ON_OFFER_DIVISOR = 1000000;
 
     struct AuctionStorage {
         // the auction price, denominated in tokenAccepted
@@ -65,9 +65,8 @@ contract Auction {
         self.origanalStartTime = uint64(block.timestamp);
         self.updatedStartTime = uint64(block.timestamp);
         self.auctionLength = _auctionLength;
-        self.velocityPoolOnOfferRate =
-            (PORTION_ON_OFFER_DIVISOR * 100) /
-            _auctionLength;
+        // When the pool is full, velocity rate is 1
+        self.velocityPoolOnOfferRate = 1 * PORTION_ON_OFFER_DIVISOR;
     }
 
     /// @notice
@@ -85,31 +84,23 @@ contract Auction {
             amountToTransfer
         );
 
-        // in %
         uint256 portionToSeize =
             (onOffer * amountToTransfer) /
                 self.amountOutstanding /
                 PORTION_ON_OFFER_DIVISOR;
 
         if (amountToTransfer != self.amountOutstanding) {
-            // ratio is in %, should be 0.5 but because of solidity it is 50%
             uint256 ratioAmountPaid =
-                (PORTION_ON_OFFER_DIVISOR *
-                    (self.amountOutstanding - amountToTransfer)) /
+                (PORTION_ON_OFFER_DIVISOR * amountToTransfer) /
                     self.amountOutstanding;
-
-            // this is to capture time difference between a new set startTime and how far it moved
             uint256 localStartTimeOffset =
                 ((block.timestamp - self.updatedStartTime) * ratioAmountPaid) /
                     PORTION_ON_OFFER_DIVISOR;
             self.updatedStartTime =
                 self.updatedStartTime +
-                (localStartTimeOffset); // reset the auction start
-
-            // time offset between an original startTime and the startTime at this moment
+                (localStartTimeOffset); // update the auction start time "forward"
             uint256 globalStartTimeOffset =
                 self.updatedStartTime - self.origanalStartTime;
-
             self.velocityPoolOnOfferRate =
                 (PORTION_ON_OFFER_DIVISOR * self.auctionLength) /
                 (self.auctionLength - globalStartTimeOffset);
@@ -141,8 +132,8 @@ contract Auction {
 
     function _onOffer() internal view returns (uint256) {
         return
-            (block.timestamp - self.updatedStartTime) *
-            self.velocityPoolOnOfferRate;
+            ((block.timestamp - self.updatedStartTime) *
+                self.velocityPoolOnOfferRate) / self.auctionLength;
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
