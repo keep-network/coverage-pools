@@ -123,16 +123,15 @@ describe("Auctioneer", () => {
       const amountPaidForAuction = 99999999
       const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
-      // 36,000 / 86,400 =~ 0,4166
-      // percent to seize: 0,4166 * 100 =~ 41
+      // 36,000 / 86,400 =~ 0,416688
+      // percent to seize from pool: 0,4166 * 100 =~ 41,66%
       await expect(takeOfferTx)
         .to.emit(auctioneer, "AuctionOfferTaken")
         .withArgs(
           auctionAddress,
           signer1.address,
           testToken.address,
-          amountPaidForAuction,
-          41
+          amountPaidForAuction
         )
 
       // auction desired amount is 100,000,000 of test tokens (ex. TBTC in satoshi)
@@ -150,15 +149,14 @@ describe("Auctioneer", () => {
       const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
       // 43,200 / 86,400 = 0.5
-      // percent to seize: 0,5 * 100 = 50
+      // percent to seize from pool: 0,5 * 100 = 50%
       await expect(takeOfferTx)
         .to.emit(auctioneer, "AuctionOfferTaken")
         .withArgs(
           auctionAddress,
           signer1.address,
           testToken.address,
-          amountPaidForAuction,
-          50
+          amountPaidForAuction
         )
 
       // auction was fully paid off and should be closed

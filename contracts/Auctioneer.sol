@@ -53,8 +53,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address indexed auction,
         address auctionTaker,
         address tokenAccepted,
-        uint256 amount,
-        uint256 portionOfPool
+        uint256 amount
     );
     event AuctionClosed(address indexed auction);
 
@@ -82,14 +81,15 @@ contract Auctioneer is CloneFactory, Ownable {
             msg.sender,
             auctionTaker,
             tokenPaid,
-            tokenAmountPaid,
-            portionOfPool
+            tokenAmountPaid
         );
 
         Auction auction = Auction(msg.sender);
 
         // actually seize funds, setting them aside for the taker to withdraw
         // from the collateral pool.
+        // `portionOfPool` will be divided by PORTION_ON_OFFER_DIVISOR which is
+        // defined in Auction.sol
         collateralPool.seizeFunds(portionOfPool, auctionTaker);
 
         if (!auction.isOpen()) {

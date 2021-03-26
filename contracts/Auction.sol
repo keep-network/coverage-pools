@@ -27,7 +27,6 @@ contract Auction {
 
     // for precision purposes only
     uint256 constant PORTION_ON_OFFER_DIVISOR = 1000000;
-    uint256 constant PERCENT = 100;
 
     struct AuctionStorage {
         // the auction price, denominated in tokenAccepted
@@ -98,11 +97,7 @@ contract Auction {
 
         // percentage value rounded down
         uint256 portionToSeize =
-            PERCENT
-                .mul(onOffer)
-                .mul(amountToTransfer)
-                .div(self.amountOutstanding)
-                .div(PORTION_ON_OFFER_DIVISOR);
+            onOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (amountToTransfer != self.amountOutstanding) {
             uint256 ratioAmountPaid =
