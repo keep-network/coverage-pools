@@ -11,13 +11,6 @@ const testTokensToMint = 100000000
 const defaultAuctionTokenAllowance = 100000000
 
 describe("Auctioneer", () => {
-  let auctioneer
-  let testToken
-  let masterAuction
-  let owner
-  let signer1
-  let contractAsSigner1
-
   beforeEach(async () => {
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
