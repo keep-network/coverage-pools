@@ -6,6 +6,9 @@ const {
 } = require("./helpers/contract-test-helpers")
 
 describe("UnderwriterToken", () => {
+  // default Hardhat's networks blockchain, see https://hardhat.org/config/
+  const hardhatNetworkId = 31337 
+
   const initialSupply = to1e18(100)
 
   let initialHolder
@@ -81,7 +84,7 @@ describe("UnderwriterToken", () => {
             ),
             keccak256(toUtf8Bytes("Underwriter Token")),
             keccak256(toUtf8Bytes("1")),
-            31337, // default Hardhat's networks blockchain, see https://hardhat.org/config/
+            hardhatNetworkId,
             token.address,
           ]
         )
