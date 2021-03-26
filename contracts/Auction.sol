@@ -51,7 +51,9 @@ contract Auction {
         return self.amountOutstanding > 0;
     }
 
-    /// @dev
+    /// @notice Initializes auction
+    /// @dev At the beginning of an auction, velocity pool depleating rate is
+    ///      always 1. It increases over time after a partial auction buy.
     /// @param _auctioneer    the auctioneer contract responsible for seizing
     ///                       funds from the backing collateral pool
     /// @param _tokenAccepted the token with which the auction can be taken
@@ -77,10 +79,12 @@ contract Auction {
         self.velocityPoolDepleatingRate = 1 * PORTION_ON_OFFER_DIVISOR;
     }
 
-    /// @notice
-    /// @dev
-    /// @param amount the amount the taker is paying, denominated in
-    ///        tokenAccepted
+    /// @notice Takes an offer from an auction buyer.
+    /// @dev There are two possible ways to take an offer from a buyer. The first
+    ///      one is to buy entire auction with the amount desired for this auction.
+    ///      The other way is to buy a portion of an auction. In this case an
+    ///      auction depleating rate is increased.
+    /// @param amount the amount the taker is paying, denominated in tokenAccepted
     function takeOffer(uint256 amount) public {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
@@ -136,8 +140,11 @@ contract Auction {
         }
     }
 
-    /// @notice how much of the collateral pool can currently be purchased at
+    /// @notice How much of the collateral pool can currently be purchased at
     ///         auction, across all assets.
+    /// @dev _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns a portion of the
+    ///      collateral pool. Ex. if there's 35% available of the collateral pool,
+    ///      then _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() public view returns (uint256, uint256) {
         return (_onOffer(), PORTION_ON_OFFER_DIVISOR);

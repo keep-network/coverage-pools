@@ -62,11 +62,11 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @dev This function is meant to be called from a cloned auction. It logs
     ///      "offer taken" and "auction closed" events, seizes funds, and cleans
     ///      up closed auctions.
-    /// @param auctionTaker    the address of the taker of the auction, who will
+    /// @param auctionTaker    The address of the taker of the auction, who will
     ///                        receive the pool's seized funds
-    /// @param tokenPaid       the token this auction is denominated in
-    /// @param tokenAmountPaid the amount of the token the taker paid
-    /// @param portionOfPool   the portion of the pool the taker won at auction.
+    /// @param tokenPaid       The token this auction is denominated in
+    /// @param tokenAmountPaid The amount of the token the taker paid
+    /// @param portionOfPool   The portion of the pool the taker won at auction.
     ///                        This amount will be divided by PORTION_ON_OFFER_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
@@ -99,12 +99,12 @@ contract Auctioneer is CloneFactory, Ownable {
     }
 
     /// @notice Opens a new auction against the collateral pool. The auction
-    ///         will remain open until filled, even
+    ///         will remain open until filled.
     /// @dev Calls `Auction.initialize` to initialize the instance.
-    /// @param tokenAccepted the token with which the auction can be taken
-    /// @param amountDesired the amount denominated in _tokenAccepted. After
+    /// @param tokenAccepted The token with which the auction can be taken
+    /// @param amountDesired The amount denominated in _tokenAccepted. After
     ///                      this amount is received, the auction can close.
-    /// @param auctionLength the amount of time it takes for the auction to get
+    /// @param auctionLength The amount of time it takes for the auction to get
     ///                      to 100% of all collateral on offer, in seconds.
     function createAuction(
         IERC20 tokenAccepted,
