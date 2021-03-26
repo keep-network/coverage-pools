@@ -109,7 +109,7 @@ contract Auctioneer is CloneFactory, Ownable {
     function createAuction(
         IERC20 tokenAccepted,
         uint256 amountDesired,
-        uint64 auctionLength
+        uint256 auctionLength
     ) external onlyOwner {
         address cloneAddress = createClone(masterAuction);
 

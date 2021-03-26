@@ -6,6 +6,7 @@ import "./Auctioneer.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title Auction
 /// @notice A contract to run a linear falling-price auction against a diverse
@@ -22,8 +23,11 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 ///       profitable to close.
 contract Auction {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
-    uint64 constant PORTION_ON_OFFER_DIVISOR = 1000000;
+    // for precision purposes only
+    uint256 constant PORTION_ON_OFFER_DIVISOR = 1000000;
+    uint256 constant PERCENT = 100;
 
     struct AuctionStorage {
         // the auction price, denominated in tokenAccepted
@@ -59,15 +63,15 @@ contract Auction {
         address _auctioneer,
         IERC20 _tokenAccepted,
         uint256 _amountDesired,
-        uint64 _auctionLength
+        uint256 _auctionLength
     ) public {
         require(self.origanalStartTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.auctioneer = IAuctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
-        self.origanalStartTime = uint64(block.timestamp);
-        self.updatedStartTime = uint64(block.timestamp);
+        self.origanalStartTime = block.timestamp;
+        self.updatedStartTime = block.timestamp;
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
         self.velocityPoolDepleatingRate = 1 * PORTION_ON_OFFER_DIVISOR;
@@ -90,28 +94,32 @@ contract Auction {
 
         // percentage value rounded down
         uint256 portionToSeize =
-            (100 * onOffer * amountToTransfer) /
-                self.amountOutstanding /
-                PORTION_ON_OFFER_DIVISOR;
+            PERCENT
+                .mul(onOffer)
+                .mul(amountToTransfer)
+                .div(self.amountOutstanding)
+                .div(PORTION_ON_OFFER_DIVISOR);
 
         if (amountToTransfer != self.amountOutstanding) {
             uint256 ratioAmountPaid =
-                (PORTION_ON_OFFER_DIVISOR * amountToTransfer) /
-                    self.amountOutstanding;
+                PORTION_ON_OFFER_DIVISOR.mul(amountToTransfer).div(
+                    self.amountOutstanding
+                );
             uint256 localStartTimeOffset =
-                ((block.timestamp - self.updatedStartTime) * ratioAmountPaid) /
-                    PORTION_ON_OFFER_DIVISOR;
-            self.updatedStartTime =
-                self.updatedStartTime +
-                (localStartTimeOffset); // update the auction start time "forward"
+                (block.timestamp.sub(self.updatedStartTime))
+                    .mul(ratioAmountPaid)
+                    .div(PORTION_ON_OFFER_DIVISOR);
+            self.updatedStartTime = self.updatedStartTime.add(
+                localStartTimeOffset
+            ); // update the auction start time "forward"
             uint256 globalStartTimeOffset =
-                self.updatedStartTime - self.origanalStartTime;
-            self.velocityPoolDepleatingRate =
-                (PORTION_ON_OFFER_DIVISOR * self.auctionLength) /
-                (self.auctionLength - globalStartTimeOffset);
+                self.updatedStartTime.sub(self.origanalStartTime);
+            self.velocityPoolDepleatingRate = PORTION_ON_OFFER_DIVISOR
+                .mul(self.auctionLength)
+                .div(self.auctionLength.sub(globalStartTimeOffset));
         }
 
-        self.amountOutstanding -= amountToTransfer;
+        self.amountOutstanding = self.amountOutstanding.sub(amountToTransfer);
 
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
@@ -137,8 +145,9 @@ contract Auction {
 
     function _onOffer() internal view returns (uint256) {
         return
-            ((block.timestamp - self.updatedStartTime) *
-                self.velocityPoolDepleatingRate) / self.auctionLength;
+            (block.timestamp.sub(self.updatedStartTime))
+                .mul(self.velocityPoolDepleatingRate)
+                .div(self.auctionLength);
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
