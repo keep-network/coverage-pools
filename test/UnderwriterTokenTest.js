@@ -1,5 +1,4 @@
 const { expect } = require("chai")
-const { ethers } = require("hardhat")
 const {
   to1e18,
   pastEvents,
