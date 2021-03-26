@@ -1,5 +1,5 @@
 const { expect } = require("chai")
-const { pastEvents } = require("./helpers/contract-test-helpers")
+const { pastEvents, increaseTime } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
@@ -7,7 +7,7 @@ const auctionLength = 86400 // 24h in sec
 const auctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi. Should represent ex. 1 TBTC
 const testTokensToMint = 100000000
 // amount of test tokens that an auction (aka spender) is allowed
-// to transfer on behalf of signer1 (aka token owner) from signer1 balance
+// to transfer on behalf of a signer (aka token owner) from signer balance
 const defaultAuctionTokenAllowance = 100000000
 
 describe("Auctioneer", () => {
@@ -124,12 +124,23 @@ describe("Auctioneer", () => {
     })
 
     it("should take an offer but leave the auction opened", async () => {
+      // Increase time 10h -> 36,000 sec
+      await increaseTime(36000)
+
       const amountPaidForAuction = 99999999
       const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
+      // 36,000 / 86,400 =~ 0,4166
+      // percent to seize: 0,4166 * 100 =~ 41
       await expect(takeOfferTx)
         .to.emit(auctioneer, "AuctionOfferTaken")
-        .withArgs(auctionAddress, testToken.address, amountPaidForAuction)
+        .withArgs(
+          auctionAddress,
+          signer1.address,
+          testToken.address,
+          amountPaidForAuction,
+          41
+        )
 
       // auction desired amount is 100,000,000 of test tokens (ex. TBTC in satoshi)
       // tokens paid: 99999999
@@ -139,12 +150,23 @@ describe("Auctioneer", () => {
     })
 
     it("should take an offer and close the auction", async () => {
+      // Increase time 12h -> 36,000 sec
+      await increaseTime(43200)
+
       const amountPaidForAuction = 100000000
       const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
+      // 43,200 / 86,400 = 0.5
+      // percent to seize: 0,5 * 100 = 50
       await expect(takeOfferTx)
         .to.emit(auctioneer, "AuctionOfferTaken")
-        .withArgs(auctionAddress, testToken.address, amountPaidForAuction)
+        .withArgs(
+          auctionAddress,
+          signer1.address,
+          testToken.address,
+          amountPaidForAuction,
+          50
+        )
 
       // auction was fully paid off and should be closed
       await expect(takeOfferTx)

@@ -51,8 +51,10 @@ contract Auctioneer is CloneFactory, Ownable {
     );
     event AuctionOfferTaken(
         address indexed auction,
+        address auctionTaker,
         address tokenAccepted,
-        uint256 amount
+        uint256 amount,
+        uint256 portionOfPool
     );
     event AuctionClosed(address indexed auction);
 
@@ -60,7 +62,7 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @dev This function is meant to be called from a cloned auction. It logs
     ///      "offer taken" and "auction closed" events, seizes funds, and cleans
     ///      up closed auctions.
-    /// @param taker           the address of the taker of the auction, who will
+    /// @param auctionTaker    the address of the taker of the auction, who will
     ///                        receive the pool's seized funds
     /// @param tokenPaid       the token this auction is denominated in
     /// @param tokenAmountPaid the amount of the token the taker paid
@@ -69,21 +71,26 @@ contract Auctioneer is CloneFactory, Ownable {
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
     function offerTaken(
-        address taker,
+        address auctionTaker,
         address tokenPaid,
         uint256 tokenAmountPaid,
         uint256 portionOfPool
     ) external {
         require(auctions[msg.sender], "Sender isn't an auction");
 
-        // TODO: do we want to include a "taker" in this event?
-        emit AuctionOfferTaken(msg.sender, tokenPaid, tokenAmountPaid);
+        emit AuctionOfferTaken(
+            msg.sender,
+            auctionTaker,
+            tokenPaid,
+            tokenAmountPaid,
+            portionOfPool
+        );
 
         Auction auction = Auction(msg.sender);
 
         // actually seize funds, setting them aside for the taker to withdraw
         // from the collateral pool.
-        collateralPool.seizeFunds(portionOfPool, taker);
+        collateralPool.seizeFunds(portionOfPool, auctionTaker);
 
         if (!auction.isOpen()) {
             emit AuctionClosed(msg.sender);

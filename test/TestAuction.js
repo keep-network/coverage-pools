@@ -12,7 +12,7 @@ const defaultAuctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi.
 const defaultAuctionTokenAllowance = 100000000
 const testTokensToMint = 100000000
 
-describe.only("Auction", () => {
+describe("Auction", () => {
   let auctioneer
   let testToken
   let auction

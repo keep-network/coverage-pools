@@ -39,6 +39,10 @@ contract Auction {
 
     AuctionStorage public self;
 
+    function amountOutstanding() external view returns (uint256) {
+        return self.amountOutstanding;
+    }
+
     function isOpen() external view returns (bool) {
         return self.amountOutstanding > 0;
     }
@@ -84,8 +88,9 @@ contract Auction {
             amountToTransfer
         );
 
+        // percentage value rounded down
         uint256 portionToSeize =
-            (onOffer * amountToTransfer) /
+            (100 * onOffer * amountToTransfer) /
                 self.amountOutstanding /
                 PORTION_ON_OFFER_DIVISOR;
 
