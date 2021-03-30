@@ -1,19 +1,12 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity <0.9.0;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
-import "./ICollateralPool.sol";
+import "./interfaces/ICollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface IAuctioneer {
-    function offerTaken(
-        address taker,
-        IERC20 tokenPaid,
-        uint256 tokenAmountPaid,
-        uint256 portionOfPool
-    ) external;
-}
 
 // TODO auctioneer should be able to close an auction early
 // TODO auctioneer should be able to speed up auctions based on exit market activity
