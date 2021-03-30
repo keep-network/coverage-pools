@@ -34,7 +34,7 @@ contract Auction {
         IAuctioneer auctioneer;
         uint256 amountOutstanding;
         uint256 startTime;
-        uint256 origanalStartTime;
+        uint256 originalStartTime;
         uint256 updatedStartTime;
         uint256 auctionLength;
         uint256 velocityPoolDepleatingRate;
@@ -66,12 +66,12 @@ contract Auction {
         uint256 _amountDesired,
         uint256 _auctionLength
     ) public {
-        require(self.origanalStartTime == 0, "Auction already initialized");
+        require(self.originalStartTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.auctioneer = IAuctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
-        self.origanalStartTime = block.timestamp;
+        self.originalStartTime = block.timestamp;
         self.updatedStartTime = block.timestamp;
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
@@ -112,7 +112,7 @@ contract Auction {
                 localStartTimeOffset
             ); // update the auction start time "forward"
             uint256 globalStartTimeOffset =
-                self.updatedStartTime.sub(self.origanalStartTime);
+                self.updatedStartTime.sub(self.originalStartTime);
             self.velocityPoolDepleatingRate = PORTION_ON_OFFER_DIVISOR
                 .mul(self.auctionLength)
                 .div(self.auctionLength.sub(globalStartTimeOffset));

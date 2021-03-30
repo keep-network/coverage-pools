@@ -25,7 +25,6 @@ interface IAuctioneer {
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory, Ownable {
-    // contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
