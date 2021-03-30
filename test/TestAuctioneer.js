@@ -15,9 +15,7 @@ describe("Auctioneer", () => {
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction")
-    const KEEPCollateralPool = await ethers.getContractFactory(
-      "KEEPCollateralPool"
-    )
+    const CollateralPool = await ethers.getContractFactory("CollateralPool")
 
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
@@ -30,13 +28,10 @@ describe("Auctioneer", () => {
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    keepCollateralPool = await KEEPCollateralPool.deploy()
-    await keepCollateralPool.deployed()
+    collateralPool = await CollateralPool.deploy()
+    await collateralPool.deployed()
 
-    await auctioneer.initialize(
-      keepCollateralPool.address,
-      masterAuction.address
-    )
+    await auctioneer.initialize(collateralPool.address, masterAuction.address)
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
@@ -49,7 +44,7 @@ describe("Auctioneer", () => {
   describe("initialize", async () => {
     it("should not initialize actioneer a second time", async () => {
       await expect(
-        auctioneer.initialize(keepCollateralPool.address, masterAuction.address)
+        auctioneer.initialize(collateralPool.address, masterAuction.address)
       ).to.be.revertedWith("Auctioneer already initialized")
     })
   })

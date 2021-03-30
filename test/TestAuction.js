@@ -17,9 +17,7 @@ describe("Auction", () => {
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction")
-    const KEEPCollateralPool = await ethers.getContractFactory(
-      "KEEPCollateralPool"
-    )
+    const CollateralPool = await ethers.getContractFactory("CollateralPool")
 
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
@@ -31,13 +29,10 @@ describe("Auction", () => {
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    keepCollateralPool = await KEEPCollateralPool.deploy()
-    await keepCollateralPool.deployed()
+    collateralPool = await CollateralPool.deploy()
+    await collateralPool.deployed()
 
-    await auctioneer.initialize(
-      keepCollateralPool.address,
-      masterAuction.address
-    )
+    await auctioneer.initialize(collateralPool.address, masterAuction.address)
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
