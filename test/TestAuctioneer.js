@@ -1,14 +1,18 @@
 const { expect } = require("chai")
-const { pastEvents, increaseTime } = require("./helpers/contract-test-helpers")
+const {
+  to1e18,
+  pastEvents,
+  increaseTime,
+} = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const auctionLength = 86400 // 24h in sec
-const auctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi. Should represent ex. 1 TBTC
-const testTokensToMint = 100000000
+const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
+const testTokensToMint = to1e18(1)
 // amount of test tokens that an auction (aka spender) is allowed
 // to transfer on behalf of a signer (aka token owner) from signer balance
-const defaultAuctionTokenAllowance = 100000000
+const defaultAuctionTokenAllowance = to1e18(1)
 
 describe("Auctioneer", () => {
   beforeEach(async () => {
@@ -115,7 +119,7 @@ describe("Auctioneer", () => {
       // Increase time 10h -> 36,000 sec
       await increaseTime(36000)
 
-      const amountPaidForAuction = 99999999
+      const amountPaidForAuction = to1e18(1).sub(1) // 1 * 10^18 - 1
       const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
       // 36,000 / 86,400 =~ 0,416688
@@ -129,8 +133,8 @@ describe("Auctioneer", () => {
           amountPaidForAuction
         )
 
-      // auction desired amount is 100,000,000 of test tokens (ex. TBTC in satoshi)
-      // tokens paid: 99999999
+      // auction desired amount is 1 * 10^18 of test tokens
+      // tokens paid: 1 * 10^18 - 1
       // remaining tokens to collect is 1, hence the auction cannot be closed yet
       await expect(takeOfferTx).to.not.emit(auctioneer, "AuctionClosed")
       expect(await auctioneer.auctions(auctionAddress)).to.equal(true)
@@ -140,7 +144,7 @@ describe("Auctioneer", () => {
       // Increase time 12h -> 36,000 sec
       await increaseTime(43200)
 
-      const amountPaidForAuction = 100000000
+      const amountPaidForAuction = to1e18(1)
       const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
 
       // 43,200 / 86,400 = 0.5

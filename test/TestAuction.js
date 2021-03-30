@@ -1,16 +1,22 @@
 const chai = require("chai")
 
 const expect = chai.expect
-const { pastEvents, increaseTime } = require("./helpers/contract-test-helpers")
+const {
+  to1e18,
+  pastEvents,
+  increaseTime,
+} = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
+// const { ethers } = require("ethers")
+const { BigNumber } = ethers
 
 const defaultAuctionLength = 86400 // 24h in sec
-const defaultAuctionAmountDesired = 100000000 // equivalent of 1 BTC in satoshi. Should represent ex. 1 TBTC
+const defaultAuctionAmountDesired = to1e18(1) // ex. 1 TBTC
 // amount of test tokens that an auction (aka spender) is allowed
 // to transfer on behalf of a signer (aka token owner) from signer balance
-const defaultAuctionTokenAllowance = 100000000
-const testTokensToMint = 100000000
+const defaultAuctionTokenAllowance = to1e18(1)
+const testTokensToMint = to1e18(1)
 
 describe("Auction", () => {
   beforeEach(async () => {
@@ -181,14 +187,17 @@ describe("Auction", () => {
       // Percent on offer after 1h of auction start time: 3,600 * 1 * / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
       // ~4.16% on offer of a collateral pool after 1h
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
-      // Pay 50% of the desired amount for an auction 50,000,000
-      let partialOfferAmount = defaultAuctionAmountDesired / 2
+      // Pay 50% of the desired amount for an auction 0.5 * 10^18
+      let partialOfferAmount = defaultAuctionAmountDesired.div(
+        BigNumber.from("2")
+      )
+      const expectedAuctioneerBalance = partialOfferAmount
       await auctionAsSigner1.takeOffer(partialOfferAmount)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-        50000000
+        expectedAuctioneerBalance
       )
 
-      // Ratio amount paid: (50,000,000) / 100,000,000 = 0.5
+      // Ratio amount paid: 0.5 / 1 = 0.5
       // Updated start time: 0 + (3,600 - 0) * 0.5 = 1,800
       // Velocity pool depleating rate: 86,400 / (86,400 - 1,800) ~ 1.0212
       // Availability of assets in the collateral pool: 100% - (4.16% / 2) = 97.92%
@@ -201,14 +210,16 @@ describe("Auction", () => {
       onOfferObj = await auctionAsSigner1.onOffer()
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0531, 0.0002)
 
-      // Pay 20% of the remaining amount for an auction 50,000,000 / 5 = 10,000,000
-      partialOfferAmount = partialOfferAmount / 5
+      // Pay 20% of the remaining amount for an auction 0.5 * 10^18 / 5 = 0.1 * 10^18
+      partialOfferAmount = partialOfferAmount.div(BigNumber.from("5"))
+      // Auctioneer balance: (0.5 + 0.1) => 0.6 * 10^18
+      auctioneerBalance = expectedAuctioneerBalance.add(partialOfferAmount)
       await auctionAsSigner1.takeOffer(partialOfferAmount)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-        60000000
+        auctioneerBalance
       )
 
-      // Ratio amount paid: (10,000,000) / 50,000,000 = 0.2
+      // Ratio amount paid: 0.1 / 0.5 = 0.2
       // Updated start time: 1,800 + (6,300 - 1,800) * 0.2 = 2,700
       // Velocity pool depleating rate: 86,400 / (86,400 - 2,700) ~ 1.03225
       // Availability of assets in a collateral pool: 97.92% - (5.31% * 0.2) ~ 96.86%
@@ -216,14 +227,14 @@ describe("Auction", () => {
       // Increase time 20min -> 1,200 sec
       // Now: 6,300 + 1,200 = 7,500
       await increaseTime(1200)
-      // 60% of the desired amount was paid. 50,000,000 + 10,000,000 out of 100,000,000
+      // 60% of the desired amount was paid. 0.5 + 0.1 out of 1
       onOfferObj = await auctionAsSigner1.onOffer()
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0573, 0.0002)
-      // Buy the rest and close the auction 100,000,000 - 60,000,000 = 40,000,000
-      partialOfferAmount = 40000000
+      // Buy the rest and close the auction 1 - 0.6 => 0.4 * 10^18
+      partialOfferAmount = defaultAuctionAmountDesired.sub(auctioneerBalance)
       await auctionAsSigner1.takeOffer(partialOfferAmount)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-        100000000
+        defaultAuctionAmountDesired
       )
 
       // when a desired amount is collected, this auction should be destroyed
@@ -231,6 +242,7 @@ describe("Auction", () => {
     })
 
     it("should take a partial offer from multiple takers", async () => {
+      // Auction amount desired: 1 * 10^18
       // Increase time 1h -> 3600sec
       await increaseTime(3600)
 
@@ -239,14 +251,16 @@ describe("Auction", () => {
       // Percent on offer after 1h of auction start time: 3,600 * 1 * / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
       // ~4.16% on offer of a collateral pool after 1h
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
-      // Pay 25% of the desired amount for the auction 25,000,000
-      let partialOfferAmount = defaultAuctionAmountDesired / 4
+      // Pay 25% of the desired amount for the auction: 0.25 * 10^18
+      const partialOfferAmount = defaultAuctionAmountDesired.div(
+        BigNumber.from("4")
+      )
       await auctionAsSigner1.takeOffer(partialOfferAmount)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-        25000000
+        partialOfferAmount
       )
 
-      // Ratio amount paid: (25,000,000) / 100,000,000 = 0.25
+      // Ratio amount paid: 0.25 / 1 = 0.25
       // Updated start time: 0 + (3,600 - 0) * 0.25 = 900
       // Velocity pool depleating rate: 86,400 / (86,400 - 900) ~ 1.0105
       // Availability of assets in the collateral pool: 100% - (4.16% / 4) = 98.96%
@@ -260,10 +274,12 @@ describe("Auction", () => {
       onOfferObj = await auctionAsSigner2.onOffer()
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0421, 0.0002)
 
-      // Pay the rest of the remaining auction 75,000,000
-      partialOfferAmount = await auctionAsSigner2.amountOutstanding()
-      expect(partialOfferAmount).to.equal(75000000)
-      await auctionAsSigner2.takeOffer(partialOfferAmount)
+      // Pay the rest of the remaining auction 0.75 * 10^18
+      const amountOutstanding = await auctionAsSigner2.amountOutstanding()
+      expect(amountOutstanding).to.equal(
+        defaultAuctionAmountDesired.sub(partialOfferAmount)
+      )
+      await auctionAsSigner2.takeOffer(amountOutstanding)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
         defaultAuctionAmountDesired
       )
