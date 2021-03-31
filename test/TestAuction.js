@@ -18,7 +18,7 @@ const defaultAuctionAmountDesired = to1e18(1) // ex. 1 TBTC
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 
-describe("Auction", () => {
+describe("Auction", function () {
   before(async () => {
     Auctioneer = await ethers.getContractFactory("Auctioneer")
     TestToken = await ethers.getContractFactory("TestToken")
@@ -65,7 +65,7 @@ describe("Auction", () => {
       .approve(auction.address, defaultAuctionTokenAllowance)
   })
 
-  describe("initialize", async () => {
+  describe("initialize", () => {
     it("should not initialize already initialized auction", async () => {
       expect(await auction.isOpen()).to.equal(true)
 
@@ -91,7 +91,7 @@ describe("Auction", () => {
     })
   })
 
-  describe("on offer", async () => {
+  describe("on offer", () => {
     it("should return a portion of a collateral pool which is available for taken when auction length is 100000", async () => {
       const auctionAmountDesired = 10000
       const auctionLength = 100000 // sec -> ~28h
@@ -145,7 +145,7 @@ describe("Auction", () => {
     })
   })
 
-  describe("take offer", async () => {
+  describe("take offer", () => {
     it("should pay more than 0 tokens", async () => {
       await expect(auction.takeOffer(0)).to.be.revertedWith(
         "Can't pay 0 tokens"

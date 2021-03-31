@@ -14,7 +14,7 @@ const testTokensToMint = to1e18(1)
 // to transfer on behalf of a signer (aka token owner) from signer balance
 const defaultAuctionTokenAllowance = to1e18(1)
 
-describe("Auctioneer", () => {
+describe("Auctioneer", function () {
   before(async () => {
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
@@ -53,7 +53,7 @@ describe("Auctioneer", () => {
     })
   })
 
-  describe("create auction", async () => {
+  describe("create auction", () => {
     it("should create a new auction as an owner", async () => {
       const createAuctionTx = await auctioneer.createAuction(
         testToken.address,
@@ -83,7 +83,7 @@ describe("Auctioneer", () => {
     })
   })
 
-  describe("offer taken", async () => {
+  describe("offer taken", () => {
     let auction
     let auctionAddress
 
