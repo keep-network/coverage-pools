@@ -147,7 +147,7 @@ describe("Auction", function () {
       await approveTestTokenForAuction(auction.address)
     })
 
-    it("should pay more than 0 tokens", async () => {
+    it("does not allow to pay no tokens", async () => {
       await expect(auction.takeOffer(0)).to.be.revertedWith(
         "Can't pay 0 tokens"
       )
