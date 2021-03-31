@@ -27,8 +27,6 @@ describe("Auctioneer", () => {
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
 
-    contractAsSigner1 = await auctioneer.connect(signer1)
-
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
@@ -76,11 +74,9 @@ describe("Auctioneer", () => {
 
     it("should not create a new auction when not an owner", async () => {
       await expect(
-        contractAsSigner1.createAuction(
-          testToken.address,
-          auctionAmountDesired,
-          auctionLength
-        )
+        auctioneer
+          .connect(signer1)
+          .createAuction(testToken.address, auctionAmountDesired, auctionLength)
       ).to.be.revertedWith("caller is not the owner")
     })
   })
@@ -88,8 +84,6 @@ describe("Auctioneer", () => {
   describe("offer taken", async () => {
     let auction
     let auctionAddress
-    let testTokenAsSigner1
-    let auctionAsSigner1
 
     beforeEach(async () => {
       const createAuctionTx = await auctioneer.createAuction(
@@ -104,15 +98,9 @@ describe("Auctioneer", () => {
 
       auction = new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
 
-      testTokenAsSigner1 = await testToken.connect(signer1)
-
-      await testTokenAsSigner1.approve(
-        auction.address,
-        defaultAuctionTokenAllowance
-      )
-
-      // we need to connect signer1 to auction so that signer1 can initiate a call
-      auctionAsSigner1 = await auction.connect(signer1)
+      await testToken
+        .connect(signer1)
+        .approve(auction.address, defaultAuctionTokenAllowance)
     })
 
     it("should take an offer but leave the auction opened", async () => {
@@ -120,7 +108,9 @@ describe("Auctioneer", () => {
       await increaseTime(36000)
 
       const amountPaidForAuction = to1e18(1).sub(1) // 1 * 10^18 - 1
-      const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
+      const takeOfferTx = await auction
+        .connect(signer1)
+        .takeOffer(amountPaidForAuction)
 
       // 36,000 / 86,400 =~ 0,416688
       // percent to seize from pool: 0,4166 * 100 =~ 41,66%
@@ -145,7 +135,9 @@ describe("Auctioneer", () => {
       await increaseTime(43200)
 
       const amountPaidForAuction = to1e18(1)
-      const takeOfferTx = await auctionAsSigner1.takeOffer(amountPaidForAuction)
+      const takeOfferTx = await auction
+        .connect(signer1)
+        .takeOffer(amountPaidForAuction)
 
       // 43,200 / 86,400 = 0.5
       // percent to seize from pool: 0,5 * 100 = 50%
