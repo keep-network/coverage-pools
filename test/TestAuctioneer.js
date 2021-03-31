@@ -54,24 +54,21 @@ describe("Auctioneer", function () {
   })
 
   describe("create auction", () => {
+    before(async () => {
+      events = await createAuction()
+    })
+
     it("should create a new auction as an owner", async () => {
-      const createAuctionTx = await auctioneer.createAuction(
-        testToken.address,
-        auctionAmountDesired,
-        auctionLength
-      )
+      expect(
+        await auctioneer.auctions(events[0].args["auctionAddress"])
+      ).to.equal(true)
+    })
 
-      const receipt = await createAuctionTx.wait()
-      const events = pastEvents(receipt, auctioneer, "AuctionCreated")
-
+    it("should emit auction created event", async () => {
       expect(events.length).to.equal(1)
       expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
       expect(events[0].args["amount"]).to.equal(auctionAmountDesired)
       expect(events[0].args["auctionAddress"]).to.be.properAddress
-
-      expect(
-        await auctioneer.auctions(events[0].args["auctionAddress"])
-      ).to.equal(true)
     })
 
     it("should not create a new auction when not an owner", async () => {
@@ -81,6 +78,17 @@ describe("Auctioneer", function () {
           .createAuction(testToken.address, auctionAmountDesired, auctionLength)
       ).to.be.revertedWith("caller is not the owner")
     })
+
+    async function createAuction() {
+      const createAuctionTx = await auctioneer.createAuction(
+        testToken.address,
+        auctionAmountDesired,
+        auctionLength
+      )
+
+      const receipt = await createAuctionTx.wait()
+      return pastEvents(receipt, auctioneer, "AuctionCreated")
+    }
   })
 
   describe("offer taken", () => {
