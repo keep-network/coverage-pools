@@ -15,14 +15,14 @@ const testTokensToMint = to1e18(1)
 const defaultAuctionTokenAllowance = to1e18(1)
 
 describe("Auctioneer", () => {
-  beforeEach(async () => {
+  before(async () => {
+    owner = await ethers.getSigner(0)
+    signer1 = await ethers.getSigner(1)
+
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction")
     const CollateralPool = await ethers.getContractFactory("CollateralPool")
-
-    owner = await ethers.getSigner(0)
-    signer1 = await ethers.getSigner(1)
 
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
@@ -37,7 +37,9 @@ describe("Auctioneer", () => {
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
+  })
 
+  beforeEach(async () => {
     await testToken.mint(owner.address, testTokensToMint)
     await testToken.mint(signer1.address, testTokensToMint)
     await testToken.approve(signer1.address, testTokensToMint)
