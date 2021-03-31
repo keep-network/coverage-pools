@@ -50,23 +50,16 @@ describe("Auction", function () {
     await testToken.mint(signer2.address, testTokensToMint)
     await testToken.approve(signer1.address, testTokensToMint)
     await testToken.approve(signer2.address, testTokensToMint)
-
-    auction = await createAuction(
-      defaultAuctionAmountDesired,
-      defaultAuctionLength
-    )
-
-    await testToken
-      .connect(signer1)
-      .approve(auction.address, defaultAuctionTokenAllowance)
-
-    await testToken
-      .connect(signer2)
-      .approve(auction.address, defaultAuctionTokenAllowance)
   })
 
   describe("initialize", () => {
     it("should not initialize already initialized auction", async () => {
+      auction = await createAuction(
+        defaultAuctionAmountDesired,
+        defaultAuctionLength
+      )
+      await approveTestTokenForAuction(auction.address)
+
       expect(await auction.isOpen()).to.equal(true)
 
       await expect(
@@ -146,6 +139,14 @@ describe("Auction", function () {
   })
 
   describe("take offer", () => {
+    beforeEach(async () => {
+      auction = await createAuction(
+        defaultAuctionAmountDesired,
+        defaultAuctionLength
+      )
+      await approveTestTokenForAuction(auction.address)
+    })
+
     it("should pay more than 0 tokens", async () => {
       await expect(auction.takeOffer(0)).to.be.revertedWith(
         "Can't pay 0 tokens"
@@ -298,5 +299,15 @@ describe("Auction", function () {
     const auctionAddress = events[0].args["auctionAddress"]
 
     return new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
+  }
+
+  async function approveTestTokenForAuction(auctionAddress) {
+    await testToken
+      .connect(signer1)
+      .approve(auctionAddress, defaultAuctionTokenAllowance)
+
+    await testToken
+      .connect(signer2)
+      .approve(auctionAddress, defaultAuctionTokenAllowance)
   }
 })
