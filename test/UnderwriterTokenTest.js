@@ -1,9 +1,5 @@
 const { expect } = require("chai")
-const {
-  to1e18,
-  pastEvents,
-  ZERO_ADDRESS,
-} = require("./helpers/contract-test-helpers")
+const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 describe("UnderwriterToken", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
@@ -138,13 +134,10 @@ describe("UnderwriterToken", () => {
           const tx = await token
             .connect(initialHolder)
             .transfer(recipient.address, amount)
-          const receipt = await tx.wait()
-          const events = pastEvents(receipt, token, "Transfer")
 
-          expect(events.length).to.equal(1)
-          expect(events[0].args["from"]).to.equal(initialHolder.address)
-          expect(events[0].args["to"]).to.equal(recipient.address)
-          expect(events[0].args["value"]).equal(amount)
+          await expect(tx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, recipient.address, amount)
         })
       })
 
@@ -165,13 +158,10 @@ describe("UnderwriterToken", () => {
           const tx = await token
             .connect(initialHolder)
             .transfer(recipient.address, amount)
-          const receipt = await tx.wait()
-          const events = pastEvents(receipt, token, "Transfer")
 
-          expect(events.length).to.equal(1)
-          expect(events[0].args["from"]).to.equal(initialHolder.address)
-          expect(events[0].args["to"]).to.equal(recipient.address)
-          expect(events[0].args["value"]).equal(amount)
+          await expect(tx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, recipient.address, amount)
         })
       })
     })
@@ -226,26 +216,24 @@ describe("UnderwriterToken", () => {
               const tx = await token
                 .connect(anotherAccount)
                 .transferFrom(initialHolder.address, recipient.address, amount)
-              const receipt = await tx.wait()
-              const events = pastEvents(receipt, token, "Transfer")
 
-              expect(events.length).to.equal(1)
-              expect(events[0].args["from"]).to.equal(initialHolder.address)
-              expect(events[0].args["to"]).to.equal(recipient.address)
-              expect(events[0].args["value"]).to.equal(amount)
+              await expect(tx)
+                .to.emit(token, "Transfer")
+                .withArgs(initialHolder.address, recipient.address, amount)
             })
 
             it("emits an approval event", async () => {
               const tx = await token
                 .connect(anotherAccount)
                 .transferFrom(initialHolder.address, recipient.address, amount)
-              const receipt = await tx.wait()
-              const events = pastEvents(receipt, token, "Approval")
 
-              expect(events.length).to.equal(1)
-              expect(events[0].args["owner"]).to.equal(initialHolder.address)
-              expect(events[0].args["spender"]).to.equal(anotherAccount.address)
-              expect(events[0].args["value"]).to.equal(allowance.sub(amount))
+              await expect(tx)
+                .to.emit(token, "Approval")
+                .withArgs(
+                  initialHolder.address,
+                  anotherAccount.address,
+                  allowance.sub(amount)
+                )
             })
           })
 
@@ -362,13 +350,10 @@ describe("UnderwriterToken", () => {
           const tx = await token
             .connect(initialHolder)
             .approve(anotherAccount.address, allowance)
-          const receipt = await tx.wait()
-          const events = pastEvents(receipt, token, "Approval")
 
-          expect(events.length).to.equal(1)
-          expect(events[0].args["owner"]).to.equal(initialHolder.address)
-          expect(events[0].args["spender"]).to.equal(anotherAccount.address)
-          expect(events[0].args["value"]).to.equal(allowance)
+          await expect(tx)
+            .to.emit(token, "Approval")
+            .withArgs(initialHolder.address, anotherAccount.address, allowance)
         })
 
         describe("when there was no approved amount before", () => {
@@ -416,13 +401,10 @@ describe("UnderwriterToken", () => {
           const tx = await token
             .connect(initialHolder)
             .approve(anotherAccount.address, allowance)
-          const receipt = await tx.wait()
-          const events = pastEvents(receipt, token, "Approval")
 
-          expect(events.length).to.equal(1)
-          expect(events[0].args["owner"]).to.equal(initialHolder.address)
-          expect(events[0].args["spender"]).to.equal(anotherAccount.address)
-          expect(events[0].args["value"]).to.equal(allowance)
+          await expect(tx)
+            .to.emit(token, "Approval")
+            .withArgs(initialHolder.address, anotherAccount.address, allowance)
         })
 
         describe("when there was no approved amount before", () => {
@@ -496,12 +478,9 @@ describe("UnderwriterToken", () => {
       })
 
       it("emits Transfer event", async () => {
-        const receipt = await mintTx.wait()
-        const events = pastEvents(receipt, token, "Transfer")
-        expect(events.length).to.equal(1)
-        expect(events[0].args["from"]).to.equal(ZERO_ADDRESS)
-        expect(events[0].args["to"]).to.equal(anotherAccount.address)
-        expect(events[0].args["value"]).to.equal(amount)
+        await expect(mintTx)
+          .to.emit(token, "Transfer")
+          .withArgs(ZERO_ADDRESS, anotherAccount.address, amount)
       })
     })
   })
@@ -540,12 +519,9 @@ describe("UnderwriterToken", () => {
           })
 
           it("emits Transfer event", async () => {
-            const receipt = await burnTx.wait()
-            const events = pastEvents(receipt, token, "Transfer")
-            expect(events.length).to.equal(1)
-            expect(events[0].args["from"]).to.equal(initialHolder.address)
-            expect(events[0].args["to"]).to.equal(ZERO_ADDRESS)
-            expect(events[0].args["value"]).to.equal(amount)
+            await expect(burnTx)
+              .to.emit(token, "Transfer")
+              .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
           })
         })
       }
@@ -692,13 +668,14 @@ describe("UnderwriterToken", () => {
               signature.r,
               signature.s
             )
-          const receipt = await tx.wait()
-          const events = pastEvents(receipt, token, "Approval")
 
-          expect(events.length).to.equal(1)
-          expect(events[0].args["owner"]).to.equal(permittingHolder.address)
-          expect(events[0].args["spender"]).to.equal(anotherAccount.address)
-          expect(events[0].args["value"]).to.equal(allowance)
+          await expect(tx)
+            .to.emit(token, "Approval")
+            .withArgs(
+              permittingHolder.address,
+              anotherAccount.address,
+              allowance
+            )
         })
 
         describe("when there was no approved amount before", () => {
@@ -805,13 +782,14 @@ describe("UnderwriterToken", () => {
               signature.r,
               signature.s
             )
-          const receipt = await tx.wait()
-          const events = pastEvents(receipt, token, "Approval")
 
-          expect(events.length).to.equal(1)
-          expect(events[0].args["owner"]).to.equal(permittingHolder.address)
-          expect(events[0].args["spender"]).to.equal(anotherAccount.address)
-          expect(events[0].args["value"]).to.equal(allowance)
+          await expect(tx)
+            .to.emit(token, "Approval")
+            .withArgs(
+              permittingHolder.address,
+              anotherAccount.address,
+              allowance
+            )
         })
 
         describe("when there was no approved amount before", () => {
