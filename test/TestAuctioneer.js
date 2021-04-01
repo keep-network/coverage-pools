@@ -1,4 +1,5 @@
 const { expect } = require("chai")
+const { BigNumber } = require("ethers")
 const {
   to1e18,
   pastEvents,
@@ -114,28 +115,57 @@ describe("Auctioneer", function () {
     })
 
     it("should take an offer but leave the auction opened", async () => {
-      // Increase time 10h -> 36,000 sec
-      await increaseTime(36000)
+      // Increase time 1h -> 3,600 sec
+      await increaseTime(3600)
 
-      const amountPaidForAuction = to1e18(1).sub(1) // 1 * 10^18 - 1
-      const takeOfferTx = await auction
+      // half of the available pool was paid
+      let amountPaidForAuction = to1e18(1).div(BigNumber.from("2")) // 1 * 10^18 / 2
+      let takeOfferTx = await auction
         .connect(signer1)
         .takeOffer(amountPaidForAuction)
 
-      // 36,000 / 86,400 =~ 0,416688
-      // percent to seize from pool: 0,4166 * 100 =~ 41,66%
-      await expect(takeOfferTx)
-        .to.emit(auctioneer, "AuctionOfferTaken")
-        .withArgs(
-          auctionAddress,
-          signer1.address,
-          testToken.address,
-          amountPaidForAuction
-        )
+      // portion available to seize from a pool: 3,600 / 86,400 =~ 0.0416666
+      // portionToSeize: 0.0416666 / 2 = 0.0208333
+      let portionToSeize = BigNumber.from("20833")
+      let receipt = await takeOfferTx.wait()
+
+      let events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
+      expect(events.length).to.equal(1)
+      expect(events[0].args["auction"]).to.equal(auctionAddress)
+      expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
+      expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
+      expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
+      expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
+
+      // increase time 45min -> 2,700 sec
+      // now: 3,600 + 2,700 = 6,300
+      await increaseTime(2700)
+      // (6,300 - 1,800) * 1.0212 / 86,400 = 0.0531875 +/- 0.0002
+      // ~5.31% on offer of a collateral pool after 1h45min
+
+      // Pay 20% of the remaining amount for an auction (0.5 * 10^18) / 5 = 0.1 * 10^18
+      amountPaidForAuction = amountPaidForAuction.div(BigNumber.from("5"))
+      takeOfferTx = await auction
+        .connect(signer1)
+        .takeOffer(amountPaidForAuction)
+
+      // portion available to seize from a pool: 0.0531875
+      // portionToSeize: 0.0531875 / 5 = 0.0106375
+      portionToSeize = BigNumber.from("10637")
+
+      receipt = await takeOfferTx.wait()
+
+      events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
+      expect(events.length).to.equal(1)
+      expect(events[0].args["auction"]).to.equal(auctionAddress)
+      expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
+      expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
+      expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
+      expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
 
       // auction desired amount is 1 * 10^18 of test tokens
-      // tokens paid: 1 * 10^18 - 1
-      // remaining tokens to collect is 1, hence the auction cannot be closed yet
+      // tokens paid: 1 * 10^18 - 0.6 * 10^18
+      // remaining tokens to collect is 0.4 * 10^18, hence the auction cannot be closed yet
       await expect(takeOfferTx).to.not.emit(auctioneer, "AuctionClosed")
       expect(await auctioneer.auctions(auctionAddress)).to.equal(true)
     })
@@ -149,16 +179,16 @@ describe("Auctioneer", function () {
         .connect(signer1)
         .takeOffer(amountPaidForAuction)
 
-      // 43,200 / 86,400 = 0.5
-      // percent to seize from pool: 0,5 * 100 = 50%
-      await expect(takeOfferTx)
-        .to.emit(auctioneer, "AuctionOfferTaken")
-        .withArgs(
-          auctionAddress,
-          signer1.address,
-          testToken.address,
-          amountPaidForAuction
-        )
+      // percent to seize from a pool: 43,200 / 86,400 = 0.5
+      const portionToSeize = BigNumber.from("500000")
+      const receipt = await takeOfferTx.wait()
+      const events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
+      expect(events.length).to.equal(1)
+      expect(events[0].args["auction"]).to.equal(auctionAddress)
+      expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
+      expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
+      expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
+      expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
 
       // auction was fully paid off and should be closed
       await expect(takeOfferTx)

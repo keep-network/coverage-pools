@@ -43,9 +43,10 @@ contract Auctioneer is CloneFactory, Ownable {
     );
     event AuctionOfferTaken(
         address indexed auction,
-        address auctionTaker,
+        address indexed auctionTaker,
         address tokenAccepted,
-        uint256 amount
+        uint256 amount,
+        uint256 portionOfPool
     );
     event AuctionClosed(address indexed auction);
 
@@ -73,7 +74,8 @@ contract Auctioneer is CloneFactory, Ownable {
             msg.sender,
             auctionTaker,
             tokenPaid,
-            tokenAmountPaid
+            tokenAmountPaid,
+            portionOfPool
         );
 
         Auction auction = Auction(msg.sender);
