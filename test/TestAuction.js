@@ -85,34 +85,37 @@ describe("Auction", function () {
   })
 
   describe("on offer", () => {
-    it("should return a portion of a collateral pool which is available for taken when auction length is 100000", async () => {
+    it("should return zero on offer of the collateral pool right after the auction starts", async () => {
       const auctionAmountDesired = 10000
       const auctionLength = 100000 // sec -> ~28h
       const auction = await createAuction(auctionAmountDesired, auctionLength)
 
       expect(await auction.isOpen()).to.be.equal(true)
 
-      await increaseTime(24000)
       const onOffer = await auction.onOffer()
 
-      // auction length: 100000 sec
-      // 24000 sec passed, which means 24% of a collateral pool is on offer
-      expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.24, 0.01)
+      expect(onOffer[0] / onOffer[1]).to.be.closeTo(0, 0.01)
     })
 
-    it("should return a portion of a collateral pool which is available for taken when auction length is 50000", async () => {
+    it("should return the entire pool when the auction is over", async () => {
       const auctionAmountDesired = 10000
       const auctionLength = 50000 // sec -> ~14h
       const auction = await createAuction(auctionAmountDesired, auctionLength)
 
+      await increaseTime(auctionLength)
+      let onOffer = await auction.onOffer()
+
+      // when the auction is over, entire pool is available for taken
+      expect(onOffer[0] / onOffer[1]).to.equal(1)
+
+      // add 100sec
+      await increaseTime(100)
+      onOffer = await auction.onOffer()
+
+      // increasing time should not affect the portion of the pool availability
+      expect(onOffer[0] / onOffer[1]).to.equal(1)
+
       expect(await auction.isOpen()).to.be.equal(true)
-
-      await increaseTime(24000)
-      const onOffer = await auction.onOffer()
-
-      // auction length: 50000sec
-      // 24000 sec passed, which means 48% of a collateral pool is on offer
-      expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.48, 0.01)
     })
 
     it("should return a portion of a collateral pool which is available for taken when requesting a couple of times", async () => {
@@ -183,7 +186,7 @@ describe("Auction", function () {
       // Percent on offer after 1h of auction start time: 3,600 * 1 * / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
       // ~4.16% on offer of a collateral pool after 1h
       expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
-      // Pay 50% of the desired amount for an auction 0.5 * 10^18
+      // Pay 50% of the desired amount for the auction 0.5 * 10^18
       let partialOfferAmount = defaultAuctionAmountDesired.div(
         BigNumber.from("2")
       )
@@ -281,6 +284,58 @@ describe("Auction", function () {
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
         defaultAuctionAmountDesired
       )
+
+      // when a desired amount is collected, this auction should be destroyed
+      expect(await ethers.provider.getCode(auction.address)).to.equal("0x")
+    })
+
+    it("should take a partial offer when the auction is over", async () => {
+      // Auction length 24h -> 86400sec
+
+      // Increase time 1h -> 3600sec
+      await increaseTime(3600)
+      let onOfferObj = await auction.connect(signer1).onOffer()
+      // Velocity pool depleating rate: 1
+      // Percent on offer after 1h of auction start time: 3,600 * 1 * / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
+      // ~4.16% on offer of a collateral pool after 1h
+      expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
+      // Pay 50% of the desired amount for an auction 0.5 * 10^18
+      let partialOfferAmount = defaultAuctionAmountDesired.div(
+        BigNumber.from("2")
+      )
+      const expectedAuctioneerBalance = partialOfferAmount
+      await auction.connect(signer1).takeOffer(partialOfferAmount)
+      expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        expectedAuctioneerBalance
+      )
+
+      // Increase time 23h -> 82,800sec
+      // Now: 3,600 + 82,800 = 86400sec (auction ends)
+      await increaseTime(82800)
+      // when auction ends, entire pool becomes available
+      onOfferObj = await auction.connect(signer1).onOffer()
+      expect(onOfferObj[0] / onOfferObj[1]).to.equal(1)
+
+      // Pay 20% of the remaining amount for the auction 0.5 * 10^18 / 5 = 0.1 * 10^18
+      partialOfferAmount = partialOfferAmount.div(BigNumber.from("5"))
+      // Auctioneer balance: (0.5 + 0.1) => 0.6 * 10^18
+      auctioneerBalance = expectedAuctioneerBalance.add(partialOfferAmount)
+      await auction.connect(signer1).takeOffer(partialOfferAmount)
+      expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        auctioneerBalance
+      )
+
+      // Increase time 1h -> 3,600sec
+      // Now: 86,400 + 3,600 = 90,000
+      await increaseTime(3600)
+      // no matter how much time has passed since the auction ended, on offer
+      // should be 1 until it is closed
+      onOfferObj = await auction.connect(signer1).onOffer()
+      expect(onOfferObj[0] / onOfferObj[1]).to.equal(1)
+      // 60% of the desired amount was paid. 0.5 + 0.1 out of 1
+      // Buy the rest and close the auction 1 - 0.6 => 0.4 * 10^18
+      partialOfferAmount = defaultAuctionAmountDesired.sub(auctioneerBalance)
+      await auction.connect(signer1).takeOffer(partialOfferAmount)
 
       // when a desired amount is collected, this auction should be destroyed
       expect(await ethers.provider.getCode(auction.address)).to.equal("0x")

@@ -95,11 +95,10 @@ contract Auction {
             amountToTransfer
         );
 
-        // percentage value rounded down
         uint256 portionToSeize =
             onOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
-        if (amountToTransfer != self.amountOutstanding) {
+        if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             uint256 ratioAmountPaid =
                 PORTION_ON_OFFER_DIVISOR.mul(amountToTransfer).div(
                     self.amountOutstanding
@@ -138,7 +137,7 @@ contract Auction {
     /// @notice How much of the collateral pool can currently be purchased at
     ///         auction, across all assets.
     /// @dev _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns a portion of the
-    ///      collateral pool. Ex. if there's 35% available of the collateral pool,
+    ///      collateral pool. Ex. if 35% available of the collateral pool,
     ///      then _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() public view returns (uint256, uint256) {
@@ -146,10 +145,23 @@ contract Auction {
     }
 
     function _onOffer() internal view returns (uint256) {
+        // when the auction is over, entire pool is on offer
+        if (_isAuctionOver()) {
+            // Down the road, for determining a portion on offer, a value returned
+            // by this function will be divided by PORTION_ON_OFFER_DIVISOR. To 
+            // return entire pool, we need to return this divisor.
+            // PORTION_ON_OFFER_DIVISOR.div(PORTION_ON_OFFER_DIVISOR) = 1
+            return PORTION_ON_OFFER_DIVISOR;
+        }
+
         return
             (block.timestamp.sub(self.updatedStartTime))
                 .mul(self.velocityPoolDepleatingRate)
                 .div(self.auctionLength);
+    }
+
+    function _isAuctionOver() internal view returns (bool) {
+        return block.timestamp >= self.originalStartTime.add(self.auctionLength);
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
