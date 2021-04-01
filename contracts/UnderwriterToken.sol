@@ -67,7 +67,6 @@ contract UnderwriterToken is IUnderwriterToken {
         address recipient,
         uint256 amount
     ) external override returns (bool) {
-        _transfer(sender, recipient, amount);
         if (allowance[sender][msg.sender] != uint256(-1)) {
             _approve(
                 sender,
@@ -78,6 +77,7 @@ contract UnderwriterToken is IUnderwriterToken {
                 )
             );
         }
+        _transfer(sender, recipient, amount);
         return true;
     }
 

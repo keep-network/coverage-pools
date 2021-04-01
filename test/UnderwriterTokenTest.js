@@ -7,7 +7,7 @@ const {
 
 describe("UnderwriterToken", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
-  const hardhatNetworkId = 31337 
+  const hardhatNetworkId = 31337
 
   const initialSupply = to1e18(100)
 
@@ -18,7 +18,9 @@ describe("UnderwriterToken", () => {
   let token
 
   beforeEach(async () => {
-    const UnderwriterToken = await ethers.getContractFactory("UnderwriterTokenStub")
+    const UnderwriterToken = await ethers.getContractFactory(
+      "UnderwriterTokenStub"
+    )
     token = await UnderwriterToken.deploy()
     await token.deployed()
     await token.initialize()
@@ -248,7 +250,13 @@ describe("UnderwriterToken", () => {
           })
 
           describe("when the token owner does not have enough balance", () => {
-            const amount = initialSupply.add(1)
+            const amount = initialSupply
+
+            beforeEach(async () => {
+              await token
+                .connect(initialHolder)
+                .transfer(anotherAccount.address, 1)
+            })
 
             it("reverts", async () => {
               await expect(
@@ -290,7 +298,13 @@ describe("UnderwriterToken", () => {
           })
 
           describe("when the token owner does not have enough balance", () => {
-            const amount = initialSupply.add(1)
+            const amount = initialSupply
+
+            beforeEach(async () => {
+              await token
+                .connect(initialHolder)
+                .transfer(anotherAccount.address, 1)
+            })
 
             it("reverts", async () => {
               await expect(
@@ -301,7 +315,19 @@ describe("UnderwriterToken", () => {
                     recipient.address,
                     amount
                   )
-              ).to.be.revertedWith("Transfer amount exceeds balance")
+              ).to.be.revertedWith("Transfer amount exceeds allowance")
+            })
+          })
+
+          describe("when the token owner is the zero address", () => {
+            const allowance = initialSupply
+
+            it("reverts", async () => {
+              await expect(
+                token
+                  .connect(anotherAccount)
+                  .transferFrom(ZERO_ADDRESS, recipient.address, allowance)
+              ).to.be.revertedWith("Transfer amount exceeds allowance")
             })
           })
         })
@@ -323,18 +349,6 @@ describe("UnderwriterToken", () => {
               .transferFrom(initialHolder.address, ZERO_ADDRESS, allowance)
           ).to.be.revertedWith("Transfer to the zero address")
         })
-      })
-    })
-
-    describe("when the token owner is the zero address", () => {
-      const allowance = initialSupply
-
-      it("reverts", async () => {
-        await expect(
-          token
-            .connect(anotherAccount)
-            .transferFrom(ZERO_ADDRESS, recipient.address, allowance)
-        ).to.be.revertedWith("Transfer from the zero address")
       })
     })
   })
