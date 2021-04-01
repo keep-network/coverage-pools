@@ -11,9 +11,11 @@ function pastEvents(receipt, contract, eventName) {
   const events = []
 
   for (const log of receipt.logs) {
-    const parsedLog = contract.interface.parseLog(log)
-    if (parsedLog.name === eventName) {
-      events.push(parsedLog)
+    if (log.address === contract.address) {
+      const parsedLog = contract.interface.parseLog(log)
+      if (parsedLog.name === eventName) {
+        events.push(parsedLog)
+      }
     }
   }
 
