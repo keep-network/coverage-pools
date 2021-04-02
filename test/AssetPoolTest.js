@@ -22,7 +22,7 @@ describe("AssetPool", () => {
   const collateralTokenInitialBalance = to1e18(100000)
 
   beforeEach(async () => {
-    coveragePool = await ethers.getSigner(0)
+    coveragePool = await ethers.getSigner(7)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     collateralToken = await TestToken.deploy()
