@@ -1,5 +1,4 @@
 const { expect } = require("chai")
-const { ethers } = require("hardhat")
 const { to1e18 } = require("./helpers/contract-test-helpers")
 
 // FIXME Is there a better way to obtain a handle to contract?

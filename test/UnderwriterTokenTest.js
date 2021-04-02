@@ -15,10 +15,7 @@ describe("UnderwriterToken", () => {
   let token
 
   beforeEach(async () => {
-    assetPool = await ethers.getSigner(0)
-    initialHolder = await ethers.getSigner(1)
-    recipient = await ethers.getSigner(2)
-    anotherAccount = await ethers.getSigner(3)
+    [assetPool, initialHolder, recipient, anotherAccount] = await ethers.getSigners()
 
     const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
     token = await UnderwriterToken.deploy(assetPool.address)
