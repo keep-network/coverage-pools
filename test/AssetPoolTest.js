@@ -62,8 +62,8 @@ describe("AssetPool", () => {
   })
 
   describe("deposit", () => {
-    describe("when the depositor has not enough collateral tokens", () => {
-      it("reverts", async () => {
+    context("when the depositor has not enough collateral tokens", () => {
+      it("should revert", async () => {
         const amount = collateralTokenInitialBalance.add(1)
         await expect(
           assetPool.connect(underwriter1).deposit(amount)
@@ -71,7 +71,7 @@ describe("AssetPool", () => {
       })
     })
 
-    describe("when the depositor has enough collateral tokens", () => {
+    context("when the depositor has enough collateral tokens", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(300)
       const depositedUnderwriter3 = to1e18(20)
@@ -82,7 +82,7 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
       })
 
-      it("transfers deposited amount to the pool", async () => {
+      it("should transfer deposited amount to the pool", async () => {
         expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
           to1e18(420)
         )
@@ -97,7 +97,7 @@ describe("AssetPool", () => {
         ).to.be.equal(collateralTokenInitialBalance.sub(depositedUnderwriter3))
       })
 
-      it("mints underwriter tokens", async () => {
+      it("should mint underwriter tokens", async () => {
         expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
           to1e18(100) // 100 COV minted (first deposit)
         )
@@ -110,7 +110,7 @@ describe("AssetPool", () => {
       })
     })
 
-    describe("when deposit already exists", () => {
+    context("when deposit already exists", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(70)
 
@@ -119,7 +119,7 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
       })
 
-      it("mints underwriter tokens", async () => {
+      it("should mint underwriter tokens", async () => {
         await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
         await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
 
@@ -132,7 +132,7 @@ describe("AssetPool", () => {
       })
     })
 
-    describe("when some collateral tokens were claimed by the pool", () => {
+    context("when some collateral tokens were claimed by the pool", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(70)
       const claimedTokens = to1e18(35)
@@ -144,7 +144,7 @@ describe("AssetPool", () => {
         await assetPool.connect(coveragePool).claim(claimedTokens)
       })
 
-      it("mints underwriter tokens", async () => {
+      it("should mint underwriter tokens", async () => {
         await assetPool.connect(underwriter3).deposit(to1e18(20))
 
         expect(
@@ -158,14 +158,14 @@ describe("AssetPool", () => {
   })
 
   describe("withdraw", () => {
-    describe("when withdrawing entire collateral", () => {
+    context("when withdrawing entire collateral", () => {
       const amount = to1e18(120)
 
       beforeEach(async () => {
         await assetPool.connect(underwriter1).deposit(amount)
       })
 
-      it("burns underwriter tokens", async () => {
+      it("should burn underwriter tokens", async () => {
         await assetPool.connect(underwriter1).withdraw(amount)
         expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
           0
@@ -173,14 +173,14 @@ describe("AssetPool", () => {
       })
     })
 
-    describe("when withdrawing part of the collateral", () => {
+    context("when withdrawing part of the collateral", () => {
       const amount = to1e18(120)
 
       beforeEach(async () => {
         await assetPool.connect(underwriter1).deposit(amount)
       })
 
-      it("burns underwriter tokens", async () => {
+      it("should burn underwriter tokens", async () => {
         await assetPool.connect(underwriter1).withdraw(to1e18(20))
         expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
           to1e18(100)
@@ -188,21 +188,21 @@ describe("AssetPool", () => {
       })
     })
 
-    describe("when underwriter has not enough underwriter tokens", () => {
+    context("when underwriter has not enough underwriter tokens", () => {
       const amount = to1e18(120)
 
       beforeEach(async () => {
         await assetPool.connect(underwriter1).deposit(amount)
       })
 
-      it("reverts", async () => {
+      it("should revert", async () => {
         await expect(
           assetPool.connect(underwriter1).withdraw(amount.add(1))
         ).to.be.revertedWith("Underwriter token amount exceeds balance")
       })
     })
 
-    describe("when no collateral tokens were claimed by the pool", () => {
+    context("when no collateral tokens were claimed by the pool", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(331)
       const depositedUnderwriter3 = to1e18(22)
@@ -215,14 +215,14 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter4).deposit(depositedUnderwriter4)
       })
 
-      it("lets all underwriters to withdraw their collateral", async () => {
+      it("should let all underwriters to withdraw their collateral", async () => {
         await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
         await assetPool.connect(underwriter2).withdraw(depositedUnderwriter2)
         await assetPool.connect(underwriter3).withdraw(depositedUnderwriter3)
         await assetPool.connect(underwriter4).withdraw(depositedUnderwriter4)
       })
 
-      it("returns underwriters their original collateral token amounts", async () => {
+      it("should return underwriters their original collateral token amounts", async () => {
         await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
         expect(await collateralToken.balanceOf(underwriter1.address)).to.equal(
           collateralTokenInitialBalance
@@ -235,7 +235,7 @@ describe("AssetPool", () => {
       })
     })
 
-    describe("when pool claimed some collateral tokens", () => {
+    context("when pool claimed some collateral tokens", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(331)
       const depositedUnderwriter3 = to1e18(22)
@@ -252,7 +252,7 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter6).deposit(depositedUnderwriter6) // 3 COV
       })
 
-      it("lets all underwriters to withdraw their collateral", async () => {
+      it("should let all underwriters to withdraw their collateral", async () => {
         await assetPool.connect(coveragePool).claim(to1e18(10))
         await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
         await assetPool.connect(underwriter2).withdraw(depositedUnderwriter2)
@@ -264,7 +264,7 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter6).withdraw(depositedUnderwriter6)
       })
 
-      it("withdraws underwriter collateral tokens proportionally to their pool share", async () => {
+      it("should withdraw underwriter collateral tokens proportionally to their pool share", async () => {
         // 1061 COV tokens exist and 1061 collateral tokens are deposited in
         // the pool. 40 collateral tokens are claimed by the pool.
         await assetPool.connect(coveragePool).claim(to1e18(40))
@@ -313,8 +313,8 @@ describe("AssetPool", () => {
         )
       })
 
-      describe("when collateral tokens were deposited in the meantime", () => {
-        it("withdraws underwriter collateral tokens proportionally to their pool share", async () => {
+      context("when collateral tokens were deposited in the meantime", () => {
+        it("should withdraw underwriter collateral tokens proportionally to their pool share", async () => {
           // 1061 COV tokens exist and 1061 collateral tokens are deposited in
           // the pool. 40 collateral tokens are claimed by the pool.
           await assetPool.connect(coveragePool).claim(to1e18(40))
@@ -342,8 +342,8 @@ describe("AssetPool", () => {
           // deposited in the pool. 60 collateral tokens are claimed by the pool.
           await assetPool.connect(coveragePool).claim(to1e18(60))
 
-          // Underwriter has 674.9676/1308.0851 share of the pool and decides to 
-          //spend half  of it. The pool has 1198.7701 collateral tokens so the
+          // Underwriter has 674.9676/1308.0851 share of the pool and decides to
+          // spend half  of it. The pool has 1198.7701 collateral tokens so the
           // underwriter claims 1198.7701 * 337/1308.0851 = 308.8373 tokens.
           await assetPool.connect(underwriter2).withdraw(to1e18(337))
           expect(
@@ -364,16 +364,16 @@ describe("AssetPool", () => {
     beforeEach(async () => {
       await assetPool.connect(underwriter1).deposit(to1e18(200))
     })
-    describe("when not done by coverage pool", () => {
-      it("reverts", async () => {
+    context("when not done by coverage pool", () => {
+      it("should revert", async () => {
         await expect(
           assetPool.connect(underwriter1).claim(to1e18(100))
         ).to.be.revertedWith("Caller is not the coverage pool")
       })
     })
 
-    describe("when done by coverage pool", () => {
-      it("transfers claimed tokens to coverage pool", async () => {
+    context("when done by coverage pool", () => {
+      it("should transfer claimed tokens to coverage pool", async () => {
         await assetPool.connect(coveragePool).claim(to1e18(90))
         expect(await collateralToken.balanceOf(coveragePool.address)).to.equal(
           to1e18(90)
