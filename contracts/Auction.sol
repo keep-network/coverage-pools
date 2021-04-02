@@ -148,7 +148,7 @@ contract Auction {
         // when the auction is over, entire pool is on offer
         if (_isAuctionOver()) {
             // Down the road, for determining a portion on offer, a value returned
-            // by this function will be divided by PORTION_ON_OFFER_DIVISOR. To 
+            // by this function will be divided by PORTION_ON_OFFER_DIVISOR. To
             // return entire pool, we need to return this divisor.
             // PORTION_ON_OFFER_DIVISOR.div(PORTION_ON_OFFER_DIVISOR) = 1
             return PORTION_ON_OFFER_DIVISOR;
@@ -161,7 +161,8 @@ contract Auction {
     }
 
     function _isAuctionOver() internal view returns (bool) {
-        return block.timestamp >= self.originalStartTime.add(self.auctionLength);
+        return
+            block.timestamp >= self.originalStartTime.add(self.auctionLength);
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
