@@ -215,14 +215,12 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter4).deposit(depositedUnderwriter4)
       })
 
-      it("should let all underwriters to withdraw their collateral", async () => {
-        await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).withdraw(depositedUnderwriter2)
-        await assetPool.connect(underwriter3).withdraw(depositedUnderwriter3)
+      it("should let all underwriters withdraw their original collateral token amounts", async () => {
         await assetPool.connect(underwriter4).withdraw(depositedUnderwriter4)
-      })
+        expect(await collateralToken.balanceOf(underwriter4.address)).to.equal(
+          collateralTokenInitialBalance
+        )
 
-      it("should return underwriters their original collateral token amounts", async () => {
         await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
         expect(await collateralToken.balanceOf(underwriter1.address)).to.equal(
           collateralTokenInitialBalance
@@ -230,6 +228,10 @@ describe("AssetPool", () => {
 
         await assetPool.connect(underwriter3).withdraw(depositedUnderwriter3)
         expect(await collateralToken.balanceOf(underwriter3.address)).to.equal(
+          collateralTokenInitialBalance
+        )
+        await assetPool.connect(underwriter2).withdraw(depositedUnderwriter2)
+        expect(await collateralToken.balanceOf(underwriter2.address)).to.equal(
           collateralTokenInitialBalance
         )
       })
@@ -252,19 +254,7 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter6).deposit(depositedUnderwriter6) // 3 COV
       })
 
-      it("should let all underwriters to withdraw their collateral", async () => {
-        await assetPool.connect(coveragePool).claim(to1e18(10))
-        await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).withdraw(depositedUnderwriter2)
-        await assetPool.connect(underwriter3).withdraw(depositedUnderwriter3)
-        await assetPool.connect(underwriter4).withdraw(depositedUnderwriter4)
-        await assetPool.connect(coveragePool).claim(to1e18(20))
-        await assetPool.connect(underwriter5).withdraw(depositedUnderwriter5)
-        await assetPool.connect(coveragePool).claim(to1e18(1))
-        await assetPool.connect(underwriter6).withdraw(depositedUnderwriter6)
-      })
-
-      it("should withdraw underwriter collateral tokens proportionally to their pool share", async () => {
+      it("should let all underwriters withdraw their collateral tokens proportionally to their pool share", async () => {
         // 1061 COV tokens exist and 1061 collateral tokens are deposited in
         // the pool. 40 collateral tokens are claimed by the pool.
         await assetPool.connect(coveragePool).claim(to1e18(40))
@@ -309,6 +299,45 @@ describe("AssetPool", () => {
           collateralTokenInitialBalance
             .sub(depositedUnderwriter4)
             .add(ethers.BigNumber.from("4499300000000000000")),
+          assertionPrecision
+        )
+
+        // Underwriter has 22/796 share of the pool. The pool has 716.29
+        // collateral tokens so the underwriter can claim
+        // 716.29 * 22/796 = 19.7969 tokens.
+        await assetPool.connect(underwriter3).withdraw(depositedUnderwriter3)
+        expect(
+          await collateralToken.balanceOf(underwriter3.address)
+        ).to.be.closeTo(
+          collateralTokenInitialBalance
+            .sub(depositedUnderwriter3)
+            .add(ethers.BigNumber.from("19796900000000000000")),
+          assertionPrecision
+        )
+
+        // Underwriter has 600/796 share of the pool. The pool has 716.29
+        // collateral tokens so the underwriter can claim
+        // 716.29 * 600/796 = 539.91708 tokens.
+        await assetPool.connect(underwriter5).withdraw(depositedUnderwriter5)
+        expect(
+          await collateralToken.balanceOf(underwriter5.address)
+        ).to.be.closeTo(
+          collateralTokenInitialBalance
+            .sub(depositedUnderwriter5)
+            .add(ethers.BigNumber.from("539917080000000000000")),
+          assertionPrecision
+        )
+
+        // Underwriter has 3/796 share of the pool. The pool has 716.29
+        // collateral tokens so the underwriter can claim
+        // 716.29 * 3/796 = 2.69958 tokens.
+        await assetPool.connect(underwriter6).withdraw(depositedUnderwriter6)
+        expect(
+          await collateralToken.balanceOf(underwriter6.address)
+        ).to.be.closeTo(
+          collateralTokenInitialBalance
+            .sub(depositedUnderwriter6)
+            .add(ethers.BigNumber.from("2699580000000000000")),
           assertionPrecision
         )
       })
