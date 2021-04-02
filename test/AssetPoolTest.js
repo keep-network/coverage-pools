@@ -272,8 +272,10 @@ describe("AssetPool", () => {
           assertionPrecision
         )
 
-        // 961 COV tokens exist and 924.77 collateral tokens are deposited in
-        // the pool. 60 collateral tokens are claimed by the pool.
+        // 961 COV tokens exist (1061 minted initially, 100 burned during
+        // withdrawal) and 924.77 collateral tokens are deposited in
+        // the pool (1061 deposited initially, 40 claimed by coverage pool,
+        // 96.2299 withdrawn). 60 collateral tokens are claimed by the pool.
         await assetPool.connect(coveragePool).claim(to1e18(60))
 
         // Underwriter has 331/961 share of the pool and decides to spend half
@@ -348,14 +350,16 @@ describe("AssetPool", () => {
           // the pool. 40 collateral tokens are claimed by the pool.
           await assetPool.connect(coveragePool).claim(to1e18(40))
 
+          // 331 collateral tokens added to the pool
           // 331 * 1061 / 1021 = 343.9676 COV minted
           await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
 
+          // 3 collateral tokens added to the pool
           // 3 * 1404.96 / 1352 = 3.1175 COV minted
           await assetPool.connect(underwriter6).deposit(depositedUnderwriter6)
 
           // Underwriter has 100/1408.0851 share of the pool. The pool has 1355
-          // collateral tokens so the underwriter can claim
+          // collateral tokens (1061-40+331+3) so the underwriter can claim
           // 1355 * 100/1408.0851 = 96.2299 tokens.
           await assetPool.connect(underwriter1).withdraw(depositedUnderwriter1)
           expect(
