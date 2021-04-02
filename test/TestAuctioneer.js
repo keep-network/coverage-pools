@@ -23,7 +23,9 @@ describe("Auctioneer", function () {
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction")
-    const CollateralPool = await ethers.getContractFactory("CollateralPool")
+    const CollateralPoolStub = await ethers.getContractFactory(
+      "CollateralPoolStub"
+    )
 
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
@@ -31,10 +33,13 @@ describe("Auctioneer", function () {
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    collateralPool = await CollateralPool.deploy()
-    await collateralPool.deployed()
+    collateralPoolStub = await CollateralPoolStub.deploy()
+    await collateralPoolStub.deployed()
 
-    await auctioneer.initialize(collateralPool.address, masterAuction.address)
+    await auctioneer.initialize(
+      collateralPoolStub.address,
+      masterAuction.address
+    )
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
@@ -49,7 +54,7 @@ describe("Auctioneer", function () {
   describe("initialize", async () => {
     it("should not initialize actioneer a second time", async () => {
       await expect(
-        auctioneer.initialize(collateralPool.address, masterAuction.address)
+        auctioneer.initialize(collateralPoolStub.address, masterAuction.address)
       ).to.be.revertedWith("Auctioneer already initialized")
     })
   })
@@ -137,6 +142,12 @@ describe("Auctioneer", function () {
       expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
       expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
 
+      // check wheather seizeFunds was executed with the right params
+      events = pastEvents(receipt, collateralPoolStub, "SeizeFunds")
+      expect(events.length).to.equal(1)
+      expect(events[0].args["recipient"]).to.equal(signer1.address)
+      expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
+
       // increase time 45min -> 2,700 sec
       // now: 3,600 + 2,700 = 6,300
       await increaseTime(2700)
@@ -161,6 +172,12 @@ describe("Auctioneer", function () {
       expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
       expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
       expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
+      expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
+
+      // check wheather seizeFunds was executed with the right params
+      events = pastEvents(receipt, collateralPoolStub, "SeizeFunds")
+      expect(events.length).to.equal(1)
+      expect(events[0].args["recipient"]).to.equal(signer1.address)
       expect(events[0].args["portionOfPool"]).to.be.closeTo(portionToSeize, 100)
 
       // auction desired amount is 1 * 10^18 of test tokens
