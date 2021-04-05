@@ -37,7 +37,7 @@ contract Auction {
         uint256 originalStartTime;
         uint256 updatedStartTime;
         uint256 auctionLength;
-        uint256 velocityPoolDepleatingRate;
+        uint256 velocityPoolDepletingRate;
     }
 
     AuctionStorage public self;
@@ -51,7 +51,7 @@ contract Auction {
     }
 
     /// @notice Initializes auction
-    /// @dev At the beginning of an auction, velocity pool depleating rate is
+    /// @dev At the beginning of an auction, velocity pool depleting rate is
     ///      always 1. It increases over time after a partial auction buy.
     /// @param _auctioneer    the auctioneer contract responsible for seizing
     ///                       funds from the backing collateral pool
@@ -75,14 +75,14 @@ contract Auction {
         self.updatedStartTime = block.timestamp;
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
-        self.velocityPoolDepleatingRate = 1 * PORTION_ON_OFFER_DIVISOR;
+        self.velocityPoolDepletingRate = 1 * PORTION_ON_OFFER_DIVISOR;
     }
 
     /// @notice Takes an offer from an auction buyer.
     /// @dev There are two possible ways to take an offer from a buyer. The first
     ///      one is to buy entire auction with the amount desired for this auction.
     ///      The other way is to buy a portion of an auction. In this case an
-    ///      auction depleating rate is increased.
+    ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
     function takeOffer(uint256 amount) public {
         // TODO frontrunning mitigation
@@ -112,7 +112,7 @@ contract Auction {
             ); // update the auction start time "forward"
             uint256 globalStartTimeOffset =
                 self.updatedStartTime.sub(self.originalStartTime);
-            self.velocityPoolDepleatingRate = PORTION_ON_OFFER_DIVISOR
+            self.velocityPoolDepletingRate = PORTION_ON_OFFER_DIVISOR
                 .mul(self.auctionLength)
                 .div(self.auctionLength.sub(globalStartTimeOffset));
         }
@@ -156,7 +156,7 @@ contract Auction {
 
         return
             (block.timestamp.sub(self.updatedStartTime))
-                .mul(self.velocityPoolDepleatingRate)
+                .mul(self.velocityPoolDepletingRate)
                 .div(self.auctionLength);
     }
 
