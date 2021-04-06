@@ -151,7 +151,7 @@ contract UnderwriterToken is IUnderwriterToken {
         emit Transfer(address(0), recipient, amount);
     }
 
-    function burn(uint256 amount) external {
+    function burn(uint256 amount) override external {
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(
             amount,
             "Burn amount exceeds balance"

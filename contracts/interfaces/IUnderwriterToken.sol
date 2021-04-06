@@ -47,4 +47,7 @@ interface IUnderwriterToken is IERC20 {
         bytes32 r,
         bytes32 s
     ) external;
+
+    /// @notice Destroys `amount` tokens from the caller.
+    function burn(uint256 amount) external;
 }
