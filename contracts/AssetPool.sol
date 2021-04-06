@@ -17,6 +17,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 ///         Asset Pool.
 contract AssetPool {
     using SafeERC20 for IERC20;
+    using SafeERC20 for UnderwriterToken;
     using SafeMath for uint256;
 
     address public coveragePool;
@@ -82,29 +83,10 @@ contract AssetPool {
         uint256 amountToWithdraw =
             covAmount.mul(collateralBalance).div(covSupply);
 
+        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
+        underwriterToken.burn(covAmount);
         collateralToken.safeTransfer(msg.sender, amountToWithdraw);
-        underwriterToken.burn(msg.sender, covAmount);
     }
-
-    // Option 1:
-    // UnderwriterToken does not have onlyAssetPool on burn and it lets everyone
-    // burn msg.sender tokens.
-    //
-    // When withdrawing from the pool:
-    // - COV holders approve transfer
-    // - COV holder calls withdraw(covAmount)
-    // - AssetPool transfers covAmount of tokens to address(this) and then burns
-    // them.
-
-    // Option 2
-    // UnderwriterToken does not have onlyAssetPool on burn and it lets everyone
-    // burn msg.sender tokens.
-    // UnderwriterToken has special-case burn with onlyAssetPool that lets to
-    // burn anyone's tokens
-    //
-    // When withdrawing from the pool:
-    // - COV holder calls withdraw(covAmount)
-    // - Asset pool burns covAmount of tokens from msg.sender
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool.

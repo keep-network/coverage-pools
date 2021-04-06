@@ -151,14 +151,13 @@ contract UnderwriterToken is IUnderwriterToken {
         emit Transfer(address(0), recipient, amount);
     }
 
-    function burn(address owner, uint256 amount) external onlyAssetPool {
-        require(owner != address(0), "Burn from the zero address");
-        balanceOf[owner] = balanceOf[owner].sub(
+    function burn(uint256 amount) external {
+        balanceOf[msg.sender] = balanceOf[msg.sender].sub(
             amount,
             "Burn amount exceeds balance"
         );
         totalSupply = totalSupply.sub(amount);
-        emit Transfer(owner, address(0), amount);
+        emit Transfer(msg.sender, address(0), amount);
     }
 
     function _transfer(

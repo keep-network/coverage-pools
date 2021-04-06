@@ -492,63 +492,41 @@ describe("UnderwriterToken", () => {
   })
 
   describe("burn", () => {
-    it("should reject a zero account", async () => {
+    it("should reject burning more than balance", async () => {
       await expect(
-        token.connect(assetPool).burn(ZERO_ADDRESS, to1e18(1))
-      ).to.be.revertedWith("Burn from the zero address")
+        token.connect(initialHolder).burn(initialSupply.add(1))
+      ).to.be.revertedWith("Burn amount exceeds balance")
     })
 
-    context("when called not by the asset pool", () => {
-      it("should revert", async () => {
-        await expect(
-          token
-            .connect(initialHolder)
-            .burn(initialHolder.address, initialSupply)
-        ).to.be.revertedWith("Caller is not the asset pool")
-      })
-    })
-
-    context("for a non zero account", () => {
-      it("should reject burning more than balance", async () => {
-        await expect(
-          token
-            .connect(assetPool)
-            .burn(initialHolder.address, initialSupply.add(1))
-        ).to.be.revertedWith("Burn amount exceeds balance")
-      })
-
-      const describeBurn = (description, amount) => {
-        describe(description, () => {
-          let burnTx
-          beforeEach("burning", async () => {
-            burnTx = await token
-              .connect(assetPool)
-              .burn(initialHolder.address, amount)
-          })
-
-          it("should decrement totalSupply", async () => {
-            const expectedSupply = initialSupply.sub(amount)
-            expect(await token.totalSupply()).to.equal(expectedSupply)
-          })
-
-          it("should decrement initialHolder balance", async () => {
-            const expectedBalance = initialSupply.sub(amount)
-            expect(await token.balanceOf(initialHolder.address)).to.equal(
-              expectedBalance
-            )
-          })
-
-          it("should emit Transfer event", async () => {
-            await expect(burnTx)
-              .to.emit(token, "Transfer")
-              .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
-          })
+    const describeBurn = (description, amount) => {
+      describe(description, () => {
+        let burnTx
+        beforeEach("burning", async () => {
+          burnTx = await token.connect(initialHolder).burn(amount)
         })
-      }
 
-      describeBurn("for entire balance", initialSupply)
-      describeBurn("for less amount than balance", initialSupply.sub(1))
-    })
+        it("should decrement totalSupply", async () => {
+          const expectedSupply = initialSupply.sub(amount)
+          expect(await token.totalSupply()).to.equal(expectedSupply)
+        })
+
+        it("should decrement initialHolder balance", async () => {
+          const expectedBalance = initialSupply.sub(amount)
+          expect(await token.balanceOf(initialHolder.address)).to.equal(
+            expectedBalance
+          )
+        })
+
+        it("should emit Transfer event", async () => {
+          await expect(burnTx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
+        })
+      })
+    }
+
+    describeBurn("for entire balance", initialSupply)
+    describeBurn("for less amount than balance", initialSupply.sub(1))
   })
 
   describe("permit", () => {
