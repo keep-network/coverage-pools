@@ -8,8 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
 /// @title AssetPool
 /// @notice Asset pool is a component of a Coverage Pool. Each Asset Pool
 ///         accepts a single ERC20 token as collateral, and returns an
@@ -87,6 +85,26 @@ contract AssetPool {
         collateralToken.safeTransfer(msg.sender, amountToWithdraw);
         underwriterToken.burn(msg.sender, covAmount);
     }
+
+    // Option 1:
+    // UnderwriterToken does not have onlyAssetPool on burn and it lets everyone
+    // burn msg.sender tokens.
+    //
+    // When withdrawing from the pool:
+    // - COV holders approve transfer
+    // - COV holder calls withdraw(covAmount)
+    // - AssetPool transfers covAmount of tokens to address(this) and then burns
+    // them.
+
+    // Option 2
+    // UnderwriterToken does not have onlyAssetPool on burn and it lets everyone
+    // burn msg.sender tokens.
+    // UnderwriterToken has special-case burn with onlyAssetPool that lets to
+    // burn anyone's tokens
+    //
+    // When withdrawing from the pool:
+    // - COV holder calls withdraw(covAmount)
+    // - Asset pool burns covAmount of tokens from msg.sender
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool.
