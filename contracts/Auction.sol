@@ -29,14 +29,17 @@ contract Auction {
     uint256 constant PORTION_ON_OFFER_DIVISOR = 1000000;
 
     struct AuctionStorage {
-        // the auction price, denominated in tokenAccepted
         IERC20 tokenAccepted;
         IAuctioneer auctioneer;
+        // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
         uint256 startTime;
         uint256 originalStartTime;
         uint256 updatedStartTime;
         uint256 auctionLength;
+        // How fast portions of the collateral pool become available on offer.
+        // It always starts from 1.0 and then can go up depending on partial
+        // offers over time.
         uint256 velocityPoolDepletingRate;
     }
 

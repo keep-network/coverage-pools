@@ -8,22 +8,27 @@ const {
 } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
-// const { ethers } = require("ethers")
 const { BigNumber } = ethers
 
-const defaultAuctionLength = 86400 // 24h in sec
-const defaultAuctionAmountDesired = to1e18(1) // ex. 1 TBTC
 // amount of test tokens that an auction (aka spender) is allowed
 // to transfer on behalf of a signer (aka token owner) from signer balance
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 
 describe("Auction", function () {
+  let TestToken
+  let owner
+  let signer1
+  let signer2
+  let auctioneer
+  let collateralPool
+
   before(async () => {
-    Auctioneer = await ethers.getContractFactory("Auctioneer")
+    const Auctioneer = await ethers.getContractFactory("Auctioneer")
+    const Auction = await ethers.getContractFactory("Auction")
+    const CollateralPool = await ethers.getContractFactory("CollateralPool")
+
     TestToken = await ethers.getContractFactory("TestToken")
-    Auction = await ethers.getContractFactory("Auction")
-    CollateralPool = await ethers.getContractFactory("CollateralPool")
 
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
@@ -53,42 +58,46 @@ describe("Auction", function () {
   })
 
   describe("initialize", () => {
-    context("when an auction has been already initialized", () => {
-      it("should not be initialized again", async () => {
-        auction = await createAuction(
-          defaultAuctionAmountDesired,
-          defaultAuctionLength
-        )
-        await approveTestTokenForAuction(auction.address)
+    const auctionLength = 86400 // 24h in sec
+    const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
+
+    context("when the auction has been initialized", () => {
+      it("should be opened", async () => {
+        auction = await createAuction(auctionAmountDesired, auctionLength)
 
         expect(await auction.isOpen()).to.equal(true)
+      })
+
+      it("should not be initialized again", async () => {
+        auction = await createAuction(auctionAmountDesired, auctionLength)
+        await approveTestTokenForAuction(auction.address)
 
         await expect(
           auction.initialize(
             auctioneer.address,
             testToken.address,
-            defaultAuctionAmountDesired,
-            defaultAuctionLength
+            auctionAmountDesired,
+            auctionLength
           )
         ).to.be.revertedWith("Auction already initialized")
       })
     })
 
     context("when desired amount is zero", () => {
-      it("should not be initialized", async () => {
+      it("should revert", async () => {
         const auctionAmountDesired = 0
         await expect(
           auctioneer.createAuction(
             testToken.address,
             auctionAmountDesired,
-            defaultAuctionLength
+            auctionLength
           )
         ).to.be.revertedWith("Amount desired must be greater than zero")
       })
     })
   })
 
-  describe("on offer", () => {
+  describe("onOffer", () => {
     context("when the auction starts", () => {
       it("should return zero", async () => {
         const auctionAmountDesired = 10000
@@ -165,12 +174,12 @@ describe("Auction", function () {
     })
   })
 
-  describe("take offer", () => {
+  describe("takeOffer", () => {
+    const auctionLength = 86400 // 24h in sec
+    const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
+
     beforeEach(async () => {
-      auction = await createAuction(
-        defaultAuctionAmountDesired,
-        defaultAuctionLength
-      )
+      auction = await createAuction(auctionAmountDesired, auctionLength)
       await approveTestTokenForAuction(auction.address)
     })
 
@@ -189,11 +198,11 @@ describe("Auction", function () {
         // Increase time 1h -> 3600sec
         await increaseTime(3600)
 
-        await auction.connect(signer1).takeOffer(defaultAuctionAmountDesired)
+        await auction.connect(signer1).takeOffer(auctionAmountDesired)
 
         // entire amount paid for an auction should be transferred to auctioneer
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-          defaultAuctionAmountDesired
+          auctionAmountDesired
         )
 
         // when a desired amount is collected, the auction should be destroyed
@@ -216,9 +225,7 @@ describe("Auction", function () {
         // ~4.16% on offer of a collateral pool after 1h
         expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
         // Pay 50% of the desired amount for the auction 0.5 * 10^18
-        let partialOfferAmount = defaultAuctionAmountDesired.div(
-          BigNumber.from("2")
-        )
+        let partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
         const expectedAuctioneerBalance = partialOfferAmount
         await auction.connect(signer1).takeOffer(partialOfferAmount)
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
@@ -259,10 +266,10 @@ describe("Auction", function () {
         onOfferObj = await auction.connect(signer1).onOffer()
         expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0573, 0.0002)
         // Buy the rest and close the auction 1 - 0.6 => 0.4 * 10^18
-        partialOfferAmount = defaultAuctionAmountDesired.sub(auctioneerBalance)
+        partialOfferAmount = auctionAmountDesired.sub(auctioneerBalance)
         await auction.connect(signer1).takeOffer(partialOfferAmount)
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-          defaultAuctionAmountDesired
+          auctionAmountDesired
         )
 
         // when a desired amount is collected, this auction should be destroyed
@@ -280,9 +287,7 @@ describe("Auction", function () {
         // ~4.16% on offer of a collateral pool after 1h
         expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
         // Pay 25% of the desired amount for the auction: 0.25 * 10^18
-        const partialOfferAmount = defaultAuctionAmountDesired.div(
-          BigNumber.from("4")
-        )
+        const partialOfferAmount = auctionAmountDesired.div(BigNumber.from("4"))
         await auction.connect(signer1).takeOffer(partialOfferAmount)
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
           partialOfferAmount
@@ -307,11 +312,11 @@ describe("Auction", function () {
           .connect(signer2)
           .amountOutstanding()
         expect(amountOutstanding).to.equal(
-          defaultAuctionAmountDesired.sub(partialOfferAmount)
+          auctionAmountDesired.sub(partialOfferAmount)
         )
         await auction.connect(signer2).takeOffer(amountOutstanding)
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-          defaultAuctionAmountDesired
+          auctionAmountDesired
         )
 
         // when a desired amount is collected, this auction should be destroyed
@@ -331,9 +336,7 @@ describe("Auction", function () {
         // ~4.16% on offer of a collateral pool after 1h
         expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
         // Pay 50% of the desired amount for an auction 0.5 * 10^18
-        let partialOfferAmount = defaultAuctionAmountDesired.div(
-          BigNumber.from("2")
-        )
+        let partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
         const expectedAuctioneerBalance = partialOfferAmount
         await auction.connect(signer1).takeOffer(partialOfferAmount)
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
@@ -365,7 +368,7 @@ describe("Auction", function () {
         expect(onOfferObj[0] / onOfferObj[1]).to.equal(1)
         // 60% of the desired amount was paid. 0.5 + 0.1 out of 1
         // Buy the rest and close the auction 1 - 0.6 => 0.4 * 10^18
-        partialOfferAmount = defaultAuctionAmountDesired.sub(auctioneerBalance)
+        partialOfferAmount = auctionAmountDesired.sub(auctioneerBalance)
         await auction.connect(signer1).takeOffer(partialOfferAmount)
 
         // when a desired amount is collected, this auction should be destroyed
