@@ -160,8 +160,8 @@ contract Auction {
         if (_isAuctionOver()) {
             // Down the road, for determining a portion on offer, a value returned
             // by this function will be divided by PORTION_ON_OFFER_DIVISOR. To
-            // return entire pool, we need to return this divisor.
-            // PORTION_ON_OFFER_DIVISOR.div(PORTION_ON_OFFER_DIVISOR) = 1
+            // return the entire pool, we need to return just this divisor in order
+            // to get 1.0 ie. PORTION_ON_OFFER_DIVISOR / PORTION_ON_OFFER_DIVISOR = 1.0
             return PORTION_ON_OFFER_DIVISOR;
         }
 
