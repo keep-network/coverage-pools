@@ -2,7 +2,8 @@
 
 pragma solidity <0.9.0;
 
-import "./interfaces/IAuctioneer.sol";
+import "./Auctioneer.sol";
+import "./interfaces/IAuction.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -21,7 +22,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 ///       self-destruct on close. An auction that has run the entire length will
 ///       stay open, forever, or until priced fluctuate and it's eventually
 ///       profitable to close.
-contract Auction {
+contract Auction is IAuction {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -30,7 +31,7 @@ contract Auction {
 
     struct AuctionStorage {
         IERC20 tokenAccepted;
-        IAuctioneer auctioneer;
+        Auctioneer auctioneer;
         // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
         uint256 startTime;
@@ -79,7 +80,7 @@ contract Auction {
     ) public {
         require(self.originalStartTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
-        self.auctioneer = IAuctioneer(_auctioneer);
+        self.auctioneer = Auctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
         self.originalStartTime = block.timestamp;
@@ -95,7 +96,7 @@ contract Auction {
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function takeOffer(uint256 amount) public {
+    function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
@@ -151,7 +152,7 @@ contract Auction {
     ///      collateral pool. Ex. if 35% available of the collateral pool,
     ///      then _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
-    function onOffer() public view returns (uint256, uint256) {
+    function onOffer() public view override returns (uint256, uint256) {
         return (_onOffer(), PORTION_ON_OFFER_DIVISOR);
     }
 

@@ -4,7 +4,7 @@ pragma solidity <0.9.0;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
-import "./interfaces/ICollateralPool.sol";
+import "./CollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -23,12 +23,12 @@ contract Auctioneer is CloneFactory, Ownable {
     address public masterAuction;
     mapping(address => bool) public auctions;
 
-    ICollateralPool public collateralPool;
+    CollateralPool public collateralPool;
 
     /// @dev Initialize the auctioneer
     /// @param _collateralPool The address of the master deposit contract.
     /// @param _masterAuction  The address of the master auction contract.
-    function initialize(ICollateralPool _collateralPool, address _masterAuction)
+    function initialize(CollateralPool _collateralPool, address _masterAuction)
         external
     {
         require(masterAuction == address(0), "Auctioneer already initialized");
@@ -44,7 +44,7 @@ contract Auctioneer is CloneFactory, Ownable {
     event AuctionOfferTaken(
         address indexed auction,
         address indexed auctionTaker,
-        address tokenAccepted,
+        IERC20 tokenAccepted,
         uint256 amount,
         uint256 portionOfPool
     );
@@ -64,7 +64,7 @@ contract Auctioneer is CloneFactory, Ownable {
     ///                        aside as the taker's winnings.
     function offerTaken(
         address auctionTaker,
-        address tokenPaid,
+        IERC20 tokenPaid,
         uint256 tokenAmountPaid,
         uint256 portionOfPool
     ) external {
