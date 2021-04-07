@@ -4,6 +4,7 @@ pragma solidity <0.9.0;
 
 import "./Auctioneer.sol";
 import "./interfaces/IAuction.sol";
+import "./CoveragePoolConstants.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -25,9 +26,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract Auction is IAuction {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
-
-    // for precision purposes only
-    uint256 constant PORTION_ON_OFFER_DIVISOR = 1000000;
 
     struct AuctionStorage {
         IERC20 tokenAccepted;
@@ -87,7 +85,7 @@ contract Auction is IAuction {
         self.updatedStartTime = block.timestamp;
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
-        self.velocityPoolDepletingRate = 1 * PORTION_ON_OFFER_DIVISOR;
+        self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getPortionOnOfferDivisor();
     }
 
     /// @notice Takes an offer from an auction buyer.
@@ -107,6 +105,7 @@ contract Auction is IAuction {
             amountToTransfer
         );
 
+        uint256 PORTION_ON_OFFER_DIVISOR = CoveragePoolConstants.getPortionOnOfferDivisor();
         uint256 portionToSeize =
             onOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
@@ -153,7 +152,7 @@ contract Auction is IAuction {
     ///      then _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() public view override returns (uint256, uint256) {
-        return (_onOffer(), PORTION_ON_OFFER_DIVISOR);
+        return (_onOffer(), CoveragePoolConstants.getPortionOnOfferDivisor());
     }
 
     function _onOffer() internal view returns (uint256) {
@@ -163,7 +162,7 @@ contract Auction is IAuction {
             // by this function will be divided by PORTION_ON_OFFER_DIVISOR. To
             // return the entire pool, we need to return just this divisor in order
             // to get 1.0 ie. PORTION_ON_OFFER_DIVISOR / PORTION_ON_OFFER_DIVISOR = 1.0
-            return PORTION_ON_OFFER_DIVISOR;
+            return CoveragePoolConstants.getPortionOnOfferDivisor();
         }
 
         return

@@ -24,8 +24,18 @@ describe("Auction", function () {
   let collateralPool
 
   before(async () => {
+    const CoveragePoolConstants = await ethers.getContractFactory(
+      "CoveragePoolConstants"
+    )
+    const coveragePoolConstants = await CoveragePoolConstants.deploy()
+    await coveragePoolConstants.deployed()
+
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
-    const Auction = await ethers.getContractFactory("Auction")
+    const Auction = await ethers.getContractFactory("Auction", {
+      libraries: {
+        CoveragePoolConstants: coveragePoolConstants.address,
+      },
+    })
     const CollateralPool = await ethers.getContractFactory("CollateralPool")
 
     TestToken = await ethers.getContractFactory("TestToken")

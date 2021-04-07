@@ -20,9 +20,19 @@ describe("Auctioneer", function () {
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
 
+    const CoveragePoolConstants = await ethers.getContractFactory(
+      "CoveragePoolConstants"
+    )
+    const coveragePoolConstants = await CoveragePoolConstants.deploy()
+    await coveragePoolConstants.deployed()
+
     const Auctioneer = await ethers.getContractFactory("Auctioneer")
     const TestToken = await ethers.getContractFactory("TestToken")
-    const Auction = await ethers.getContractFactory("Auction")
+    const Auction = await ethers.getContractFactory("Auction", {
+      libraries: {
+        CoveragePoolConstants: coveragePoolConstants.address,
+      },
+    })
     const CollateralPoolStub = await ethers.getContractFactory(
       "CollateralPoolStub"
     )
