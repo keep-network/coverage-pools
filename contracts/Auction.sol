@@ -38,8 +38,16 @@ contract Auction {
         uint256 updatedStartTime;
         uint256 auctionLength;
         // How fast portions of the collateral pool become available on offer.
-        // It always starts from 1.0 and then can go up depending on partial
-        // offers over time.
+        // It is needed to calculate the right portion value on offer at the
+        // given moment before the auction is over.
+        // Auction length once set is constant and what changes is the auction's
+        // "start time offset" once the takeOffer() call has been processed for
+        // partial fill. The auction's "start time offset" resets every takeOffer().
+        // velocityPoolDepletingRate = auctionLength / (auctionLength - startTimeOffset)
+        // velocityPoolDepletingRate always starts at 1.0 and then can go up
+        // depending on partial offer calls over auction life span to maintain
+        // the right ratio between the remaining auction time and the remaining
+        // portion of the collateral pool.
         uint256 velocityPoolDepletingRate;
     }
 
