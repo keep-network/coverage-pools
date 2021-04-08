@@ -33,7 +33,6 @@ contract Auction is IAuction {
         // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
         uint256 startTime;
-        uint256 originalStartTime;
         uint256 updatedStartTime;
         uint256 auctionLength;
         // How fast portions of the collateral pool become available on offer.
@@ -76,12 +75,12 @@ contract Auction is IAuction {
         uint256 _amountDesired,
         uint256 _auctionLength
     ) public {
-        require(self.originalStartTime == 0, "Auction already initialized");
+        require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.auctioneer = Auctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
-        self.originalStartTime = block.timestamp;
+        self.startTime = block.timestamp;
         self.updatedStartTime = block.timestamp;
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
@@ -121,11 +120,11 @@ contract Auction is IAuction {
             self.updatedStartTime = self.updatedStartTime.add(
                 localStartTimeOffset
             ); // update the auction start time "forward"
-            uint256 globalStartTimeOffset =
-                self.updatedStartTime.sub(self.originalStartTime);
+            uint256 startTimeDiff =
+                self.updatedStartTime.sub(self.startTime);
             self.velocityPoolDepletingRate = PORTION_ON_OFFER_DIVISOR
                 .mul(self.auctionLength)
-                .div(self.auctionLength.sub(globalStartTimeOffset));
+                .div(self.auctionLength.sub(startTimeDiff));
         }
 
         self.amountOutstanding = self.amountOutstanding.sub(amountToTransfer);
@@ -172,8 +171,7 @@ contract Auction is IAuction {
     }
 
     function _isAuctionOver() internal view returns (bool) {
-        return
-            block.timestamp >= self.originalStartTime.add(self.auctionLength);
+        return block.timestamp >= self.startTime.add(self.auctionLength);
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
