@@ -21,7 +21,7 @@ contract Auctioneer is CloneFactory, Ownable {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
-    mapping(address => bool) public auctions;
+    mapping(address => bool) public openAuctions;
 
     CollateralPool public collateralPool;
 
@@ -46,7 +46,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address indexed auctionTaker,
         IERC20 tokenAccepted,
         uint256 amount,
-        uint256 portionOfPool
+        uint256 portionOfPool // This amount should be divided by PORTION_ON_OFFER_DIVISOR
     );
     event AuctionClosed(address indexed auction);
 
@@ -59,7 +59,7 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @param tokenPaid       The token this auction is denominated in
     /// @param tokenAmountPaid The amount of the token the taker paid
     /// @param portionOfPool   The portion of the pool the taker won at auction.
-    ///                        This amount will be divided by PORTION_ON_OFFER_DIVISOR
+    ///                        This amount should be divided by PORTION_ON_OFFER_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
     function offerTaken(
@@ -68,7 +68,7 @@ contract Auctioneer is CloneFactory, Ownable {
         uint256 tokenAmountPaid,
         uint256 portionOfPool
     ) external {
-        require(auctions[msg.sender], "Sender isn't an auction");
+        require(openAuctions[msg.sender], "Sender isn't an auction");
 
         emit AuctionOfferTaken(
             msg.sender,
@@ -88,7 +88,7 @@ contract Auctioneer is CloneFactory, Ownable {
 
         if (!auction.isOpen()) {
             emit AuctionClosed(msg.sender);
-            delete auctions[msg.sender];
+            delete openAuctions[msg.sender];
         }
     }
 
@@ -115,7 +115,7 @@ contract Auctioneer is CloneFactory, Ownable {
             auctionLength
         );
 
-        auctions[cloneAddress] = true;
+        openAuctions[cloneAddress] = true;
 
         emit AuctionCreated(
             address(tokenAccepted),

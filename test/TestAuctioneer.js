@@ -11,11 +11,15 @@ const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 const auctionLength = 86400 // 24h in sec
 const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 const testTokensToMint = to1e18(1)
-// amount of test tokens that an auction (aka spender) is allowed
-// to transfer on behalf of a signer (aka token owner) from signer balance
-const defaultAuctionTokenAllowance = to1e18(1)
 
-describe("Auctioneer", function () {
+describe("Auctioneer", () => {
+  let owner
+  let signer1
+  let auctioneer
+  let masterAuction
+  let collateralPoolStub
+  let testToken
+
   before(async () => {
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
@@ -74,15 +78,15 @@ describe("Auctioneer", function () {
     })
   })
 
-  describe("create auction", () => {
+  describe("createAuction", () => {
     before(async () => {
       events = await createAuction()
     })
 
-    context("when the auctioneer is the owner", () => {
+    context("when caller is the owner", () => {
       it("should create a new auction", async () => {
         expect(
-          await auctioneer.auctions(events[0].args["auctionAddress"])
+          await auctioneer.openAuctions(events[0].args["auctionAddress"])
         ).to.equal(true)
       })
 
@@ -94,8 +98,8 @@ describe("Auctioneer", function () {
       })
     })
 
-    context("when a caller is not the auctioneer", () => {
-      it("should not create a new auction when not the owner", async () => {
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
         await expect(
           auctioneer
             .connect(signer1)
@@ -109,20 +113,21 @@ describe("Auctioneer", function () {
     })
 
     async function createAuction() {
-      const createAuctionTx = await auctioneer.createAuction(
-        testToken.address,
-        auctionAmountDesired,
-        auctionLength
-      )
+      const createAuctionTx = await auctioneer
+        .connect(owner)
+        .createAuction(testToken.address, auctionAmountDesired, auctionLength)
 
       const receipt = await createAuctionTx.wait()
       return pastEvents(receipt, auctioneer, "AuctionCreated")
     }
   })
 
-  describe("offer taken", () => {
+  describe("offerTaken", () => {
     let auction
     let auctionAddress
+    // amount of test tokens that an auction (aka spender) is allowed
+    // to transfer on behalf of a signer (aka token owner) from signer balance
+    const auctionTokenAllowance = to1e18(1)
 
     beforeEach(async () => {
       const createAuctionTx = await auctioneer.createAuction(
@@ -139,7 +144,7 @@ describe("Auctioneer", function () {
 
       await testToken
         .connect(signer1)
-        .approve(auction.address, defaultAuctionTokenAllowance)
+        .approve(auction.address, auctionTokenAllowance)
     })
 
     context(
@@ -172,7 +177,7 @@ describe("Auctioneer", function () {
           )
 
           // check wheather seizeFunds was executed with the right params
-          events = pastEvents(receipt, collateralPoolStub, "SeizeFunds")
+          events = pastEvents(receipt, collateralPoolStub, "FundsSeized")
           expect(events.length).to.equal(1)
           expect(events[0].args["recipient"]).to.equal(signer1.address)
           expect(events[0].args["portionOfPool"]).to.be.closeTo(
@@ -210,7 +215,7 @@ describe("Auctioneer", function () {
           )
 
           // check wheather seizeFunds was executed with the right params
-          events = pastEvents(receipt, collateralPoolStub, "SeizeFunds")
+          events = pastEvents(receipt, collateralPoolStub, "FundsSeized")
           expect(events.length).to.equal(1)
           expect(events[0].args["recipient"]).to.equal(signer1.address)
           expect(events[0].args["portionOfPool"]).to.be.closeTo(
@@ -222,7 +227,7 @@ describe("Auctioneer", function () {
           // tokens paid: 1 * 10^18 - 0.6 * 10^18
           // remaining tokens to collect is 0.4 * 10^18, hence the auction cannot be closed yet
           await expect(takeOfferTx).to.not.emit(auctioneer, "AuctionClosed")
-          expect(await auctioneer.auctions(auctionAddress)).to.equal(true)
+          expect(await auctioneer.openAuctions(auctionAddress)).to.equal(true)
         })
       }
     )
@@ -256,7 +261,7 @@ describe("Auctioneer", function () {
           .to.emit(auctioneer, "AuctionClosed")
           .withArgs(auctionAddress)
 
-        expect(await auctioneer.auctions(auctionAddress)).to.equal(false)
+        expect(await auctioneer.openAuctions(auctionAddress)).to.equal(false)
       })
     })
   })

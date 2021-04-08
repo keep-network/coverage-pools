@@ -15,7 +15,7 @@ const { BigNumber } = ethers
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 
-describe("Auction", function () {
+describe("Auction", () => {
   let TestToken
   let owner
   let signer1
@@ -118,7 +118,7 @@ describe("Auction", function () {
 
         const onOffer = await auction.onOffer()
 
-        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0, 0.01) // 'closeTo' because of evm delays
+        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0, 0.00001) // 'closeTo' because of evm delays
       })
     })
 
