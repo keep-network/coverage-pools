@@ -33,7 +33,7 @@ contract Auction is IAuction {
         // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
         uint256 startTime;
-        uint256 updatedStartTime;
+        uint256 startTimeOffset;
         uint256 auctionLength;
         // How fast portions of the collateral pool become available on offer.
         // It is needed to calculate the right portion value on offer at the
@@ -81,7 +81,7 @@ contract Auction is IAuction {
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
         self.startTime = block.timestamp;
-        self.updatedStartTime = block.timestamp;
+        self.startTimeOffset = block.timestamp;
         self.auctionLength = _auctionLength;
         // When the pool is full, velocity rate is 1
         self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getPortionOnOfferDivisor();
@@ -113,15 +113,17 @@ contract Auction is IAuction {
                 PORTION_ON_OFFER_DIVISOR.mul(amountToTransfer).div(
                     self.amountOutstanding
                 );
-            uint256 localStartTimeOffset =
-                (block.timestamp.sub(self.updatedStartTime))
+            // We will increase the start time offset proportionally to the
+            // fraction of the outstanding amount paid in this function call
+            // to "squeeze" the auction and increase its velocity so that the
+            // auction can offer no worse financial outcome for the next takers 
+            // than the current taker has.
+            uint256 localStartTimeDiff =
+                (block.timestamp.sub(self.startTimeOffset))
                     .mul(ratioAmountPaid)
                     .div(PORTION_ON_OFFER_DIVISOR);
-            self.updatedStartTime = self.updatedStartTime.add(
-                localStartTimeOffset
-            ); // update the auction start time "forward"
-            uint256 startTimeDiff =
-                self.updatedStartTime.sub(self.startTime);
+            self.startTimeOffset = self.startTimeOffset.add(localStartTimeDiff);
+            uint256 startTimeDiff = self.startTimeOffset.sub(self.startTime);
             self.velocityPoolDepletingRate = PORTION_ON_OFFER_DIVISOR
                 .mul(self.auctionLength)
                 .div(self.auctionLength.sub(startTimeDiff));
@@ -165,7 +167,7 @@ contract Auction is IAuction {
         }
 
         return
-            (block.timestamp.sub(self.updatedStartTime))
+            (block.timestamp.sub(self.startTimeOffset))
                 .mul(self.velocityPoolDepletingRate)
                 .div(self.auctionLength);
     }
