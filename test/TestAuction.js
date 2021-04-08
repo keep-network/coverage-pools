@@ -16,7 +16,7 @@ const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 
 describe("Auction", () => {
-  let TestToken
+  let testToken
   let owner
   let signer1
   let signer2
@@ -38,8 +38,6 @@ describe("Auction", () => {
     })
     const CollateralPool = await ethers.getContractFactory("CollateralPool")
 
-    TestToken = await ethers.getContractFactory("TestToken")
-
     owner = await ethers.getSigner(0)
     signer1 = await ethers.getSigner(1)
     signer2 = await ethers.getSigner(2)
@@ -57,8 +55,8 @@ describe("Auction", () => {
   })
 
   beforeEach(async () => {
+    const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
-    await testToken.deployed()
 
     await testToken.mint(owner.address, testTokensToMint)
     await testToken.mint(signer1.address, testTokensToMint)
@@ -194,7 +192,7 @@ describe("Auction", () => {
     })
 
     context("when paying zero amount for the auction", () => {
-      it("should not allow zero amount", async () => {
+      it("should revert", async () => {
         await expect(auction.takeOffer(0)).to.be.revertedWith(
           "Can't pay 0 tokens"
         )
