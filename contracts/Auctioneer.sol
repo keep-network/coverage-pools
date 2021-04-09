@@ -92,6 +92,11 @@ contract Auctioneer is CloneFactory, Ownable {
         }
     }
 
+    function reimburseUnderwriters() external {
+        // TODO: this is a filler function for tBTCv1 for returning tokens to 
+        // underwriters.
+    }
+
     /// @notice Opens a new auction against the collateral pool. The auction
     ///         will remain open until filled.
     /// @dev Calls `Auction.initialize` to initialize the instance.
