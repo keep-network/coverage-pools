@@ -262,7 +262,7 @@ describe("Auction", () => {
         // 3,600 / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
         const portionToSeize = BigNumber.from("41600") // 0.0416 * 100000 (divisor)
         // Paying more than outstanding amount must not affect pool's portion to seize
-        expect(events[0].args["portionOfPool"]).to.be.closeTo(
+        expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
           200
         )

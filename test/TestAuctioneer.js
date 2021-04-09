@@ -195,7 +195,7 @@ describe("Auctioneer", () => {
           expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
           expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction1)
-          expect(events[0].args["portionOfPool"]).to.be.closeTo(
+          expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize1,
             100
           )
@@ -206,7 +206,7 @@ describe("Auctioneer", () => {
           expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
           expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction2)
-          expect(events[0].args["portionOfPool"]).to.be.closeTo(
+          expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize2,
             100
           )
@@ -218,7 +218,7 @@ describe("Auctioneer", () => {
           events = pastEvents(receipt1, collateralPoolStub, "FundsSeized")
           expect(events.length).to.equal(1)
           expect(events[0].args["recipient"]).to.equal(signer1.address)
-          expect(events[0].args["portionOfPool"]).to.be.closeTo(
+          expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize1,
             100
           )
@@ -264,7 +264,7 @@ describe("Auctioneer", () => {
         expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
         expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
         expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
-        expect(events[0].args["portionOfPool"]).to.be.closeTo(
+        expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
           100
         )
@@ -275,7 +275,7 @@ describe("Auctioneer", () => {
         events = pastEvents(receipt, collateralPoolStub, "FundsSeized")
         expect(events.length).to.equal(1)
         expect(events[0].args["recipient"]).to.equal(signer1.address)
-        expect(events[0].args["portionOfPool"]).to.be.closeTo(
+        expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
           100
         )

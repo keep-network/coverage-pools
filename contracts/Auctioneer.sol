@@ -46,7 +46,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address indexed auctionTaker,
         IERC20 tokenAccepted,
         uint256 amount,
-        uint256 portionOfPool // This amount should be divided by PORTION_ON_OFFER_DIVISOR
+        uint256 portionToSeize // This amount should be divided by PORTION_ON_OFFER_DIVISOR
     );
     event AuctionClosed(address indexed auction);
 
@@ -58,7 +58,7 @@ contract Auctioneer is CloneFactory, Ownable {
     ///                        receive the pool's seized funds
     /// @param tokenPaid       The token this auction is denominated in
     /// @param tokenAmountPaid The amount of the token the taker paid
-    /// @param portionOfPool   The portion of the pool the taker won at auction.
+    /// @param portionToSeize   The portion of the pool the taker won at auction.
     ///                        This amount should be divided by PORTION_ON_OFFER_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
@@ -66,7 +66,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address auctionTaker,
         IERC20 tokenPaid,
         uint256 tokenAmountPaid,
-        uint256 portionOfPool
+        uint256 portionToSeize
     ) external {
         require(openAuctions[msg.sender], "Sender isn't an auction");
 
@@ -75,16 +75,16 @@ contract Auctioneer is CloneFactory, Ownable {
             auctionTaker,
             tokenPaid,
             tokenAmountPaid,
-            portionOfPool
+            portionToSeize
         );
 
         Auction auction = Auction(msg.sender);
 
         // actually seize funds, setting them aside for the taker to withdraw
         // from the collateral pool.
-        // `portionOfPool` will be divided by PORTION_ON_OFFER_DIVISOR which is
+        // `portionToSeize` will be divided by PORTION_ON_OFFER_DIVISOR which is
         // defined in Auction.sol
-        collateralPool.seizeFunds(portionOfPool, auctionTaker);
+        collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
             emit AuctionClosed(msg.sender);
