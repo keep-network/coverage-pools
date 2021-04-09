@@ -182,6 +182,75 @@ describe("Auction", () => {
     })
   })
 
+  describe("takeOfferWithMin", () => {
+    const auctionLength = 86400 // 24h in sec
+    const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
+    // Pay 75% of the desired amount for the auction 0.75 * 10^18
+    const partialOfferAmount = BigNumber.from(75).mul(
+      BigNumber.from(10).pow(16)
+    )
+
+    beforeEach(async () => {
+      auction = await createAuction(auctionAmountDesired, auctionLength)
+      await approveTestTokenForAuction(auction.address)
+
+      await auction.connect(signer1).takeOffer(partialOfferAmount)
+      expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        partialOfferAmount
+      )
+
+      // at this point auction's outstanding amount is equal to:
+      // (1 - 0.75) * 10^18 = 0.25 * 10^18
+    })
+
+    context(
+      "when outstanding amount is equal or greater than a minimum amount to take",
+      () => {
+        it("should take all outstanding amount", async () => {
+          const minAmount = BigNumber.from(25).mul(BigNumber.from(10).pow(16)) // 0.25 * 10^18
+
+          // signer2 wants to take 0.75 * 10^18, which is more than the outstanding amount
+          // but the minAmount 0.25 * 10^18 <= outstanding amount
+          await auction
+            .connect(signer2)
+            .takeOfferWithMin(partialOfferAmount, minAmount)
+          // auctioneer should receive the auction's desired amount
+          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+            auctionAmountDesired
+          )
+
+          // (1 - 0.25) * 10^18
+          const expectedBalanceSigner2 = BigNumber.from(75).mul(
+            BigNumber.from(10).pow(16)
+          )
+          expect(await testToken.balanceOf(signer2.address)).to.be.equal(
+            expectedBalanceSigner2
+          )
+        })
+      }
+    )
+
+    context(
+      "when outstanding amount is less than a minimum amount to take",
+      () => {
+        it("should revert", async () => {
+          // minAmount: 0.25 * 10^18 + 1
+          const minAmount = BigNumber.from(25)
+            .mul(BigNumber.from(10).pow(16))
+            .add(BigNumber.from(1))
+
+          // signer2 wants to take 0.75 * 10^18, which is more than the outstanding amount
+          // minAmount is also greater than the outstanding amount
+          await expect(
+            auction
+              .connect(signer2)
+              .takeOfferWithMin(partialOfferAmount, minAmount)
+          ).to.be.revertedWith("Can't fulfill minimum offer")
+        })
+      }
+    )
+  })
+
   describe("takeOffer", () => {
     const auctionLength = 86400 // 24h in sec
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC

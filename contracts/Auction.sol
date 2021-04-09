@@ -87,15 +87,27 @@ contract Auction is IAuction {
         self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getPortionOnOfferDivisor();
     }
 
+    /// @dev 'minAmount' is zero, which means taking all outstanding amount
+    function takeOffer(uint256 amount) external override {
+        _takeOffer(amount, 0);
+    }
+
+    /// @dev 'minAmount' puts a minimum limit of tokens to buy in this transaction. 
+    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
+    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
+        _takeOffer(amount, minAmount);
+    }
+
     /// @notice Takes an offer from an auction buyer.
     /// @dev There are two possible ways to take an offer from a buyer. The first
     ///      one is to buy entire auction with the amount desired for this auction.
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function takeOffer(uint256 amount) public override {
+    function _takeOffer(uint256 amount, uint256 minAmount) internal {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
+        require(self.amountOutstanding >= minAmount, "Can't fulfill minimum offer");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 onOffer = _onOffer();
         self.tokenAccepted.safeTransferFrom(
