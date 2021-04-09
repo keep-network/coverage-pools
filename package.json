@@ -4,17 +4,18 @@
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "chai": "^4.3.4",
-    "ethereum-waffle": "^3.3.0",
-    "ethers": "^5.0.32",
-    "hardhat": "^2.1.1",
     "eslint": "^6.8.0",
     "eslint-config-keep": "github:keep-network/eslint-config-keep#0.3.0",
+    "ethereum-waffle": "^3.3.0",
+    "ethers": "^5.0.32",
+    "ethlint": "^1.2.3",
+    "hardhat": "^2.1.1",
+    "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.2 ",
     "solium": "^1.2.5",
     "solium-config-keep": "github:keep-network/solium-config-keep#0.1.1",
-    "typescript": "^3.7.0",
-    "ethlint": "^1.2.3"
+    "typescript": "^3.7.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.3.0"
