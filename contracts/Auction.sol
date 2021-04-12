@@ -200,7 +200,7 @@ contract Auctioneer is CloneFactory, Ownable {
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint64 auctionLength
-    ) external onlyOwner returns(address) {
+    ) public onlyOwner returns(address) {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
