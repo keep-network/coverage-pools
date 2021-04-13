@@ -95,6 +95,7 @@ contract Auction is IAuction {
     /// @dev 'minAmount' puts a minimum limit of tokens to buy in this transaction. 
     ///      If `amountOutstanding` < 'minAmount', transaction will revert.
     function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
+        require(self.amountOutstanding >= minAmount, "Can't fulfill minimum offer");
         _takeOffer(amount, minAmount);
     }
 
@@ -107,7 +108,6 @@ contract Auction is IAuction {
     function _takeOffer(uint256 amount, uint256 minAmount) internal {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
-        require(self.amountOutstanding >= minAmount, "Can't fulfill minimum offer");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 onOffer = _onOffer();
         self.tokenAccepted.safeTransferFrom(
