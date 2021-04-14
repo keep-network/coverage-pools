@@ -39,6 +39,10 @@ contract Auction {
 
     AuctionStorage public self;
 
+    function isOpen() external view returns (bool) {
+        return self.amountOutstanding > 0;
+    }
+
     /// @dev
     /// @param _auctioneer    the auctioneer contract responsible for seizing
     ///                       funds from the backing collateral pool
@@ -92,10 +96,6 @@ contract Auction {
         if (self.amountOutstanding == 0) {
             harikari();
         }
-    }
-
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
     }
 
     /// @notice how much of the collateral pool can currently be purchased at
