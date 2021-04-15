@@ -141,7 +141,9 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
         await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
 
-        await assetPool.connect(coveragePool).claim(claimedTokens)
+        await assetPool
+          .connect(coveragePool)
+          .claim(coveragePool.address, claimedTokens)
       })
 
       it("should mint underwriter tokens", async () => {
@@ -280,7 +282,9 @@ describe("AssetPool", () => {
 
       it("should let all underwriters withdraw their collateral tokens proportionally to their pool share", async () => {
         // 40 collateral tokens are claimed by the coverage pool.
-        await assetPool.connect(coveragePool).claim(to1e18(40))
+        await assetPool
+          .connect(coveragePool)
+          .claim(coveragePool.address, to1e18(40))
 
         // The pool has 1021 collateral tokens now (1061 - 40).
         // 1061 COV tokens exist. The underwriter has 100 COV tokens.
@@ -319,7 +323,9 @@ describe("AssetPool", () => {
         await assetPool.connect(underwriter6).withdraw(depositedUnderwriter6)
 
         // 60 collateral tokens are claimed by the coverage pool.
-        await assetPool.connect(coveragePool).claim(to1e18(60))
+        await assetPool
+          .connect(coveragePool)
+          .claim(coveragePool.address, to1e18(60))
 
         // The pool has 263.332705 collateral tokens now
         // (1061 - 40 - 96.22997172 - 601.43732328 - 60).
@@ -365,7 +371,9 @@ describe("AssetPool", () => {
         it("should withdraw underwriter collateral tokens proportionally to their pool share", async () => {
           // 1061 COV tokens exist and 1061 collateral tokens are deposited in
           // the pool. 40 collateral tokens are claimed by the pool.
-          await assetPool.connect(coveragePool).claim(to1e18(40))
+          await assetPool
+            .connect(coveragePool)
+            .claim(coveragePool.address, to1e18(40))
 
           // 331 collateral tokens added to the pool
           // 331 * 1061 / 1021 = 343.96767874 COV minted
@@ -393,7 +401,9 @@ describe("AssetPool", () => {
 
           // 1308.08521057 COV tokens exist and 1258.77002827 collateral tokens are
           // deposited in the pool. 60 collateral tokens are claimed by the pool.
-          await assetPool.connect(coveragePool).claim(to1e18(60))
+          await assetPool
+            .connect(coveragePool)
+            .claim(coveragePool.address, to1e18(60))
 
           // Underwriter has 674.96767874/1308.08521057 share of the pool and
           // decides to spend half of it. The pool has 1198.77002827 collateral
@@ -424,17 +434,22 @@ describe("AssetPool", () => {
     context("when not done by coverage pool", () => {
       it("should revert", async () => {
         await expect(
-          assetPool.connect(underwriter1).claim(to1e18(100))
+          assetPool
+            .connect(underwriter1)
+            .claim(coveragePool.address, to1e18(100))
         ).to.be.revertedWith("Caller is not the coverage pool")
       })
     })
 
     context("when done by coverage pool", () => {
-      it("should transfer claimed tokens to coverage pool", async () => {
-        await assetPool.connect(coveragePool).claim(to1e18(90))
-        expect(await collateralToken.balanceOf(coveragePool.address)).to.equal(
-          to1e18(90)
-        )
+      it("should transfer claimed tokens to the recipient", async () => {
+        const claimRecipient = await ethers.getSigner(15)
+        await assetPool
+          .connect(coveragePool)
+          .claim(claimRecipient.address, to1e18(90))
+        expect(
+          await collateralToken.balanceOf(claimRecipient.address)
+        ).to.equal(to1e18(90))
       })
     })
   })

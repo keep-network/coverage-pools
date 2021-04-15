@@ -89,9 +89,9 @@ contract AssetPool {
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
-    ///         by this pool.
-    function claim(uint256 amount) public onlyCoveragePool {
-        collateralToken.safeTransfer(coveragePool, amount);
+    ///         by this pool and send it to the provided recipient address.
+    function claim(address recipient, uint256 amount) public onlyCoveragePool {
+        collateralToken.safeTransfer(recipient, amount);
     }
 
     function _deposit(address depositor, uint256 amount) internal {
