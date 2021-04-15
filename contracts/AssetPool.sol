@@ -7,6 +7,7 @@ import "./UnderwriterToken.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title AssetPool
 /// @notice Asset pool is a component of a Coverage Pool. Each Asset Pool
@@ -15,25 +16,17 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 ///         in WETH in return for covETH underwriter tokens. Underwriter tokens
 ///         represent an ownership share in the underlying collateral of the
 ///         Asset Pool.
-contract AssetPool {
+contract AssetPool is Ownable {
     using SafeERC20 for IERC20;
     using SafeERC20 for UnderwriterToken;
     using SafeMath for uint256;
 
-    address public coveragePool;
-
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
 
-    constructor(IERC20 _collateralToken, address _coveragePool) {
-        coveragePool = _coveragePool;
+    constructor(IERC20 _collateralToken) {
         collateralToken = _collateralToken;
         underwriterToken = new UnderwriterToken();
-    }
-
-    modifier onlyCoveragePool() {
-        require(msg.sender == coveragePool, "Caller is not the coverage pool");
-        _;
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
@@ -90,7 +83,7 @@ contract AssetPool {
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
-    function claim(address recipient, uint256 amount) public onlyCoveragePool {
+    function claim(address recipient, uint256 amount) public onlyOwner {
         collateralToken.safeTransfer(recipient, amount);
     }
 

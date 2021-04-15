@@ -29,11 +29,9 @@ describe("AssetPool", () => {
     await collateralToken.deployed()
 
     const AssetPool = await ethers.getContractFactory("AssetPool")
-    assetPool = await AssetPool.deploy(
-      collateralToken.address,
-      coveragePool.address
-    )
+    assetPool = await AssetPool.deploy(collateralToken.address)
     await assetPool.deployed()
+    await assetPool.transferOwnership(coveragePool.address)
 
     underwriterToken = new ethers.Contract(
       await assetPool.underwriterToken(),
@@ -431,17 +429,17 @@ describe("AssetPool", () => {
     beforeEach(async () => {
       await assetPool.connect(underwriter1).deposit(to1e18(200))
     })
-    context("when not done by coverage pool", () => {
+    context("when not done by the owner", () => {
       it("should revert", async () => {
         await expect(
           assetPool
             .connect(underwriter1)
             .claim(coveragePool.address, to1e18(100))
-        ).to.be.revertedWith("Caller is not the coverage pool")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
-    context("when done by coverage pool", () => {
+    context("when done by the owner", () => {
       it("should transfer claimed tokens to the recipient", async () => {
         const claimRecipient = await ethers.getSigner(15)
         await assetPool
