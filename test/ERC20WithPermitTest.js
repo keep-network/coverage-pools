@@ -508,7 +508,7 @@ describe("ERC20WithPermit", () => {
           expect(await token.totalSupply()).to.equal(expectedSupply)
         })
 
-        it("should decrement initialHolder balance", async () => {
+        it("should decrement owner's balance", async () => {
           const expectedBalance = initialSupply.sub(amount)
           expect(await token.balanceOf(initialHolder.address)).to.equal(
             expectedBalance
@@ -525,6 +525,74 @@ describe("ERC20WithPermit", () => {
 
     describeBurn("for entire balance", initialSupply)
     describeBurn("for less amount than balance", initialSupply.sub(1))
+  })
+
+  describe("burnFrom", () => {
+    it("should reject burning more than balance", async () => {
+      await token
+        .connect(initialHolder)
+        .approve(anotherAccount.address, initialSupply.add(1))
+      await expect(
+        token
+          .connect(anotherAccount)
+          .burnFrom(initialHolder.address, initialSupply.add(1))
+      ).to.be.revertedWith("Burn amount exceeds balance")
+    })
+
+    it("should reject burning more than the allowance", async () => {
+      await token
+        .connect(initialHolder)
+        .approve(anotherAccount.address, initialSupply.sub(1))
+      await expect(
+        token
+          .connect(anotherAccount)
+          .burnFrom(initialHolder.address, initialSupply)
+      ).to.be.revertedWith("Burn amount exceeds allowance")
+    })
+
+    const describeBurnFrom = (description, amount) => {
+      describe(description, () => {
+        let burnTx
+        beforeEach("burning from", async () => {
+          await token
+            .connect(initialHolder)
+            .approve(anotherAccount.address, amount)
+          burnTx = await token
+            .connect(anotherAccount)
+            .burnFrom(initialHolder.address, amount)
+        })
+
+        it("should decrement totalSupply", async () => {
+          const expectedSupply = initialSupply.sub(amount)
+          expect(await token.totalSupply()).to.equal(expectedSupply)
+        })
+
+        it("should decrement owner's balance", async () => {
+          const expectedBalance = initialSupply.sub(amount)
+          expect(await token.balanceOf(initialHolder.address)).to.equal(
+            expectedBalance
+          )
+        })
+
+        it("should decrement allowance", async () => {
+          const allowance = await token.allowance(
+            initialHolder.address,
+            anotherAccount.address
+          )
+
+          expect(allowance).to.equal(0)
+        })
+
+        it("should emit Transfer event", async () => {
+          await expect(burnTx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
+        })
+      })
+    }
+
+    describeBurnFrom("for entire balance", initialSupply)
+    describeBurnFrom("for less amount than balance", initialSupply.sub(1))
   })
 
   describe("permit", () => {
