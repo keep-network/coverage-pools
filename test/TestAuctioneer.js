@@ -1,7 +1,7 @@
 const { expect } = require("chai")
 const { BigNumber } = require("ethers")
 const {
-  to1e18,
+  to1ePrecision,
   pastEvents,
   increaseTime,
 } = require("./helpers/contract-test-helpers")
@@ -9,8 +9,8 @@ const {
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const auctionLength = 86400 // 24h in sec
-const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
-const testTokensToMint = to1e18(1)
+const auctionAmountDesired = to1ePrecision(1, 18) // ex. 1 TBTC
+const testTokensToMint = to1ePrecision(1, 18)
 
 describe("Auctioneer", () => {
   let owner
@@ -127,7 +127,7 @@ describe("Auctioneer", () => {
     let auctionAddress
     // amount of test tokens that an auction (aka spender) is allowed
     // to transfer on behalf of a signer (aka token owner) from signer balance
-    const auctionTokenAllowance = to1e18(1)
+    const auctionTokenAllowance = to1ePrecision(1, 18)
 
     beforeEach(async () => {
       const createAuctionTx = await auctioneer.createAuction(
@@ -158,18 +158,21 @@ describe("Auctioneer", () => {
         let takeOfferTx2
         let portionToSeize2
         let receipt2
+        let approximation
 
         beforeEach(async () => {
           // Increase time 1h -> 3,600 sec
           await increaseTime(3600)
           // half of the available pool was paid
-          amountPaidForAuction1 = to1e18(1).div(BigNumber.from("2")) // 1 * 10^18 / 2
+          amountPaidForAuction1 = to1ePrecision(1, 18).div(BigNumber.from("2")) // 1 * 10^18 / 2
           takeOfferTx1 = await auction
             .connect(signer1)
             .takeOffer(amountPaidForAuction1)
           // portion available to seize from a pool: 3,600 / 86,400 =~ 0.0416666
           // portionToSeize: 0.0416666 / 2 = 0.0208333
-          portionToSeize1 = BigNumber.from("20833")
+          portionToSeize1 = to1ePrecision(208333, 11)
+          // approximation: 0.00002
+          approximation = to1ePrecision(2, 13)
           receipt1 = await takeOfferTx1.wait()
 
           // increase time 45min -> 2,700 sec
@@ -184,7 +187,7 @@ describe("Auctioneer", () => {
             .takeOffer(amountPaidForAuction2)
           // portion available to seize from a pool: 0.0531875
           // portionToSeize: 0.0531875 / 5 = 0.0106375
-          portionToSeize2 = BigNumber.from("10637")
+          portionToSeize2 = to1ePrecision(106375, 11)
           receipt2 = await takeOfferTx2.wait()
         })
 
@@ -197,7 +200,7 @@ describe("Auctioneer", () => {
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction1)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize1,
-            100
+            approximation
           )
 
           events = pastEvents(receipt2, auctioneer, "AuctionOfferTaken")
@@ -208,7 +211,7 @@ describe("Auctioneer", () => {
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction2)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize2,
-            100
+            approximation
           )
         })
 
@@ -220,7 +223,7 @@ describe("Auctioneer", () => {
           expect(events[0].args["recipient"]).to.equal(signer1.address)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize1,
-            100
+            approximation
           )
         })
 
@@ -247,13 +250,15 @@ describe("Auctioneer", () => {
         // Increase time 12h -> 36,000 sec
         await increaseTime(43200)
 
-        amountPaidForAuction = to1e18(1)
+        amountPaidForAuction = to1ePrecision(1, 18)
         takeOfferTx = await auction
           .connect(signer1)
           .takeOffer(amountPaidForAuction)
 
         // portion to seize from the pool: 43,200 / 86,400 = 0.5
-        portionToSeize = BigNumber.from("500000")
+        portionToSeize = to1ePrecision(5, 17)
+        // approximation: 0.00004
+        approximation = to1ePrecision(4, 13)
         receipt = await takeOfferTx.wait()
       })
 
@@ -266,7 +271,7 @@ describe("Auctioneer", () => {
         expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
-          100
+          approximation
         )
       })
 
@@ -277,7 +282,7 @@ describe("Auctioneer", () => {
         expect(events[0].args["recipient"]).to.equal(signer1.address)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
-          100
+          approximation
         )
       })
 

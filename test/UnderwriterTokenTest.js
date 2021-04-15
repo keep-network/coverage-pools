@@ -1,11 +1,14 @@
 const { expect } = require("chai")
-const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
+const {
+  to1ePrecision,
+  ZERO_ADDRESS,
+} = require("./helpers/contract-test-helpers")
 
 describe("UnderwriterToken", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
   const hardhatNetworkId = 31337
 
-  const initialSupply = to1e18(100)
+  const initialSupply = to1ePrecision(100, 18)
 
   let initialHolder
   let recipient
@@ -379,7 +382,7 @@ describe("UnderwriterToken", () => {
           })
 
           it("approves the requested amount and replaces the previous one", async () => {
-            const newAllowance = to1e18(100)
+            const newAllowance = to1ePrecision(100, 18)
 
             await token
               .connect(initialHolder)
@@ -426,7 +429,7 @@ describe("UnderwriterToken", () => {
           beforeEach(async () => {
             await token
               .connect(initialHolder)
-              .approve(anotherAccount.address, to1e18(1))
+              .approve(anotherAccount.address, to1ePrecision(1, 18))
           })
 
           it("approves the requested amount and replaces the previous one", async () => {
@@ -455,7 +458,7 @@ describe("UnderwriterToken", () => {
   })
 
   describe("_mint", () => {
-    const amount = to1e18(50)
+    const amount = to1ePrecision(50, 18)
     it("rejects a zero account", async () => {
       await expect(token.mint(ZERO_ADDRESS, amount)).to.be.revertedWith(
         "Mint to the zero address"
@@ -487,9 +490,9 @@ describe("UnderwriterToken", () => {
 
   describe("_burn", () => {
     it("rejects a zero account", async () => {
-      await expect(token.burn(ZERO_ADDRESS, to1e18(1))).to.be.revertedWith(
-        "Burn from the zero address"
-      )
+      await expect(
+        token.burn(ZERO_ADDRESS, to1ePrecision(1, 18))
+      ).to.be.revertedWith("Burn from the zero address")
     })
 
     describe("for a non zero account", () => {
@@ -539,7 +542,7 @@ describe("UnderwriterToken", () => {
     const timestamp2020 = 1577836633 // Jan 1, 2020
     const timestamp2025 = 1735689433 // Jan 1, 2025
 
-    const permittingHolderBalance = to1e18(650000)
+    const permittingHolderBalance = to1ePrecision(650000, 18)
     let permittingHolder
 
     beforeEach(async () => {
@@ -937,7 +940,7 @@ describe("UnderwriterToken", () => {
           .transferFrom(
             permittingHolder.address,
             recipient.address,
-            to1e18(100)
+            to1ePrecision(100, 18)
           )
 
         expect(
