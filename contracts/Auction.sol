@@ -40,7 +40,7 @@ contract Auction is IAuction {
         // given moment before the auction is over.
         // Auction length once set is constant and what changes is the auction's
         // "start time offset" once the takeOffer() call has been processed for
-        // partial fill. The auction's "start time offset" resets every takeOffer().
+        // partial fill. The auction's "start time offset" is updated every takeOffer().
         // velocityPoolDepletingRate = auctionLength / (auctionLength - startTimeOffset)
         // velocityPoolDepletingRate always starts at 1.0 and then can go up
         // depending on partial offer calls over auction life span to maintain
@@ -83,8 +83,7 @@ contract Auction is IAuction {
         self.startTime = block.timestamp;
         self.startTimeOffset = block.timestamp;
         self.auctionLength = _auctionLength;
-        // When the pool is full, velocity rate is 1
-        self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getPortionOnOfferDivisor();
+        self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getFloatingPointDivisor();
     }
 
     /// @notice Takes an offer from an auction buyer.
@@ -104,27 +103,30 @@ contract Auction is IAuction {
             amountToTransfer
         );
 
-        uint256 PORTION_ON_OFFER_DIVISOR = CoveragePoolConstants.getPortionOnOfferDivisor();
         uint256 portionToSeize =
             onOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
+            uint256 FLOATING_POINT_DIVISOR = CoveragePoolConstants.getFloatingPointDivisor();
+            
+            // Ratio of the auction's amount included in this takeOffer call to
+            // the whole outstanding auction amount.
             uint256 ratioAmountPaid =
-                PORTION_ON_OFFER_DIVISOR.mul(amountToTransfer).div(
+                FLOATING_POINT_DIVISOR.mul(amountToTransfer).div(
                     self.amountOutstanding
                 );
-            // We will increase the start time offset proportionally to the
-            // fraction of the outstanding amount paid in this function call
-            // to "squeeze" the auction and increase its velocity so that the
-            // auction can offer no worse financial outcome for the next takers 
-            // than the current taker has.
+            // We will shift the start time offset and increase the velocity pool
+            // depleting rate proportionally to the fraction of the outstanding
+            // amount paid in this function call so that the auction can offer 
+            // no worse financial outcome for the next takers than the current 
+            // taker has.
             uint256 localStartTimeDiff =
                 (block.timestamp.sub(self.startTimeOffset))
                     .mul(ratioAmountPaid)
-                    .div(PORTION_ON_OFFER_DIVISOR);
+                    .div(FLOATING_POINT_DIVISOR);
             self.startTimeOffset = self.startTimeOffset.add(localStartTimeDiff);
             uint256 startTimeDiff = self.startTimeOffset.sub(self.startTime);
-            self.velocityPoolDepletingRate = PORTION_ON_OFFER_DIVISOR
+            self.velocityPoolDepletingRate = FLOATING_POINT_DIVISOR
                 .mul(self.auctionLength)
                 .div(self.auctionLength.sub(startTimeDiff));
         }
@@ -148,22 +150,22 @@ contract Auction is IAuction {
 
     /// @notice How much of the collateral pool can currently be purchased at
     ///         auction, across all assets.
-    /// @dev _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns a portion of the
+    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
     ///      collateral pool. Ex. if 35% available of the collateral pool,
-    ///      then _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns 0.35
+    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() public view override returns (uint256, uint256) {
-        return (_onOffer(), CoveragePoolConstants.getPortionOnOfferDivisor());
+        return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
     }
 
     function _onOffer() internal view returns (uint256) {
         // when the auction is over, entire pool is on offer
         if (_isAuctionOver()) {
             // Down the road, for determining a portion on offer, a value returned
-            // by this function will be divided by PORTION_ON_OFFER_DIVISOR. To
+            // by this function will be divided by FLOATING_POINT_DIVISOR. To
             // return the entire pool, we need to return just this divisor in order
-            // to get 1.0 ie. PORTION_ON_OFFER_DIVISOR / PORTION_ON_OFFER_DIVISOR = 1.0
-            return CoveragePoolConstants.getPortionOnOfferDivisor();
+            // to get 1.0 ie. FLOATING_POINT_DIVISOR / FLOATING_POINT_DIVISOR = 1.0
+            return CoveragePoolConstants.getFloatingPointDivisor();
         }
 
         return

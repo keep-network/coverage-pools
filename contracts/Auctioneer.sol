@@ -46,7 +46,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address indexed auctionTaker,
         IERC20 tokenAccepted,
         uint256 amount,
-        uint256 portionToSeize // This amount should be divided by PORTION_ON_OFFER_DIVISOR
+        uint256 portionToSeize // This amount should be divided by FLOATING_POINT_DIVISOR
     );
     event AuctionClosed(address indexed auction);
 
@@ -59,7 +59,7 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @param tokenPaid       The token this auction is denominated in
     /// @param tokenAmountPaid The amount of the token the taker paid
     /// @param portionToSeize   The portion of the pool the taker won at auction.
-    ///                        This amount should be divided by PORTION_ON_OFFER_DIVISOR
+    ///                        This amount should be divided by FLOATING_POINT_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
     function offerTaken(
@@ -82,7 +82,7 @@ contract Auctioneer is CloneFactory, Ownable {
 
         // actually seize funds, setting them aside for the taker to withdraw
         // from the collateral pool.
-        // `portionToSeize` will be divided by PORTION_ON_OFFER_DIVISOR which is
+        // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
@@ -90,11 +90,6 @@ contract Auctioneer is CloneFactory, Ownable {
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
         }
-    }
-
-    function reimburseUnderwriters() external {
-        // TODO: this is a filler function for tBTCv1 for returning tokens to 
-        // underwriters.
     }
 
     /// @notice Opens a new auction against the collateral pool. The auction
