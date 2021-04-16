@@ -1,14 +1,11 @@
 const { expect } = require("chai")
-const {
-  to1ePrecision,
-  ZERO_ADDRESS,
-} = require("./helpers/contract-test-helpers")
+const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 describe("UnderwriterToken", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
   const hardhatNetworkId = 31337
 
-  const initialSupply = to1ePrecision(100, 18)
+  const initialSupply = to1e18(100)
 
   let assetPool
   let initialHolder
@@ -378,7 +375,7 @@ describe("UnderwriterToken", () => {
           })
 
           it("should approve the requested amount and replaces the previous one", async () => {
-            const newAllowance = to1ePrecision(100, 18)
+            const newAllowance = to1e18(100)
 
             await token
               .connect(initialHolder)
@@ -425,7 +422,7 @@ describe("UnderwriterToken", () => {
           beforeEach(async () => {
             await token
               .connect(initialHolder)
-              .approve(anotherAccount.address, to1ePrecision(1, 18))
+              .approve(anotherAccount.address, to1e18(1))
           })
 
           it("should approve the requested amount and replaces the previous one", async () => {
@@ -454,7 +451,7 @@ describe("UnderwriterToken", () => {
   })
 
   describe("mint", () => {
-    const amount = to1ePrecision(50, 18)
+    const amount = to1e18(50)
     it("should reject a zero account", async () => {
       await expect(
         token.connect(assetPool).mint(ZERO_ADDRESS, amount)
@@ -540,7 +537,7 @@ describe("UnderwriterToken", () => {
     const timestamp2020 = 1577836633 // Jan 1, 2020
     const timestamp2025 = 1735689433 // Jan 1, 2025
 
-    const permittingHolderBalance = to1ePrecision(650000, 18)
+    const permittingHolderBalance = to1e18(650000)
     let permittingHolder
 
     beforeEach(async () => {
@@ -938,7 +935,7 @@ describe("UnderwriterToken", () => {
           .transferFrom(
             permittingHolder.address,
             recipient.address,
-            to1ePrecision(100, 18)
+            to1e18(100)
           )
 
         expect(

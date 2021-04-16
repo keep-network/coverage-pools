@@ -2,6 +2,7 @@ const { expect } = require("chai")
 const { BigNumber } = require("ethers")
 const {
   to1ePrecision,
+  to1e18,
   pastEvents,
   increaseTime,
 } = require("./helpers/contract-test-helpers")
@@ -9,8 +10,8 @@ const {
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const auctionLength = 86400 // 24h in sec
-const auctionAmountDesired = to1ePrecision(1, 18) // ex. 1 TBTC
-const testTokensToMint = to1ePrecision(1, 18)
+const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
+const testTokensToMint = to1e18(1)
 
 describe("Auctioneer", () => {
   let owner
@@ -127,7 +128,7 @@ describe("Auctioneer", () => {
     let auctionAddress
     // amount of test tokens that an auction (aka spender) is allowed
     // to transfer on behalf of a signer (aka token owner) from signer balance
-    const auctionTokenAllowance = to1ePrecision(1, 18)
+    const auctionTokenAllowance = to1e18(1)
 
     beforeEach(async () => {
       const createAuctionTx = await auctioneer.createAuction(
@@ -164,7 +165,7 @@ describe("Auctioneer", () => {
           // Increase time 1h -> 3,600 sec
           await increaseTime(3600)
           // half of the available pool was paid
-          amountPaidForAuction1 = to1ePrecision(1, 18).div(BigNumber.from("2")) // 1 * 10^18 / 2
+          amountPaidForAuction1 = to1e18(1).div(BigNumber.from("2")) // 1 * 10^18 / 2
           takeOfferTx1 = await auction
             .connect(signer1)
             .takeOffer(amountPaidForAuction1)
@@ -250,7 +251,7 @@ describe("Auctioneer", () => {
         // Increase time 12h -> 36,000 sec
         await increaseTime(43200)
 
-        amountPaidForAuction = to1ePrecision(1, 18)
+        amountPaidForAuction = to1e18(1)
         takeOfferTx = await auction
           .connect(signer1)
           .takeOffer(amountPaidForAuction)

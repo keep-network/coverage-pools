@@ -3,6 +3,11 @@ function to1ePrecision(n, precision) {
   return ethers.BigNumber.from(n).mul(decimalMultiplier)
 }
 
+function to1e18(n) {
+  const decimalMultiplier = ethers.BigNumber.from(10).pow(18)
+  return ethers.BigNumber.from(n).mul(decimalMultiplier)
+}
+
 // FIXME Retrieves past events. This is a workaround for a known issue described
 // FIXME here: https://github.com/nomiclabs/hardhat/pull/1163
 // FIXME The preferred way of getting events would be using listners:
@@ -28,6 +33,7 @@ async function increaseTime(time) {
 }
 
 module.exports.to1ePrecision = to1ePrecision
+module.exports.to1e18 = to1e18
 module.exports.pastEvents = pastEvents
 module.exports.increaseTime = increaseTime
 

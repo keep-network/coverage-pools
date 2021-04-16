@@ -3,6 +3,7 @@ const chai = require("chai")
 const expect = chai.expect
 const {
   to1ePrecision,
+  to1e18,
   pastEvents,
   increaseTime,
 } = require("./helpers/contract-test-helpers")
@@ -12,8 +13,8 @@ const { BigNumber } = ethers
 
 // amount of test tokens that an auction (aka spender) is allowed
 // to transfer on behalf of a signer (aka token owner) from signer balance
-const defaultAuctionTokenAllowance = to1ePrecision(1, 18)
-const testTokensToMint = to1ePrecision(1, 18)
+const defaultAuctionTokenAllowance = to1e18(1)
+const testTokensToMint = to1e18(1)
 
 describe("Auction", () => {
   let testToken
@@ -67,7 +68,7 @@ describe("Auction", () => {
 
   describe("initialize", () => {
     const auctionLength = 86400 // 24h in sec
-    const auctionAmountDesired = to1ePrecision(1, 18) // ex. 1 TBTC
+    const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     context("when the auction has been initialized", () => {
       it("should be opened", async () => {
@@ -184,7 +185,7 @@ describe("Auction", () => {
 
   describe("takeOffer", () => {
     const auctionLength = 86400 // 24h in sec
-    const auctionAmountDesired = to1ePrecision(1, 18) // ex. 1 TBTC
+    const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     beforeEach(async () => {
       auction = await createAuction(auctionAmountDesired, auctionLength)
@@ -231,7 +232,7 @@ describe("Auction", () => {
         // (1 - 0.25) * 10^18 = 0.75 * 10^18
         const outstandingAmount = auctionAmountDesired.sub(partialOfferAmount)
         // signer2 is trying to take more than the outstanding amount 1 * 10^18
-        const exceededOfferAmount = to1ePrecision(1, 18)
+        const exceededOfferAmount = to1e18(1)
         await auction.connect(signer2).takeOffer(exceededOfferAmount)
         // auctioneer should receive no more than initial auction's desired amount
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
