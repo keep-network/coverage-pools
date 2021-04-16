@@ -7165,6 +7165,10 @@ solc@^0.6.3:
     semver "^5.5.0"
     tmp "0.0.33"
 
+"solhint-config-keep@git://github.com/keep-network/solhint-config-keep.git#port-configuration-from-solium-config-keep":
+  version "0.1.0"
+  resolved "git://github.com/keep-network/solhint-config-keep.git#ee0ed14d7e582165c94f52d44c46c6b0328bfccf"
+
 solhint@^3.3.4:
   version "3.3.4"
   resolved "https://registry.yarnpkg.com/solhint/-/solhint-3.3.4.tgz#81770c60eeb027e6e447cb91ed599baf5e888e09"
