@@ -1,6 +1,7 @@
 const { expect } = require("chai")
 const { BigNumber } = require("ethers")
 const {
+  to1ePrecision,
   to1e18,
   pastEvents,
   increaseTime,
@@ -14,7 +15,7 @@ const testTokensToMint = to1e18(1)
 
 describe("Auctioneer", () => {
   let owner
-  let signer1
+  let bidder
   let auctioneer
   let masterAuction
   let collateralPoolStub
@@ -22,7 +23,7 @@ describe("Auctioneer", () => {
 
   before(async () => {
     owner = await ethers.getSigner(0)
-    signer1 = await ethers.getSigner(1)
+    bidder = await ethers.getSigner(1)
 
     const CoveragePoolConstants = await ethers.getContractFactory(
       "CoveragePoolConstants"
@@ -60,9 +61,7 @@ describe("Auctioneer", () => {
   })
 
   beforeEach(async () => {
-    await testToken.mint(owner.address, testTokensToMint)
-    await testToken.mint(signer1.address, testTokensToMint)
-    await testToken.approve(signer1.address, testTokensToMint)
+    await testToken.mint(bidder.address, testTokensToMint)
   })
 
   describe("initialize", () => {
@@ -80,7 +79,8 @@ describe("Auctioneer", () => {
 
   describe("createAuction", () => {
     before(async () => {
-      events = await createAuction()
+      const receipt = await createAuction()
+      events = pastEvents(receipt, auctioneer, "AuctionCreated")
     })
 
     context("when caller is the owner", () => {
@@ -102,7 +102,7 @@ describe("Auctioneer", () => {
       it("should revert", async () => {
         await expect(
           auctioneer
-            .connect(signer1)
+            .connect(bidder)
             .createAuction(
               testToken.address,
               auctionAmountDesired,
@@ -111,15 +111,6 @@ describe("Auctioneer", () => {
         ).to.be.revertedWith("caller is not the owner")
       })
     })
-
-    async function createAuction() {
-      const createAuctionTx = await auctioneer
-        .connect(owner)
-        .createAuction(testToken.address, auctionAmountDesired, auctionLength)
-
-      const receipt = await createAuctionTx.wait()
-      return pastEvents(receipt, auctioneer, "AuctionCreated")
-    }
   })
 
   describe("offerTaken", () => {
@@ -130,20 +121,14 @@ describe("Auctioneer", () => {
     const auctionTokenAllowance = to1e18(1)
 
     beforeEach(async () => {
-      const createAuctionTx = await auctioneer.createAuction(
-        testToken.address,
-        auctionAmountDesired,
-        auctionLength
-      )
-
-      const receipt = await createAuctionTx.wait()
+      const receipt = await createAuction()
       const events = pastEvents(receipt, auctioneer, "AuctionCreated")
       auctionAddress = events[0].args["auctionAddress"]
 
       auction = new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
 
       await testToken
-        .connect(signer1)
+        .connect(bidder)
         .approve(auction.address, auctionTokenAllowance)
     })
 
@@ -158,6 +143,7 @@ describe("Auctioneer", () => {
         let takeOfferTx2
         let portionToSeize2
         let receipt2
+        let approximation
 
         beforeEach(async () => {
           // Increase time 1h -> 3,600 sec
@@ -165,11 +151,13 @@ describe("Auctioneer", () => {
           // half of the available pool was paid
           amountPaidForAuction1 = to1e18(1).div(BigNumber.from("2")) // 1 * 10^18 / 2
           takeOfferTx1 = await auction
-            .connect(signer1)
+            .connect(bidder)
             .takeOffer(amountPaidForAuction1)
           // portion available to seize from a pool: 3,600 / 86,400 =~ 0.0416666
           // portionToSeize: 0.0416666 / 2 = 0.0208333
-          portionToSeize1 = BigNumber.from("20833")
+          portionToSeize1 = to1ePrecision(208333, 11)
+          // approximation: 0.00002
+          approximation = to1ePrecision(2, 13)
           receipt1 = await takeOfferTx1.wait()
 
           // increase time 45min -> 2,700 sec
@@ -180,11 +168,11 @@ describe("Auctioneer", () => {
           // Pay 20% of the remaining amount for an auction (0.5 * 10^18) / 5 = 0.1 * 10^18
           amountPaidForAuction2 = amountPaidForAuction1.div(BigNumber.from("5"))
           takeOfferTx2 = await auction
-            .connect(signer1)
+            .connect(bidder)
             .takeOffer(amountPaidForAuction2)
           // portion available to seize from a pool: 0.0531875
           // portionToSeize: 0.0531875 / 5 = 0.0106375
-          portionToSeize2 = BigNumber.from("10637")
+          portionToSeize2 = to1ePrecision(106375, 11)
           receipt2 = await takeOfferTx2.wait()
         })
 
@@ -192,35 +180,35 @@ describe("Auctioneer", () => {
           let events = pastEvents(receipt1, auctioneer, "AuctionOfferTaken")
           expect(events.length).to.equal(1)
           expect(events[0].args["auction"]).to.equal(auctionAddress)
-          expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
+          expect(events[0].args["auctionTaker"]).to.equal(bidder.address)
           expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction1)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize1,
-            100
+            approximation
           )
 
           events = pastEvents(receipt2, auctioneer, "AuctionOfferTaken")
           expect(events.length).to.equal(1)
           expect(events[0].args["auction"]).to.equal(auctionAddress)
-          expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
+          expect(events[0].args["auctionTaker"]).to.equal(bidder.address)
           expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction2)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize2,
-            100
+            approximation
           )
         })
 
         it("should seize funds from collateral pool", async () => {
           // assert SeizeFunds emitted with the right values
-          // check wheather seizeFunds was executed with the right params
+          // check whether seizeFunds was executed with the right params
           events = pastEvents(receipt1, collateralPoolStub, "FundsSeized")
           expect(events.length).to.equal(1)
-          expect(events[0].args["recipient"]).to.equal(signer1.address)
+          expect(events[0].args["recipient"]).to.equal(bidder.address)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
             portionToSeize1,
-            100
+            approximation
           )
         })
 
@@ -244,16 +232,18 @@ describe("Auctioneer", () => {
       let receipt
 
       beforeEach(async () => {
-        // Increase time 12h -> 36,000 sec
+        // Increase time 12h -> 43,200 sec
         await increaseTime(43200)
 
         amountPaidForAuction = to1e18(1)
         takeOfferTx = await auction
-          .connect(signer1)
+          .connect(bidder)
           .takeOffer(amountPaidForAuction)
 
         // portion to seize from the pool: 43,200 / 86,400 = 0.5
-        portionToSeize = BigNumber.from("500000")
+        portionToSeize = to1ePrecision(5, 17)
+        // approximation: 0.00004
+        approximation = to1ePrecision(4, 13)
         receipt = await takeOfferTx.wait()
       })
 
@@ -261,12 +251,12 @@ describe("Auctioneer", () => {
         const events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
         expect(events.length).to.equal(1)
         expect(events[0].args["auction"]).to.equal(auctionAddress)
-        expect(events[0].args["auctionTaker"]).to.equal(signer1.address)
+        expect(events[0].args["auctionTaker"]).to.equal(bidder.address)
         expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
         expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
-          100
+          approximation
         )
       })
 
@@ -274,10 +264,10 @@ describe("Auctioneer", () => {
         // assert SeizeFunds emitted with the right values
         events = pastEvents(receipt, collateralPoolStub, "FundsSeized")
         expect(events.length).to.equal(1)
-        expect(events[0].args["recipient"]).to.equal(signer1.address)
+        expect(events[0].args["recipient"]).to.equal(bidder.address)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
           portionToSeize,
-          100
+          approximation
         )
       })
 
@@ -293,4 +283,12 @@ describe("Auctioneer", () => {
       })
     })
   })
+
+  async function createAuction() {
+    const createAuctionTx = await auctioneer
+      .connect(owner)
+      .createAuction(testToken.address, auctionAmountDesired, auctionLength)
+
+    return await createAuctionTx.wait()
+  }
 })
