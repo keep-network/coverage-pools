@@ -8,8 +8,8 @@ contract CollateralPool {
     /// @dev portionToSeize value was multiplied by FLOATING_POINT_DIVISOR for
     ///      calculation precision purposes. Further calculations in this
     ///      function will need to take this divisor into account.
-    /// @param portionToSeize Portion of the pool to seize in the range between
-    ///        0.x - 1.0, where 'x' cannot be zero.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR
     /// @param recipient Address that will receive the pool's seized funds.
     function seizeFunds(uint256 portionToSeize, address recipient) external {
         // todo: implement
