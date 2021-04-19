@@ -2,11 +2,13 @@
 
 pragma solidity <0.9.0;
 
-import "./CloneFactory.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Auctioneer.sol";
+import "./interfaces/IAuction.sol";
+import "./CoveragePoolConstants.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title Auction
 /// @notice A contract to run a linear falling-price auction against a diverse
@@ -21,25 +23,45 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 ///       self-destruct on close. An auction that has run the entire length will
 ///       stay open, forever, or until priced fluctuate and it's eventually
 ///       profitable to close.
-contract Auction {
+contract Auction is IAuction {
     using SafeERC20 for IERC20;
-
-    uint64 constant PORTION_ON_OFFER_DIVISOR = 10000;
+    using SafeMath for uint256;
 
     struct AuctionStorage {
         IERC20 tokenAccepted;
+        Auctioneer auctioneer;
         // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
-        IAuctioneer auctioneer;
-        uint64 startTime;
-        uint64 timeOffset;
-        uint64 auctionLength;
-        uint64 offsetPercentOnOffer;
+        uint256 startTime;
+        uint256 startTimeOffset;
+        uint256 auctionLength;
+        // How fast portions of the collateral pool become available on offer.
+        // It is needed to calculate the right portion value on offer at the
+        // given moment before the auction is over.
+        // Auction length once set is constant and what changes is the auction's
+        // "start time offset" once the takeOffer() call has been processed for
+        // partial fill. The auction's "start time offset" is updated every takeOffer().
+        // velocityPoolDepletingRate = auctionLength / (auctionLength - startTimeOffset)
+        // velocityPoolDepletingRate always starts at 1.0 and then can go up
+        // depending on partial offer calls over auction life span to maintain
+        // the right ratio between the remaining auction time and the remaining
+        // portion of the collateral pool.
+        uint256 velocityPoolDepletingRate;
     }
 
     AuctionStorage public self;
 
-    /// @dev
+    function amountOutstanding() external view returns (uint256) {
+        return self.amountOutstanding;
+    }
+
+    function isOpen() external view returns (bool) {
+        return self.amountOutstanding > 0;
+    }
+
+    /// @notice Initializes auction
+    /// @dev At the beginning of an auction, velocity pool depleting rate is
+    ///      always 1. It increases over time after a partial auction buy.
     /// @param _auctioneer    the auctioneer contract responsible for seizing
     ///                       funds from the backing collateral pool
     /// @param _tokenAccepted the token with which the auction can be taken
@@ -51,64 +73,110 @@ contract Auction {
         address _auctioneer,
         IERC20 _tokenAccepted,
         uint256 _amountDesired,
-        uint64 _auctionLength
+        uint256 _auctionLength
     ) public {
         require(self.startTime == 0, "Auction already initialized");
-        self.startTime = uint64(block.timestamp);
-        self.auctioneer = IAuctioneer(_auctioneer);
+        require(_amountDesired > 0, "Amount desired must be greater than zero");
+        self.auctioneer = Auctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
+        self.startTime = block.timestamp;
+        self.startTimeOffset = 0;
         self.auctionLength = _auctionLength;
+        self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getFloatingPointDivisor();
     }
 
-    /// @notice
-    /// @dev
-    /// @param amount the amount the taker is paying, denominated in
-    ///        tokenAccepted
-    function takeOffer(uint256 amount) public {
+    /// @notice Takes an offer from an auction buyer.
+    /// @dev There are two possible ways to take an offer from a buyer. The first
+    ///      one is to buy entire auction with the amount desired for this auction.
+    ///      The other way is to buy a portion of an auction. In this case an
+    ///      auction depleting rate is increased.
+    /// @param amount the amount the taker is paying, denominated in tokenAccepted
+    function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
-        require(self.amountOutstanding > 0, "Auction is closed");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
-        self.tokenAccepted.safeTransferFrom(msg.sender, address(self.auctioneer), amountToTransfer);
+        uint256 onOffer = _onOffer();
+        self.tokenAccepted.safeTransferFrom(
+            msg.sender,
+            address(self.auctioneer),
+            amountToTransfer
+        );
 
-        uint256 portionToSeize = _onOffer() * amountToTransfer / self.amountOutstanding;
+        uint256 portionToSeize =
+            onOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
-        // If eg only 50% of the offer is taken, put up only half of what was on
-        // offer, and slow the price velocity.
-        if (amountToTransfer != self.amountOutstanding) {
-            uint256 newOffer = _onOffer() * (self.amountOutstanding - amountToTransfer) / self.amountOutstanding;
-            self.auctionLength *= uint64(self.amountOutstanding / amountToTransfer);
-            self.timeOffset = uint64(block.timestamp);
-            self.offsetPercentOnOffer = uint64(newOffer);
+        if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
+            uint256 FLOATING_POINT_DIVISOR = CoveragePoolConstants.getFloatingPointDivisor();
+
+            // Time passed since the auction start or the last takeOffer call
+            // with a partial fill.
+            uint256 timePassed = block.timestamp.sub(self.startTime).sub(self.startTimeOffset);
+            
+            // Ratio of the auction's amount included in this takeOffer call to
+            // the whole outstanding auction amount.
+            uint256 ratioAmountPaid =
+                FLOATING_POINT_DIVISOR.mul(amountToTransfer).div(
+                    self.amountOutstanding
+                );
+            // We will shift the start time offset and increase the velocity pool
+            // depleting rate proportionally to the fraction of the outstanding
+            // amount paid in this function call so that the auction can offer 
+            // no worse financial outcome for the next takers than the current 
+            // taker has.
+            self.startTimeOffset = self.startTimeOffset.add(
+                timePassed.mul(ratioAmountPaid).div(FLOATING_POINT_DIVISOR)
+            );
+            self.velocityPoolDepletingRate = FLOATING_POINT_DIVISOR
+                .mul(self.auctionLength)
+                .div(self.auctionLength.sub(self.startTimeOffset));
         }
-        self.amountOutstanding -= amountToTransfer;
+
+        self.amountOutstanding = self.amountOutstanding.sub(amountToTransfer);
 
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
         // proceeds
-        self.auctioneer.offerTaken(msg.sender, self.tokenAccepted, amountToTransfer, portionToSeize);
+        self.auctioneer.offerTaken(
+            msg.sender,
+            self.tokenAccepted,
+            amountToTransfer,
+            portionToSeize
+        );
 
         if (self.amountOutstanding == 0) {
             harikari();
         }
     }
 
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
-    }
-
-    /// @notice how much of the collateral pool can currently be purchased at
-    ///         auction, across all assets
+    /// @notice How much of the collateral pool can currently be purchased at
+    ///         auction, across all assets.
+    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
+    ///      collateral pool. Ex. if 35% available of the collateral pool,
+    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
-    function onOffer() public view returns (uint256, uint256) {
-        return (_onOffer(), PORTION_ON_OFFER_DIVISOR);
+    function onOffer() public view override returns (uint256, uint256) {
+        return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
     }
 
     function _onOffer() internal view returns (uint256) {
-        uint256 timeOfOffsetAmountOnOffer = self.startTime + self.timeOffset;
-        return ((PORTION_ON_OFFER_DIVISOR - self.offsetPercentOnOffer) *
-                (block.timestamp - timeOfOffsetAmountOnOffer) / self.auctionLength);
+        // when the auction is over, entire pool is on offer
+        if (_isAuctionOver()) {
+            // Down the road, for determining a portion on offer, a value returned
+            // by this function will be divided by FLOATING_POINT_DIVISOR. To
+            // return the entire pool, we need to return just this divisor in order
+            // to get 1.0 ie. FLOATING_POINT_DIVISOR / FLOATING_POINT_DIVISOR = 1.0
+            return CoveragePoolConstants.getFloatingPointDivisor();
+        }
+
+        return
+            (block.timestamp.sub(self.startTime.add(self.startTimeOffset)))
+                .mul(self.velocityPoolDepletingRate)
+                .div(self.auctionLength);
+    }
+
+    function _isAuctionOver() internal view returns (bool) {
+        return block.timestamp >= self.startTime.add(self.auctionLength);
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
@@ -117,102 +185,5 @@ contract Auction {
         address payable addr = address(uint160(address(self.auctioneer)));
         selfdestruct(addr);
         delete self;
-    }
-}
-
-interface ICollateralPool {
-    function seizeFunds(uint256 portionOfPool, address recipient) external;
-}
-
-interface IAuctioneer {
-    function offerTaken(address taker, IERC20 tokenPaid, uint256 tokenAmountPaid, uint256 portionOfPool) external;
-}
-
-// TODO auctioneer should be able to close an auction early
-// TODO auctioneer should be able to speed up auctions based on exit market activity
-
-/// @title Auctioneer
-/// @notice Factory for the creation of new auction clones and receiving proceeds.
-/// @dev  We avoid redeployment of auction contracts by using the clone factory.
-///       Proxy delegates calls to Auction and therefore does not affect auction state.
-///       This means that we only need to deploy the auction contracts once.
-///       The auctioneer provides clean state for every new auction clone.
-contract Auctioneer is CloneFactory, Ownable {
-    // Holds the address of the auction contract
-    // which will be used as a master contract for cloning.
-    address public masterAuction;
-    mapping(address => bool) public auctions;
-
-    ICollateralPool public collateralPool;
-
-    /// @dev Initialize the auctioneer
-    /// @param _collateralPool The address of the master deposit contract.
-    /// @param _masterAuction  The address of the master auction contract.
-    function initialize(ICollateralPool _collateralPool, address _masterAuction) external {
-        require(masterAuction == address(0), "Auctioneer already initialized");
-        collateralPool = _collateralPool;
-        masterAuction = _masterAuction;
-    }
-
-    event AuctionCreated(address indexed tokenAccepted, uint256 amount, address auctionAddress);
-    event AuctionOfferTaken(address indexed auction, address tokenAccepted, uint256 amount);
-    event AuctionClosed(address indexed auction);
-
-    /// @notice Informs the auctioneer to seize funds and log appropriate events
-    /// @dev This function is meant to be called from a cloned auction. It logs
-    ///      "offer taken" and "auction closed" events, seizes funds, and cleans
-    ///      up closed auctions.
-    /// @param taker           the address of the taker of the auction, who will
-    ///                        receive the pool's seized funds
-    /// @param tokenPaid       the token this auction is denominated in
-    /// @param tokenAmountPaid the amount of the token the taker paid
-    /// @param portionOfPool   the portion of the pool the taker won at auction.
-    ///                        This amount will be divided by PORTION_ON_OFFER_DIVISOR
-    ///                        to calculate how much of the pool should be set
-    ///                        aside as the taker's winnings.
-    function offerTaken(address taker, address tokenPaid, uint256 tokenAmountPaid, uint256 portionOfPool) external {
-        require(auctions[msg.sender], "Sender isn't an auction");
-
-        emit AuctionOfferTaken(msg.sender, tokenPaid, tokenAmountPaid);
-
-        Auction auction = Auction(msg.sender);
-
-        // actually seize funds, setting them aside for the taker to withdraw
-        // from the collateral pool.
-        collateralPool.seizeFunds(portionOfPool, taker);
-
-        if (!auction.isOpen()) {
-            emit AuctionClosed(msg.sender);
-            delete auctions[msg.sender];
-        }
-    }
-
-    /// @notice Opens a new auction against the collateral pool. The auction
-    ///         will remain open until filled, even
-    /// @dev Calls `Auction.initializeAuction` to initialize the instance.
-    /// @param tokenAccepted the token with which the auction can be taken
-    /// @param amountDesired the amount denominated in _tokenAccepted. After
-    ///                      this amount is received, the auction can close.
-    /// @param auctionLength the amount of time it takes for the auction to get
-    ///                      to 100% of all collateral on offer, in seconds.
-    /// @return The address of the new auction.
-    function createAuction(
-        IERC20 tokenAccepted,
-        uint256 amountDesired,
-        uint64 auctionLength
-    ) external onlyOwner returns(address) {
-        address cloneAddress = createClone(masterAuction);
-
-        Auction auction = Auction(address(uint160(cloneAddress)));
-        auction.initialize(
-            address(this),
-            tokenAccepted,
-            amountDesired,
-            auctionLength
-        );
-
-        emit AuctionCreated(address(tokenAccepted), amountDesired, cloneAddress);
-
-        return cloneAddress;
     }
 }

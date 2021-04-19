@@ -10,6 +10,10 @@ contract TestToken is ERC20 {
 
     constructor() ERC20(NAME, SYMBOL) {}
 
+    /// @dev             Mints an amount of the token and assigns it to an account.
+    ///                  Uses the internal _mint function. Anyone can call
+    /// @param _account  The account that will receive the created tokens.
+    /// @param _amount   The amount of tokens that will be created.
     function mint(address _account, uint256 _amount) public {
         _mint(_account, _amount);
     }
