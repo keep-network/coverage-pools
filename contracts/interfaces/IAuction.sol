@@ -11,7 +11,7 @@ interface IAuction {
     function takeOffer(uint256 amount) external;
 
     /// @notice How much of the collateral pool can currently be purchased at
-    ///         auction, across all assets. 
+    ///         auction, across all assets.
     /// @return The ratio of the collateral pool currently on offer and divisor
     ///         for precision purposes.
     function onOffer() external view returns (uint256, uint256);

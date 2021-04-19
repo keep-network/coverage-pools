@@ -8,6 +8,7 @@ contract TestToken is ERC20 {
     string public constant NAME = "Test Token";
     string public constant SYMBOL = "TT";
 
+    /* solhint-disable-next-line no-empty-blocks */
     constructor() ERC20(NAME, SYMBOL) {}
 
     /// @dev             Mints an amount of the token and assigns it to an account.

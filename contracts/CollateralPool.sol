@@ -11,7 +11,8 @@ contract CollateralPool {
     /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
     ///        multiplied by FLOATING_POINT_DIVISOR
     /// @param recipient Address that will receive the pool's seized funds.
+    /* solhint-disable-next-line no-empty-blocks */
     function seizeFunds(uint256 portionToSeize, address recipient) external {
-        // todo: implement
+        // todo: implement (and remove the solhint disabling comment above)
     }
 }
