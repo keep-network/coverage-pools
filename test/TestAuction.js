@@ -185,15 +185,13 @@ describe("Auction", () => {
     const auctionLength = 86400 // 24h in sec
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
     // Pay 75% of the desired amount for the auction 0.75 * 10^18
-    const partialOfferAmount = BigNumber.from(75).mul(
-      BigNumber.from(10).pow(16)
-    )
+    const partialOfferAmount = to1ePrecision(75, 16)
 
     beforeEach(async () => {
       auction = await createAuction(auctionAmountDesired, auctionLength)
       await approveTestTokenForAuction(auction.address)
 
-      await auction.connect(signer1).takeOffer(partialOfferAmount)
+      await auction.connect(bidder1).takeOffer(partialOfferAmount)
       expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
         partialOfferAmount
       )
@@ -206,12 +204,12 @@ describe("Auction", () => {
       "when outstanding amount is equal or greater than a minimum amount to take",
       () => {
         it("should take all outstanding amount", async () => {
-          const minAmount = BigNumber.from(25).mul(BigNumber.from(10).pow(16)) // 0.25 * 10^18
+          const minAmount = to1ePrecision(25, 16) // 0.25 * 10^18
 
-          // signer2 wants to take 0.75 * 10^18, which is more than the outstanding amount
-          // but the minAmount 0.25 * 10^18 <= outstanding amount
+          // bidder2 wants to take 0.75 * 10^18, which is more than the outstanding amount
+          // and is more than the minAmount 0.25 * 10^18
           await auction
-            .connect(signer2)
+            .connect(bidder2)
             .takeOfferWithMin(partialOfferAmount, minAmount)
           // auctioneer should receive the auction's desired amount
           expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
@@ -219,11 +217,9 @@ describe("Auction", () => {
           )
 
           // (1 - 0.25) * 10^18
-          const expectedBalanceSigner2 = BigNumber.from(75).mul(
-            BigNumber.from(10).pow(16)
-          )
-          expect(await testToken.balanceOf(signer2.address)).to.be.equal(
-            expectedBalanceSigner2
+          const expectedBalanceBidder2 = to1ePrecision(75, 16) // 0.75 * 10^18
+          expect(await testToken.balanceOf(bidder2.address)).to.be.equal(
+            expectedBalanceBidder2
           )
         })
       }
@@ -233,16 +229,15 @@ describe("Auction", () => {
       "when outstanding amount is less than a minimum amount to take",
       () => {
         it("should revert", async () => {
+          // outstandingAmount: 0.25 * 10^18
           // minAmount: 0.25 * 10^18 + 1
-          const minAmount = BigNumber.from(25)
-            .mul(BigNumber.from(10).pow(16))
-            .add(BigNumber.from(1))
+          const minAmount = to1ePrecision(25, 16).add(BigNumber.from(1))
 
-          // signer2 wants to take 0.75 * 10^18, which is more than the outstanding amount
+          // bidder2 wants to take 0.75 * 10^18, which is more than the outstanding amount
           // minAmount is also greater than the outstanding amount
           await expect(
             auction
-              .connect(signer2)
+              .connect(bidder2)
               .takeOfferWithMin(partialOfferAmount, minAmount)
           ).to.be.revertedWith("Can't fulfill minimum offer")
         })
@@ -298,7 +293,7 @@ describe("Auction", () => {
         // at this point auction's outstanding amount is equal to:
         // (1 - 0.25) * 10^18 = 0.75 * 10^18
         const outstandingAmount = auctionAmountDesired.sub(partialOfferAmount)
-        // signer2 is trying to take more than the outstanding amount 1 * 10^18
+        // bidder2 is trying to take more than the outstanding amount 1 * 10^18
         const exceededOfferAmount = to1e18(1)
         await auction.connect(bidder2).takeOffer(exceededOfferAmount)
         // auctioneer should receive no more than initial auction's desired amount
@@ -306,11 +301,11 @@ describe("Auction", () => {
           auctionAmountDesired
         )
 
-        const expectedBalanceSigner2 = exceededOfferAmount.sub(
+        const expectedBalanceBidder2 = exceededOfferAmount.sub(
           outstandingAmount
         )
         expect(await testToken.balanceOf(bidder2.address)).to.be.equal(
-          expectedBalanceSigner2
+          expectedBalanceBidder2
         )
       })
 

@@ -92,7 +92,7 @@ contract Auction is IAuction {
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function _takeOffer(uint256 amount, uint256 minAmount) internal {
+    function takeOffer(uint256 amount) override public {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
@@ -147,6 +147,13 @@ contract Auction is IAuction {
         if (self.amountOutstanding == 0) {
             harikari();
         }
+    }
+
+    /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction.
+    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
+    function takeOfferWithMin(uint256 amount, uint256 minAmount) public {
+        require(self.amountOutstanding >= minAmount, "Can't fulfill minimum offer");
+        takeOffer(amount);
     }
 
     /// @notice How much of the collateral pool can currently be purchased at
