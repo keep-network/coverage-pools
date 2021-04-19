@@ -81,7 +81,7 @@ contract Auction is IAuction {
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
         self.startTime = block.timestamp;
-        self.startTimeOffset = block.timestamp;
+        self.startTimeOffset = 0;
         self.auctionLength = _auctionLength;
         self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getFloatingPointDivisor();
     }
@@ -108,6 +108,10 @@ contract Auction is IAuction {
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             uint256 FLOATING_POINT_DIVISOR = CoveragePoolConstants.getFloatingPointDivisor();
+
+            // Time passed since the auction start or the last takeOffer call
+            // with a partial fill.
+            uint256 timePassed = block.timestamp.sub(self.startTime).sub(self.startTimeOffset);
             
             // Ratio of the auction's amount included in this takeOffer call to
             // the whole outstanding auction amount.
@@ -120,15 +124,12 @@ contract Auction is IAuction {
             // amount paid in this function call so that the auction can offer 
             // no worse financial outcome for the next takers than the current 
             // taker has.
-            uint256 localStartTimeDiff =
-                (block.timestamp.sub(self.startTimeOffset))
-                    .mul(ratioAmountPaid)
-                    .div(FLOATING_POINT_DIVISOR);
-            self.startTimeOffset = self.startTimeOffset.add(localStartTimeDiff);
-            uint256 startTimeDiff = self.startTimeOffset.sub(self.startTime);
+            self.startTimeOffset = self.startTimeOffset.add(
+                timePassed.mul(ratioAmountPaid).div(FLOATING_POINT_DIVISOR)
+            );
             self.velocityPoolDepletingRate = FLOATING_POINT_DIVISOR
                 .mul(self.auctionLength)
-                .div(self.auctionLength.sub(startTimeDiff));
+                .div(self.auctionLength.sub(self.startTimeOffset));
         }
 
         self.amountOutstanding = self.amountOutstanding.sub(amountToTransfer);
@@ -169,7 +170,7 @@ contract Auction is IAuction {
         }
 
         return
-            (block.timestamp.sub(self.startTimeOffset))
+            (block.timestamp.sub(self.startTime.add(self.startTimeOffset)))
                 .mul(self.velocityPoolDepletingRate)
                 .div(self.auctionLength);
     }
