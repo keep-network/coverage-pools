@@ -8,19 +8,6 @@ import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-interface ICollateralPool {
-    function seizeFunds(uint256 portionOfPool, address recipient) external;
-}
-
-interface IAuctioneer {
-    function offerTaken(
-        address taker,
-        IERC20 tokenPaid,
-        uint256 tokenAmountPaid,
-        uint256 portionOfPool
-    ) external;
-}
-
 /// @title Auction
 /// @notice A contract to run a linear falling-price auction against a diverse
 ///         basket of assets held in a collateral pool. Auctions are taken using
@@ -37,6 +24,8 @@ interface IAuctioneer {
 contract Auction {
     using SafeERC20 for IERC20;
 
+    uint64 constant PORTION_ON_OFFER_DIVISOR = 10000;
+
     struct AuctionStorage {
         IERC20 tokenAccepted;
         // the auction price, denominated in tokenAccepted
@@ -48,12 +37,7 @@ contract Auction {
         uint64 offsetPercentOnOffer;
     }
 
-    uint64 private constant PORTION_ON_OFFER_DIVISOR = 10000;
     AuctionStorage public self;
-
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
-    }
 
     /// @dev
     /// @param _auctioneer    the auctioneer contract responsible for seizing
@@ -70,7 +54,6 @@ contract Auction {
         uint64 _auctionLength
     ) public {
         require(self.startTime == 0, "Auction already initialized");
-        /* solhint-disable-next-line not-rely-on-time */
         self.startTime = uint64(block.timestamp);
         self.auctioneer = IAuctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
@@ -87,25 +70,15 @@ contract Auction {
         require(amount > 0, "Can't pay 0 tokens");
         require(self.amountOutstanding > 0, "Auction is closed");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
-        self.tokenAccepted.safeTransferFrom(
-            msg.sender,
-            address(self.auctioneer),
-            amountToTransfer
-        );
+        self.tokenAccepted.safeTransferFrom(msg.sender, address(self.auctioneer), amountToTransfer);
 
-        uint256 portionToSeize =
-            (_onOffer() * amountToTransfer) / self.amountOutstanding;
+        uint256 portionToSeize = _onOffer() * amountToTransfer / self.amountOutstanding;
 
         // If eg only 50% of the offer is taken, put up only half of what was on
         // offer, and slow the price velocity.
         if (amountToTransfer != self.amountOutstanding) {
-            uint256 newOffer =
-                (_onOffer() * (self.amountOutstanding - amountToTransfer)) /
-                    self.amountOutstanding;
-            self.auctionLength *= uint64(
-                self.amountOutstanding / amountToTransfer
-            );
-            /* solhint-disable-next-line not-rely-on-time */
+            uint256 newOffer = _onOffer() * (self.amountOutstanding - amountToTransfer) / self.amountOutstanding;
+            self.auctionLength *= uint64(self.amountOutstanding / amountToTransfer);
             self.timeOffset = uint64(block.timestamp);
             self.offsetPercentOnOffer = uint64(newOffer);
         }
@@ -114,16 +87,15 @@ contract Auction {
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
         // proceeds
-        self.auctioneer.offerTaken(
-            msg.sender,
-            self.tokenAccepted,
-            amountToTransfer,
-            portionToSeize
-        );
+        self.auctioneer.offerTaken(msg.sender, self.tokenAccepted, amountToTransfer, portionToSeize);
 
         if (self.amountOutstanding == 0) {
             harikari();
         }
+    }
+
+    function isOpen() external view returns (bool) {
+        return self.amountOutstanding > 0;
     }
 
     /// @notice how much of the collateral pool can currently be purchased at
@@ -133,6 +105,12 @@ contract Auction {
         return (_onOffer(), PORTION_ON_OFFER_DIVISOR);
     }
 
+    function _onOffer() internal view returns (uint256) {
+        uint256 timeOfOffsetAmountOnOffer = self.startTime + self.timeOffset;
+        return ((PORTION_ON_OFFER_DIVISOR - self.offsetPercentOnOffer) *
+                (block.timestamp - timeOfOffsetAmountOnOffer) / self.auctionLength);
+    }
+
     /// @dev Delete all storage and destroy the contract. Should only be called
     ///      after an auction has closed.
     function harikari() internal {
@@ -140,14 +118,14 @@ contract Auction {
         selfdestruct(addr);
         delete self;
     }
+}
 
-    function _onOffer() internal view returns (uint256) {
-        uint256 timeOfOffsetAmountOnOffer = self.startTime + self.timeOffset;
-        return (((PORTION_ON_OFFER_DIVISOR - self.offsetPercentOnOffer) *
-            /* solhint-disable-next-line not-rely-on-time */
-            (block.timestamp - timeOfOffsetAmountOnOffer)) /
-            self.auctionLength);
-    }
+interface ICollateralPool {
+    function seizeFunds(uint256 portionOfPool, address recipient) external;
+}
+
+interface IAuctioneer {
+    function offerTaken(address taker, IERC20 tokenPaid, uint256 tokenAmountPaid, uint256 portionOfPool) external;
 }
 
 // TODO auctioneer should be able to close an auction early
@@ -167,28 +145,18 @@ contract Auctioneer is CloneFactory, Ownable {
 
     ICollateralPool public collateralPool;
 
-    event AuctionCreated(
-        address indexed tokenAccepted,
-        uint256 amount,
-        address auctionAddress
-    );
-    event AuctionOfferTaken(
-        address indexed auction,
-        address tokenAccepted,
-        uint256 amount
-    );
-    event AuctionClosed(address indexed auction);
-
     /// @dev Initialize the auctioneer
     /// @param _collateralPool The address of the master deposit contract.
     /// @param _masterAuction  The address of the master auction contract.
-    function initialize(ICollateralPool _collateralPool, address _masterAuction)
-        external
-    {
+    function initialize(ICollateralPool _collateralPool, address _masterAuction) external {
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;
         masterAuction = _masterAuction;
     }
+
+    event AuctionCreated(address indexed tokenAccepted, uint256 amount, address auctionAddress);
+    event AuctionOfferTaken(address indexed auction, address tokenAccepted, uint256 amount);
+    event AuctionClosed(address indexed auction);
 
     /// @notice Informs the auctioneer to seize funds and log appropriate events
     /// @dev This function is meant to be called from a cloned auction. It logs
@@ -202,12 +170,7 @@ contract Auctioneer is CloneFactory, Ownable {
     ///                        This amount will be divided by PORTION_ON_OFFER_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
-    function offerTaken(
-        address taker,
-        address tokenPaid,
-        uint256 tokenAmountPaid,
-        uint256 portionOfPool
-    ) external {
+    function offerTaken(address taker, address tokenPaid, uint256 tokenAmountPaid, uint256 portionOfPool) external {
         require(auctions[msg.sender], "Sender isn't an auction");
 
         emit AuctionOfferTaken(msg.sender, tokenPaid, tokenAmountPaid);
@@ -237,7 +200,7 @@ contract Auctioneer is CloneFactory, Ownable {
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint64 auctionLength
-    ) external onlyOwner returns (address) {
+    ) external onlyOwner returns(address) {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
@@ -248,11 +211,7 @@ contract Auctioneer is CloneFactory, Ownable {
             auctionLength
         );
 
-        emit AuctionCreated(
-            address(tokenAccepted),
-            amountDesired,
-            cloneAddress
-        );
+        emit AuctionCreated(address(tokenAccepted), amountDesired, cloneAddress);
 
         return cloneAddress;
     }
