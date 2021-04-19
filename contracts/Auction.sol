@@ -51,6 +51,16 @@ contract Auction is IAuction {
 
     AuctionStorage public self;
 
+    /// @notice Throws if called by any account other than the auctioneer.
+    modifier onlyAuctioneer() {
+        require(
+            msg.sender == address(self.auctioneer),
+            "Caller is not the auctioneer"
+        );
+
+        _;
+    }
+
     function amountOutstanding() external view returns (uint256) {
         return self.amountOutstanding;
     }
@@ -157,6 +167,16 @@ contract Auction is IAuction {
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() public view override returns (uint256, uint256) {
         return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
+    }
+
+    /// @notice Tears down the auction manually, before its entire amount
+    ///         is bought by takers.
+    /// @dev Can be called only by the auctioneer which may decide to early
+    //       close the auction in case it is no longer needed.
+    function earlyClose() public onlyAuctioneer {
+        require(self.amountOutstanding > 0, "Auction must be open");
+
+        harikari();
     }
 
     function _onOffer() internal view returns (uint256) {
