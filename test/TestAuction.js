@@ -15,6 +15,7 @@ const { BigNumber } = ethers
 // to transfer on behalf of a signer (aka token owner) from signer balance
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
+const precision = 0.001 // to mitigate evm delays
 
 describe("Auction", () => {
   let testToken
@@ -109,11 +110,9 @@ describe("Auction", () => {
         const auctionLength = 100000 // sec -> ~28h
         const auction = await createAuction(auctionAmountDesired, auctionLength)
 
-        expect(await auction.isOpen()).to.be.equal(true)
-
         const onOffer = await auction.onOffer()
 
-        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0, 0.00001) // 'closeTo' because of evm delays
+        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0, precision)
       })
     })
 
@@ -131,8 +130,6 @@ describe("Auction", () => {
 
         // when the auction length is over, entire pool is available for taken
         expect(onOffer[0] / onOffer[1]).to.equal(1)
-
-        expect(await auction.isOpen()).to.be.equal(true)
       })
 
       it("should still return 100% of the pool as the time passes", async () => {
@@ -161,25 +158,25 @@ describe("Auction", () => {
         await increaseTime(24000)
       })
 
-      it("should return a portion of a collateral pool", async () => {
+      it("should be opened", async () => {
         expect(await auction.isOpen()).to.be.equal(true)
+      })
 
+      it("should return a portion of a collateral pool", async () => {
         const onOffer = await auction.onOffer()
 
         // auction length: 100000 sec
         // 24000 sec passed, which means 24% of a collateral pool is on offer
-        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.24, 0.01)
+        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.24, precision)
       })
 
       it("should increase on offer value over time", async () => {
-        expect(await auction.isOpen()).to.be.equal(true)
-
         await increaseTime(26000)
         const onOffer = await auction.onOffer()
 
         // auction length: 100000 sec
         // 50000 sec passed, which means 50% of a collateral pool is on offer
-        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.5, 0.01)
+        expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.5, precision)
       })
     })
   })
@@ -261,7 +258,7 @@ describe("Auction", () => {
         const receipt = await takeOfferTx.wait()
         const events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
         // Available portion to seize after 1h:
-        // 3,600 / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
+        // 3,600 / 86,400 ~ 0.0416 +/- precision (evm delays)
         const portionToSeize = to1ePrecision(416, 14) // 0.0416 * 1e18 (divisor)
         // Paying more than outstanding amount must not affect pool's portion to seize
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -282,9 +279,9 @@ describe("Auction", () => {
         await increaseTime(3600)
         let onOfferObj = await auction.connect(bidder1).onOffer()
         // Velocity pool depleting rate: 1
-        // Percent on offer after 1h of auction start time: 3,600 * 1 / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
+        // Percent on offer after 1h of auction start time: 3,600 * 1 / 86,400 ~ 0.0416 +/- precision
         // ~4.16% on offer of a collateral pool after 1h
-        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
+        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, precision)
         // Pay 50% of the desired amount for the auction 0.5 * 10^18
         let partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
         const expectedAuctioneerBalance = partialOfferAmount
@@ -301,10 +298,10 @@ describe("Auction", () => {
         // Increase time 45min -> 2,700 sec
         // Now: 3,600 + 2,700 = 6,300
         await increaseTime(2700)
-        // (6,300 - 1,800) * 1.0212 / 86,400 = 0.0531875 +/- 0.0002
+        // (6,300 - 1,800) * 1.0212 / 86,400 = 0.0531875 +/- precision
         // ~5.31% on offer of a collateral pool after 1h45min
         onOfferObj = await auction.connect(bidder1).onOffer()
-        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0531, 0.0002)
+        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0531, precision)
 
         // Pay 20% of the remaining amount for an auction 0.5 * 10^18 / 5 = 0.1 * 10^18
         partialOfferAmount = partialOfferAmount.div(BigNumber.from("5"))
@@ -325,7 +322,7 @@ describe("Auction", () => {
         await increaseTime(1200)
         // 60% of the desired amount was paid. 0.5 + 0.1 out of 1
         onOfferObj = await auction.connect(bidder1).onOffer()
-        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0573, 0.0002)
+        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0573, precision)
         // Buy the rest and close the auction 1 - 0.6 => 0.4 * 10^18
         partialOfferAmount = auctionAmountDesired.sub(auctioneerBalance)
         await auction.connect(bidder1).takeOffer(partialOfferAmount)
@@ -344,9 +341,9 @@ describe("Auction", () => {
 
         let onOfferObj = await auction.connect(bidder1).onOffer()
         // Velocity pool depleting rate: 1
-        // Percent on offer after 1h of auction start time: 3,600 * 1 / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
+        // Percent on offer after 1h of auction start time: 3,600 * 1 / 86,400 ~ 0.0416 +/- precision
         // ~4.16% on offer of a collateral pool after 1h
-        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
+        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, precision)
         // Pay 25% of the desired amount for the auction: 0.25 * 10^18
         const partialOfferAmount = auctionAmountDesired.div(BigNumber.from("4"))
         await auction.connect(bidder1).takeOffer(partialOfferAmount)
@@ -363,10 +360,10 @@ describe("Auction", () => {
         // Now: 3,600 + 900 = 4,500
         await increaseTime(900)
         // onOffer: (now - updated start time) * velocity rate / auction length
-        // (4,500 - 900) * 1.0105 / 86,400 = 0.0421041 +/- 0.0002
+        // (4,500 - 900) * 1.0105 / 86,400 = 0.0421041 +/- precision
         // ~4.21% on offer of a collateral pool after 1h15min
         onOfferObj = await auction.connect(bidder2).onOffer()
-        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0421, 0.0002)
+        expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0421, precision)
 
         // Pay the rest of the remaining auction 0.75 * 10^18
         const amountOutstanding = await auction
@@ -395,9 +392,9 @@ describe("Auction", () => {
           await increaseTime(3600)
           let onOfferObj = await auction.connect(bidder1).onOffer()
           // Velocity pool depleting rate: 1
-          // Percent on offer after 1h of auction start time: 3,600 * 1 / 86,400 ~ 0.0416 +/- 0.0002 (evm delays)
+          // Percent on offer after 1h of auction start time: 3,600 * 1 / 86,400 ~ 0.0416 +/- precision
           // ~4.16% on offer of a collateral pool after 1h
-          expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, 0.0002)
+          expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, precision)
           // Pay 50% of the desired amount for an auction 0.5 * 10^18
           let partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
           const expectedAuctioneerBalance = partialOfferAmount
