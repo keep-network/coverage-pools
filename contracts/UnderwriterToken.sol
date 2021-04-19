@@ -37,8 +37,15 @@ contract UnderwriterToken is IUnderwriterToken {
 
     address public assetPool;
 
+    modifier onlyAssetPool() {
+        require(msg.sender == assetPool, "Caller is not the asset pool");
+        _;
+    }
+
     constructor(address _assetPool) {
         uint256 chainId;
+
+        /* solhint-disable-next-line no-inline-assembly */
         assembly {
             chainId := chainid()
         }
@@ -54,11 +61,6 @@ contract UnderwriterToken is IUnderwriterToken {
             )
         );
         assetPool = _assetPool;
-    }
-
-    modifier onlyAssetPool() {
-        require(msg.sender == assetPool, "Caller is not the asset pool");
-        _;
     }
 
     function transfer(address recipient, uint256 amount)
@@ -107,6 +109,7 @@ contract UnderwriterToken is IUnderwriterToken {
         bytes32 r,
         bytes32 s
     ) external override {
+        /* solhint-disable-next-line not-rely-on-time */
         require(deadline >= block.timestamp, "Permission expired");
 
         // Validate `s` and `v` values for a malleability concern described in EIP2.
@@ -151,7 +154,7 @@ contract UnderwriterToken is IUnderwriterToken {
         emit Transfer(address(0), recipient, amount);
     }
 
-    function burn(uint256 amount) override external {
+    function burn(uint256 amount) external override {
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(
             amount,
             "Burn amount exceeds balance"
