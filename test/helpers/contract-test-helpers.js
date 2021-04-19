@@ -1,3 +1,8 @@
+function to1ePrecision(n, precision) {
+  const decimalMultiplier = ethers.BigNumber.from(10).pow(precision)
+  return ethers.BigNumber.from(n).mul(decimalMultiplier)
+}
+
 function to1e18(n) {
   const decimalMultiplier = ethers.BigNumber.from(10).pow(18)
   return ethers.BigNumber.from(n).mul(decimalMultiplier)
@@ -11,16 +16,25 @@ function pastEvents(receipt, contract, eventName) {
   const events = []
 
   for (const log of receipt.logs) {
-    const parsedLog = contract.interface.parseLog(log)
-    if (parsedLog.name === eventName) {
-      events.push(parsedLog)
+    if (log.address === contract.address) {
+      const parsedLog = contract.interface.parseLog(log)
+      if (parsedLog.name === eventName) {
+        events.push(parsedLog)
+      }
     }
   }
 
   return events
 }
 
+async function increaseTime(time) {
+  await ethers.provider.send("evm_increaseTime", [time])
+  await ethers.provider.send("evm_mine")
+}
+
+module.exports.to1ePrecision = to1ePrecision
 module.exports.to1e18 = to1e18
 module.exports.pastEvents = pastEvents
+module.exports.increaseTime = increaseTime
 
 module.exports.ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
