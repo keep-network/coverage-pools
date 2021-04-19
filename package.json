@@ -8,14 +8,13 @@
     "eslint-config-keep": "github:keep-network/eslint-config-keep#0.3.0",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.0.32",
-    "ethlint": "^1.2.3",
     "hardhat": "^2.1.1",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.2 ",
-    "solium": "^1.2.5",
-    "solium-config-keep": "github:keep-network/solium-config-keep#0.1.1",
-    "typescript": "^3.7.0"
+    "solhint": "^3.3.4",
+    "typescript": "^3.7.0",
+    "solhint-config-keep": "github:keep-network/solhint-config-keep"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.3.0"
@@ -26,7 +25,7 @@
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:js": "eslint . ",
     "lint:fix:js": "eslint . --fix",
-    "lint:sol": "solium -d contracts/ && prettier --check '**/*.sol'",
-    "lint:fix:sol": "solium -d contracts/ --fix && prettier --write '**/*.sol'"
+    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'"
   }
 }
