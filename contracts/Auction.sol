@@ -10,8 +10,20 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-/// @title Wrapper for the Auction contract
-contract AuctionWrapper {
+/// @title Auction
+/// @notice A contract to run a linear falling-price auction against a diverse
+///         basket of assets held in a collateral pool. Auctions are taken using
+///         a single asset. Over time, a larger and larger portion of the assets
+///         are on offer, eventually hitting 100% of the backing collateral
+///         pool. Auctions can be partially filled, and are meant to be amenable
+///         to flash loans and other atomic constructions to take advantage of
+///         arbitrage opportunities within a single block.
+/// @dev  Auction contracts are not meant to be deployed directly, and are
+///       instead cloned by an auction factory. Auction contracts clean up and
+///       self-destruct on close. An auction that has run the entire length will
+///       stay open, forever, or until priced fluctuate and it's eventually
+///       profitable to close.
+contract Auction is IAuction {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -80,7 +92,7 @@ contract AuctionWrapper {
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function _takeOffer(uint256 amount) internal {
+    function _takeOffer(uint256 amount, uint256 minAmount) internal {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
@@ -133,7 +145,7 @@ contract AuctionWrapper {
         );
 
         if (self.amountOutstanding == 0) {
-            _harikari();
+            harikari();
         }
     }
 
@@ -169,82 +181,9 @@ contract AuctionWrapper {
 
     /// @dev Delete all storage and destroy the contract. Should only be called
     ///      after an auction has closed.
-    function _harikari() internal {
+    function harikari() internal {
         address payable addr = address(uint160(address(self.auctioneer)));
         selfdestruct(addr);
         delete self;
-    }
-}
-
-/// @title Auction
-/// @notice A contract to run a linear falling-price auction against a diverse
-///         basket of assets held in a collateral pool. Auctions are taken using
-///         a single asset. Over time, a larger and larger portion of the assets
-///         are on offer, eventually hitting 100% of the backing collateral
-///         pool. Auctions can be partially filled, and are meant to be amenable
-///         to flash loans and other atomic constructions to take advantage of
-///         arbitrage opportunities within a single block.
-/// @dev  Auction contracts are not meant to be deployed directly, and are
-///       instead cloned by an auction factory. Auction contracts clean up and
-///       self-destruct on close. An auction that has run the entire length will
-///       stay open, forever, or until priced fluctuate and it's eventually
-///       profitable to close.
-contract Auction is IAuction, AuctionWrapper {
-    /// @notice Initializes auction
-    /// @dev At the beginning of an auction, velocity pool depleting rate is
-    ///      always 1. It increases over time after a partial auction buy.
-    /// @param _auctioneer    the auctioneer contract responsible for seizing
-    ///                       funds from the backing collateral pool
-    /// @param _tokenAccepted the token with which the auction can be taken
-    /// @param _amountDesired the amount denominated in _tokenAccepted. After
-    ///                       this amount is received, the auction can close.
-    /// @param _auctionLength the amount of time it takes for the auction to get
-    ///                       to 100% of all collateral on offer, in seconds.
-    function initialize(
-        address _auctioneer,
-        IERC20 _tokenAccepted,
-        uint256 _amountDesired,
-        uint256 _auctionLength
-    ) external {
-        require(self.startTime == 0, "Auction already initialized");
-        require(_amountDesired > 0, "Amount desired must be greater than zero");
-        self.auctioneer = Auctioneer(_auctioneer);
-        self.tokenAccepted = _tokenAccepted;
-        self.amountOutstanding = _amountDesired;
-        self.startTime = block.timestamp;
-        self.startTimeOffset = block.timestamp;
-        self.auctionLength = _auctionLength;
-        // When the pool is full, velocity rate is 1
-        self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getPortionOnOfferDivisor();
-    }
-
-    /// @dev It takes all outstanding amount in case 'amount' > 'amountOutstanding'
-    function takeOffer(uint256 amount) external override {
-        _takeOffer(amount);
-    }
-
-    /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction. 
-    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
-    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
-        require(self.amountOutstanding >= minAmount, "Can't fulfill minimum offer");
-        _takeOffer(amount);
-    }
-
-    /// @notice How much of the collateral pool can currently be purchased at
-    ///         auction, across all assets.
-    /// @dev _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns a portion of the
-    ///      collateral pool. Ex. if 35% available of the collateral pool,
-    ///      then _onOffer().div(PORTION_ON_OFFER_DIVISOR) returns 0.35
-    /// @return the ratio of the collateral pool currently on offer
-    function onOffer() external view override returns (uint256, uint256) {
-        return (_onOffer(), CoveragePoolConstants.getPortionOnOfferDivisor());
-    }
-
-    function amountOutstanding() external view returns (uint256) {
-        return self.amountOutstanding;
-    }
-
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
     }
 }
