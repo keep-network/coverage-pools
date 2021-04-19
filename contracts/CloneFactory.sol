@@ -30,7 +30,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // clone-factory: https://github.com/optionality/clone-factory
 // Modified to use ^0.5.10; instead of ^0.4.23 solidity version
 
-//solhint-disable no-inline-assembly
+/* solhint-disable no-inline-assembly */
 contract CloneFactory {
     function createClone(address target) internal returns (address result) {
         bytes20 targetBytes = bytes20(target);
