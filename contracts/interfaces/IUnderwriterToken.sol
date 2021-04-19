@@ -16,20 +16,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
 interface IUnderwriterToken is IERC20 {
-    /// @notice Returns hash of EIP712 Domain struct with the token name as
-    /// a signing domain and token contract as a verifying contract.
-    /// Used to construct EIP2612 signature provided to `permit` function.
-    function DOMAIN_SEPARATOR() external view returns (bytes32);
-
-    /// @notice Returns EIP2612 Permit message hash.
-    /// Used to construct EIP2612 signature provided to `permit` function.
-    function PERMIT_TYPEHASH() external pure returns (bytes32);
-
-    /// @notice Returns the current nonce for EIP2612 permission for the
-    /// provided token owner for a replay protection.
-    /// Used to construct EIP2612 signature provided to `permit` function.
-    function nonces(address owner) external view returns (uint256);
-
     /// @notice EIP2612 approval made with secp256k1 signature.
     ///         Users can authorize a transfer of their tokens with a signature
     ///         conforming EIP712 standard, rather than an on-chain transaction
@@ -50,4 +36,20 @@ interface IUnderwriterToken is IERC20 {
 
     /// @notice Destroys `amount` tokens from the caller.
     function burn(uint256 amount) external;
+
+    /// @notice Returns hash of EIP712 Domain struct with the token name as
+    /// a signing domain and token contract as a verifying contract.
+    /// Used to construct EIP2612 signature provided to `permit` function.
+    /* solhint-disable-next-line func-name-mixedcase */
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+
+    /// @notice Returns the current nonce for EIP2612 permission for the
+    /// provided token owner for a replay protection.
+    /// Used to construct EIP2612 signature provided to `permit` function.
+    function nonces(address owner) external view returns (uint256);
+
+    /// @notice Returns EIP2612 Permit message hash.
+    /// Used to construct EIP2612 signature provided to `permit` function.
+    /* solhint-disable-next-line func-name-mixedcase */
+    function PERMIT_TYPEHASH() external pure returns (bytes32);
 }
