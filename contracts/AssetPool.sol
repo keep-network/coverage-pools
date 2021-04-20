@@ -25,15 +25,15 @@ contract AssetPool {
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
 
+    modifier onlyCoveragePool() {
+        require(msg.sender == coveragePool, "Caller is not the coverage pool");
+        _;
+    }
+
     constructor(IERC20 _collateralToken, address _coveragePool) {
         coveragePool = _coveragePool;
         collateralToken = _collateralToken;
         underwriterToken = new UnderwriterToken();
-    }
-
-    modifier onlyCoveragePool() {
-        require(msg.sender == coveragePool, "Caller is not the coverage pool");
-        _;
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
