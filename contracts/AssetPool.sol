@@ -33,7 +33,7 @@ contract AssetPool {
     constructor(IERC20 _collateralToken, address _coveragePool) {
         coveragePool = _coveragePool;
         collateralToken = _collateralToken;
-        underwriterToken = new UnderwriterToken(address(this));
+        underwriterToken = new UnderwriterToken();
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
