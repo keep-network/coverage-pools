@@ -34,6 +34,10 @@ interface IERC20WithPermit is IERC20 {
     /// @notice Destroys `amount` tokens from the caller.
     function burn(uint256 amount) external;
 
+    /// @notice Destroys `amount` of tokens from `account`, deducting the amount
+    ///         from caller's allowance.
+    function burnFrom(address account, uint256 amount) external;
+
     /// @notice Returns hash of EIP712 Domain struct with the token name as
     ///         a signing domain and token contract as a verifying contract.
     ///         Used to construct EIP2612 signature provided to `permit`
