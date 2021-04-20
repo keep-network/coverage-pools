@@ -132,6 +132,8 @@ contract Auctioneer is CloneFactory, Ownable {
         Auction auction = Auction(auctionAddress);
         auction.earlyClose();
 
+        // TODO: what should happen with funds from an early closed auction?
+
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
     }
