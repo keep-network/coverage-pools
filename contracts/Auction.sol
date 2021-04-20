@@ -98,7 +98,6 @@ contract Auction is IAuction {
     function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
-        require(self.amountOutstanding > 0, "Auction is closed");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 onOffer = _onOffer();
         self.tokenAccepted.safeTransferFrom(
@@ -170,8 +169,8 @@ contract Auction is IAuction {
     ///      after an auction has closed.
     function harikari() internal {
         address payable addr = address(uint160(address(self.auctioneer)));
-        selfdestruct(addr);
         delete self;
+        selfdestruct(addr);
     }
 
     function _onOffer() internal view returns (uint256) {

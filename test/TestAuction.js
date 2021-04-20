@@ -214,7 +214,7 @@ describe("Auction", () => {
       })
     })
 
-    context("when the auction was fully paid off", () => {
+    context("when the auction was fully paid off and is closed", () => {
       it("should revert on taking offer again", async () => {
         // Increase time 1h -> 3600sec
         await increaseTime(3600)
@@ -225,7 +225,7 @@ describe("Auction", () => {
         // another bidder is trying to take offer on a closed auction
         await expect(
           auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Auction is closed")
+        ).to.be.revertedWith("Address: call to non-contract")
       })
     })
 
@@ -481,7 +481,7 @@ describe("Auction", () => {
 
         await expect(
           auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Auction is closed")
+        ).to.be.revertedWith("Address: call to non-contract")
       })
     })
   })
