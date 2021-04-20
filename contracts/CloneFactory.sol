@@ -22,7 +22,6 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-//solhint-disable max-line-length
 
 // Implementation of [EIP-1167] based on [clone-factory]
 // source code.
@@ -30,8 +29,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // EIP 1167: https://eips.ethereum.org/EIPS/eip-1167
 // clone-factory: https://github.com/optionality/clone-factory
 // Modified to use ^0.5.10; instead of ^0.4.23 solidity version
-/* solium-disable */
 
+/* solhint-disable no-inline-assembly */
 contract CloneFactory {
     function createClone(address target) internal returns (address result) {
         bytes20 targetBytes = bytes20(target);

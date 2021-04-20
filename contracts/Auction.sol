@@ -90,10 +90,13 @@ contract Auction is IAuction {
         self.auctioneer = Auctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
+        /* solhint-disable-next-line not-rely-on-time */
         self.startTime = block.timestamp;
         self.startTimeOffset = 0;
         self.auctionLength = _auctionLength;
-        self.velocityPoolDepletingRate = 1 * CoveragePoolConstants.getFloatingPointDivisor();
+        self.velocityPoolDepletingRate =
+            1 *
+            CoveragePoolConstants.getFloatingPointDivisor();
     }
 
     /// @notice Takes an offer from an auction buyer.
@@ -117,12 +120,15 @@ contract Auction is IAuction {
             onOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
-            uint256 FLOATING_POINT_DIVISOR = CoveragePoolConstants.getFloatingPointDivisor();
+            uint256 FLOATING_POINT_DIVISOR =
+                CoveragePoolConstants.getFloatingPointDivisor();
 
             // Time passed since the auction start or the last takeOffer call
             // with a partial fill.
-            uint256 timePassed = block.timestamp.sub(self.startTime).sub(self.startTimeOffset);
-            
+            uint256 timePassed =
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp.sub(self.startTime).sub(self.startTimeOffset);
+
             // Ratio of the auction's amount included in this takeOffer call to
             // the whole outstanding auction amount.
             uint256 ratioAmountPaid =
@@ -131,8 +137,8 @@ contract Auction is IAuction {
                 );
             // We will shift the start time offset and increase the velocity pool
             // depleting rate proportionally to the fraction of the outstanding
-            // amount paid in this function call so that the auction can offer 
-            // no worse financial outcome for the next takers than the current 
+            // amount paid in this function call so that the auction can offer
+            // no worse financial outcome for the next takers than the current
             // taker has.
             self.startTimeOffset = self.startTimeOffset.add(
                 timePassed.mul(ratioAmountPaid).div(FLOATING_POINT_DIVISOR)
@@ -179,6 +185,14 @@ contract Auction is IAuction {
         harikari();
     }
 
+    /// @dev Delete all storage and destroy the contract. Should only be called
+    ///      after an auction has closed.
+    function harikari() internal {
+        address payable addr = address(uint160(address(self.auctioneer)));
+        selfdestruct(addr);
+        delete self;
+    }
+
     function _onOffer() internal view returns (uint256) {
         // when the auction is over, entire pool is on offer
         if (_isAuctionOver()) {
@@ -190,20 +204,14 @@ contract Auction is IAuction {
         }
 
         return
+            /* solhint-disable-next-line not-rely-on-time */
             (block.timestamp.sub(self.startTime.add(self.startTimeOffset)))
                 .mul(self.velocityPoolDepletingRate)
                 .div(self.auctionLength);
     }
 
     function _isAuctionOver() internal view returns (bool) {
+        /* solhint-disable-next-line not-rely-on-time */
         return block.timestamp >= self.startTime.add(self.auctionLength);
-    }
-
-    /// @dev Delete all storage and destroy the contract. Should only be called
-    ///      after an auction has closed.
-    function harikari() internal {
-        address payable addr = address(uint160(address(self.auctioneer)));
-        selfdestruct(addr);
-        delete self;
     }
 }
