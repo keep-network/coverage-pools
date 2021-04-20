@@ -15,12 +15,14 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IERC20WithPermit is IERC20 {
     /// @notice Returns EIP2612 Permit message hash. Used to construct EIP2612
     ///         signature provided to `permit` function.
+    /* solhint-disable-next-line func-name-mixedcase */
     function PERMIT_TYPEHASH() external pure returns (bytes32);
 
     /// @notice Returns hash of EIP712 Domain struct with the token name as
     ///         a signing domain and token contract as a verifying contract.
     ///         Used to construct EIP2612 signature provided to `permit`
     ///         function.
+    /* solhint-disable-next-line func-name-mixedcase */
     function DOMAIN_SEPARATOR() external view returns (bytes32);
 
     /// @notice Returns the current nonce for EIP2612 permission for the
