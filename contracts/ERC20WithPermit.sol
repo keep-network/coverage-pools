@@ -153,12 +153,28 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
     }
 
     function burn(uint256 amount) external override {
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(
+        _burn(msg.sender, amount);
+    }
+
+    function burnFrom(address account, uint256 amount) external override {
+        _approve(
+            account,
+            msg.sender,
+            allowance[account][msg.sender].sub(
+                amount,
+                "Burn amount exceeds allowance"
+            )
+        );
+        _burn(account, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal {
+        balanceOf[account] = balanceOf[account].sub(
             amount,
             "Burn amount exceeds balance"
         );
         totalSupply = totalSupply.sub(amount);
-        emit Transfer(msg.sender, address(0), amount);
+        emit Transfer(account, address(0), amount);
     }
 
     function _transfer(
