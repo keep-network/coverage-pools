@@ -9,5 +9,7 @@ library CoveragePoolConstants {
     uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
     // Getter for easy access
-    function getFloatingPointDivisor() external pure returns (uint256) { return FLOATING_POINT_DIVISOR; }
+    function getFloatingPointDivisor() external pure returns (uint256) {
+        return FLOATING_POINT_DIVISOR;
+    }
 }

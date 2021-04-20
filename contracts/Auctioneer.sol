@@ -25,17 +25,6 @@ contract Auctioneer is CloneFactory, Ownable {
 
     CollateralPool public collateralPool;
 
-    /// @dev Initialize the auctioneer
-    /// @param _collateralPool The address of the master deposit contract.
-    /// @param _masterAuction  The address of the master auction contract.
-    function initialize(CollateralPool _collateralPool, address _masterAuction)
-        external
-    {
-        require(masterAuction == address(0), "Auctioneer already initialized");
-        collateralPool = _collateralPool;
-        masterAuction = _masterAuction;
-    }
-
     event AuctionCreated(
         address indexed tokenAccepted,
         uint256 amount,
@@ -49,6 +38,17 @@ contract Auctioneer is CloneFactory, Ownable {
         uint256 portionToSeize // This amount should be divided by FLOATING_POINT_DIVISOR
     );
     event AuctionClosed(address indexed auction);
+
+    /// @dev Initialize the auctioneer
+    /// @param _collateralPool The address of the master deposit contract.
+    /// @param _masterAuction  The address of the master auction contract.
+    function initialize(CollateralPool _collateralPool, address _masterAuction)
+        external
+    {
+        require(masterAuction == address(0), "Auctioneer already initialized");
+        collateralPool = _collateralPool;
+        masterAuction = _masterAuction;
+    }
 
     /// @notice Informs the auctioneer to seize funds and log appropriate events
     /// @dev This function is meant to be called from a cloned auction. It logs
