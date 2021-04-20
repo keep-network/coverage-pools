@@ -6,6 +6,7 @@ const {
   to1e18,
   pastEvents,
   increaseTime,
+  impersonateContract,
 } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
@@ -23,6 +24,7 @@ describe("Auction", () => {
   let bidder1
   let bidder2
   let auctioneer
+  let auctioneerSigner
   let collateralPool
 
   before(async () => {
@@ -32,7 +34,7 @@ describe("Auction", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("Auctioneer")
+    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
@@ -46,6 +48,7 @@ describe("Auction", () => {
 
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
+    auctioneerSigner = await impersonateContract(auctioneer.address, owner)
 
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
@@ -454,6 +457,56 @@ describe("Auction", () => {
         })
       }
     )
+  })
+
+  describe("earlyClose", () => {
+    const auctionLength = 86400 // 24h in sec
+    const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
+
+    beforeEach(async () => {
+      auction = await createAuction(auctionAmountDesired, auctionLength)
+      await approveTestTokenForAuction(auction.address)
+    })
+
+    context("when the auction is open and there are no fills", () => {
+      it("should early close the auction", async () => {
+        await auction.connect(auctioneerSigner).earlyClose()
+
+        expect(await auction.isOpen()).to.be.false
+      })
+    })
+
+    context("when the auction is open and there are partial fills", () => {
+      it("should early close the auction", async () => {
+        const partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
+        await auction.connect(bidder1).takeOffer(partialOfferAmount)
+
+        await auction.connect(auctioneerSigner).earlyClose()
+
+        expect(await auction.isOpen()).to.be.false
+      })
+    })
+
+    context("when the caller is not the auctioneer", () => {
+      it("should revert", async () => {
+        await expect(auction.connect(bidder1).earlyClose()).to.be.revertedWith(
+          "Caller is not the auctioneer"
+        )
+      })
+    })
+
+    context("when the auction is closed", () => {
+      it("should revert", async () => {
+        // close the auction by taking the whole amount
+        await auction.connect(bidder1).takeOffer(auctionAmountDesired)
+
+        // Will be reverted due to onlyAuctioneer modifier violation as
+        // Auction storage has been destroyed by harikari and current
+        // auctioneer is a zero address.
+        await expect(auction.connect(auctioneerSigner).earlyClose()).to.be
+          .reverted
+      })
+    })
   })
 
   async function createAuction(auctionAmountDesired, auctionLength) {
