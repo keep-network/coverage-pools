@@ -44,6 +44,7 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
         symbol = _symbol;
 
         uint256 chainId;
+        /* solhint-disable-next-line no-inline-assembly */
         assembly {
             chainId := chainid()
         }
@@ -106,6 +107,7 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
         bytes32 r,
         bytes32 s
     ) external override {
+        /* solhint-disable-next-line not-rely-on-time */
         require(deadline >= block.timestamp, "Permission expired");
 
         // Validate `s` and `v` values for a malleability concern described in EIP2.
