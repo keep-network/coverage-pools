@@ -150,7 +150,6 @@ contract Auction is IAuction {
         // proceeds
         //
         //slither-disable-next-line reentrancy-no-eth
-        //slither-disable-next-line reentrancy-events
         self.auctioneer.offerTaken(
             msg.sender,
             self.tokenAccepted,
