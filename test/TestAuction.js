@@ -192,38 +192,54 @@ describe("Auction", () => {
       await approveTestTokenForAuction(auction.address)
 
       await auction.connect(bidder1).takeOffer(partialOfferAmount)
-      expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-        partialOfferAmount
-      )
 
       // at this point auction's outstanding amount is equal to:
       // (1 - 0.75) * 10^18 = 0.25 * 10^18
     })
 
-    context(
-      "when outstanding amount is equal or greater than a minimum amount to take",
-      () => {
-        it("should take all outstanding amount", async () => {
-          const minAmount = to1ePrecision(25, 16) // 0.25 * 10^18
+    context("when outstanding amount is equal to a minimum amount", () => {
+      it("should take all outstanding amount", async () => {
+        const minAmount = to1ePrecision(25, 16) // 0.25 * 10^18
 
-          // bidder2 wants to take 0.75 * 10^18, which is more than the outstanding amount
-          // and is more than the minAmount 0.25 * 10^18
-          await auction
-            .connect(bidder2)
-            .takeOfferWithMin(partialOfferAmount, minAmount)
-          // auctioneer should receive the auction's desired amount
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-            auctionAmountDesired
-          )
+        // bidder2 wants to take 0.75 * 10^18, which is more than the outstanding amount
+        // and is more than the minAmount 0.25 * 10^18
+        await auction
+          .connect(bidder2)
+          .takeOfferWithMin(partialOfferAmount, minAmount)
+        // auctioneer should receive the auction's desired amount
+        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          auctionAmountDesired
+        )
 
-          // (1 - 0.25) * 10^18
-          const expectedBalanceBidder2 = to1ePrecision(75, 16) // 0.75 * 10^18
-          expect(await testToken.balanceOf(bidder2.address)).to.be.equal(
-            expectedBalanceBidder2
-          )
-        })
-      }
-    )
+        // (1 - 0.25) * 10^18
+        const expectedBalanceBidder2 = to1ePrecision(75, 16) // 0.75 * 10^18
+        expect(await testToken.balanceOf(bidder2.address)).to.be.equal(
+          expectedBalanceBidder2
+        )
+      })
+    })
+
+    context("when outstanding amount is greater than a minimum amount", () => {
+      it("should take all outstanding amount", async () => {
+        const minAmount = to1ePrecision(25, 16).sub(BigNumber.from(1)) // 0.25 * 10^18 - 1
+
+        // bidder2 wants to take 0.75 * 10^18, which is more than the outstanding amount
+        // and is more than the minAmount 0.25 * 10^18 - 1
+        await auction
+          .connect(bidder2)
+          .takeOfferWithMin(partialOfferAmount, minAmount)
+        // auctioneer should receive the auction's desired amount
+        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          auctionAmountDesired
+        )
+
+        // (1 - 0.25) * 10^18
+        const expectedBalanceBidder2 = to1ePrecision(75, 16) // 0.75 * 10^18
+        expect(await testToken.balanceOf(bidder2.address)).to.be.equal(
+          expectedBalanceBidder2
+        )
+      })
+    })
 
     context(
       "when outstanding amount is less than a minimum amount to take",
