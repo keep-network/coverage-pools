@@ -43,6 +43,8 @@ contract UnderwriterToken is IUnderwriterToken {
     }
 
     constructor(address _assetPool) {
+        require(_assetPool != address(0), "Invalid asset pool address");
+
         uint256 chainId;
         /* solhint-disable-next-line no-inline-assembly */
         assembly {

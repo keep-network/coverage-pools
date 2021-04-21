@@ -45,6 +45,7 @@ contract Auctioneer is CloneFactory, Ownable {
     function initialize(CollateralPool _collateralPool, address _masterAuction)
         external
     {
+        require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;
         masterAuction = _masterAuction;

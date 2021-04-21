@@ -31,6 +31,7 @@ contract AssetPool {
     }
 
     constructor(IERC20 _collateralToken, address _coveragePool) {
+        require(_coveragePool != address(0), "Invalid coverage pool address");
         coveragePool = _coveragePool;
         collateralToken = _collateralToken;
         underwriterToken = new UnderwriterToken(address(this));
