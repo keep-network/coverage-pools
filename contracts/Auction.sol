@@ -130,6 +130,8 @@ contract Auction is IAuction {
             // amount paid in this function call so that the auction can offer
             // no worse financial outcome for the next takers than the current
             // taker has.
+            //
+            //slither-disable-next-line divide-before-multiply
             self.startTimeOffset = self.startTimeOffset.add(
                 timePassed.mul(ratioAmountPaid).div(FLOATING_POINT_DIVISOR)
             );
