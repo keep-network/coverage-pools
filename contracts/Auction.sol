@@ -96,7 +96,7 @@ contract Auction is IAuction {
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function takeOffer(uint256 amount) external override {
+    function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
