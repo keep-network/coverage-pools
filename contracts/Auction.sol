@@ -101,6 +101,8 @@ contract Auction is IAuction {
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 amountOnOffer = _onOffer();
+
+        //slither-disable-next-line reentrancy-no-eth
         self.tokenAccepted.safeTransferFrom(
             msg.sender,
             address(self.auctioneer),
@@ -146,6 +148,9 @@ contract Auction is IAuction {
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
         // proceeds
+        //
+        //slither-disable-next-line reentrancy-no-eth
+        //slither-disable-next-line reentrancy-events
         self.auctioneer.offerTaken(
             msg.sender,
             self.tokenAccepted,
