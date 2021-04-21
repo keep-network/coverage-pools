@@ -171,7 +171,7 @@ contract Auction is IAuction {
     ///      If `amountOutstanding` < 'minAmount', transaction will revert.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
     /// @param minAmount minimum amount of tokens to buy
-    function takeOfferWithMin(uint256 amount, uint256 minAmount) public {
+    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
         require(
             self.amountOutstanding >= minAmount,
             "Can't fulfill minimum offer"
