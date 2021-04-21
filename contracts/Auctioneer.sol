@@ -86,8 +86,7 @@ contract Auctioneer is CloneFactory, Ownable {
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         //
-        //slither-disable-next-line reentrancy-no-eth
-        //slither-disable-next-line reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
@@ -112,8 +111,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
-        //slither-disable-next-line reentrancy-benign
-        //slither-disable-next-line reentrancy-events
+        //slither-disable-next-line reentrancy-benign,reentrancy-events
         auction.initialize(
             address(this),
             tokenAccepted,
