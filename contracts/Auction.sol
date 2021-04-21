@@ -75,6 +75,7 @@ contract Auction is IAuction {
         uint256 _amountDesired,
         uint256 _auctionLength
     ) external {
+        //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.auctioneer = Auctioneer(_auctioneer);
@@ -152,6 +153,7 @@ contract Auction is IAuction {
             portionToSeize
         );
 
+        //slither-disable-next-line incorrect-equality
         if (self.amountOutstanding == 0) {
             harikari();
         }
