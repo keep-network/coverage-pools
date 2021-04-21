@@ -100,7 +100,7 @@ contract Auction is IAuction {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
-        uint256 onOffer = _onOffer();
+        uint256 amountOnOffer = _onOffer();
         self.tokenAccepted.safeTransferFrom(
             msg.sender,
             address(self.auctioneer),
@@ -108,7 +108,7 @@ contract Auction is IAuction {
         );
 
         uint256 portionToSeize =
-            onOffer.mul(amountToTransfer).div(self.amountOutstanding);
+            amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             uint256 FLOATING_POINT_DIVISOR =
