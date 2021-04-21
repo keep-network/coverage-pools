@@ -169,8 +169,8 @@ contract Auction is IAuction {
     ///      after an auction has closed.
     function harikari() internal {
         address payable addr = address(uint160(address(self.auctioneer)));
-        selfdestruct(addr);
         delete self;
+        selfdestruct(addr);
     }
 
     function _onOffer() internal view returns (uint256) {
