@@ -57,7 +57,7 @@ contract AssetPool {
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) public {
+    function deposit(uint256 amount) external {
         _deposit(msg.sender, amount);
     }
 
@@ -66,7 +66,7 @@ contract AssetPool {
     ///         should be withdrawn.
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function withdraw(uint256 covAmount) public {
+    function withdraw(uint256 covAmount) external {
         // TODO: Implement exit market. All withdrawals from the pool that
         // accept a fixed delay can do so without a fee. Any underwriter who
         // wants to withdraw more quickly will forfeit part of their collateral
@@ -90,7 +90,7 @@ contract AssetPool {
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool.
-    function claim(uint256 amount) public onlyCoveragePool {
+    function claim(uint256 amount) external onlyCoveragePool {
         collateralToken.safeTransfer(coveragePool, amount);
     }
 

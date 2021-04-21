@@ -74,7 +74,7 @@ contract Auction is IAuction {
         IERC20 _tokenAccepted,
         uint256 _amountDesired,
         uint256 _auctionLength
-    ) public {
+    ) external {
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.auctioneer = Auctioneer(_auctioneer);
@@ -95,7 +95,7 @@ contract Auction is IAuction {
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function takeOffer(uint256 amount) public override {
+    function takeOffer(uint256 amount) external override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
@@ -161,7 +161,7 @@ contract Auction is IAuction {
     ///      collateral pool. Ex. if 35% available of the collateral pool,
     ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
-    function onOffer() public view override returns (uint256, uint256) {
+    function onOffer() external view override returns (uint256, uint256) {
         return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
     }
 
