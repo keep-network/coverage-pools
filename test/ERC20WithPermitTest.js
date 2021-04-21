@@ -1,13 +1,13 @@
 const { expect } = require("chai")
 const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
-describe("UnderwriterToken", () => {
+describe("ERC20WithPermit", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
   const hardhatNetworkId = 31337
 
   const initialSupply = to1e18(100)
 
-  let assetPool
+  let owner
   let initialHolder
   let recipient
   let anotherAccount
@@ -16,25 +16,25 @@ describe("UnderwriterToken", () => {
 
   beforeEach(async () => {
     ;[
-      assetPool,
+      owner,
       initialHolder,
       recipient,
       anotherAccount,
     ] = await ethers.getSigners()
 
-    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
-    token = await UnderwriterToken.deploy(assetPool.address)
+    const ERC20WithPermit = await ethers.getContractFactory("ERC20WithPermit")
+    token = await ERC20WithPermit.deploy("My Token", "MT")
     await token.deployed()
 
     await token.mint(initialHolder.address, initialSupply)
   })
 
   it("should have a name", async () => {
-    expect(await token.name()).to.equal("Underwriter Token")
+    expect(await token.name()).to.equal("My Token")
   })
 
   it("should have a symbol", async () => {
-    expect(await token.symbol()).to.equal("COV")
+    expect(await token.symbol()).to.equal("MT")
   })
 
   it("should have 18 decimals", async () => {
@@ -73,7 +73,7 @@ describe("UnderwriterToken", () => {
                 "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
               )
             ),
-            keccak256(toUtf8Bytes("Underwriter Token")),
+            keccak256(toUtf8Bytes("My Token")),
             keccak256(toUtf8Bytes("1")),
             hardhatNetworkId,
             token.address,
@@ -454,24 +454,22 @@ describe("UnderwriterToken", () => {
     const amount = to1e18(50)
     it("should reject a zero account", async () => {
       await expect(
-        token.connect(assetPool).mint(ZERO_ADDRESS, amount)
+        token.connect(owner).mint(ZERO_ADDRESS, amount)
       ).to.be.revertedWith("Mint to the zero address")
     })
 
-    context("when called not by the asset pool", () => {
+    context("when called not by the owner", () => {
       it("should revert", async () => {
         await expect(
           token.connect(initialHolder).mint(initialHolder.address, amount)
-        ).to.be.revertedWith("Caller is not the asset pool")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
     context("for a non zero account", () => {
       let mintTx
       beforeEach("minting", async () => {
-        mintTx = await token
-          .connect(assetPool)
-          .mint(anotherAccount.address, amount)
+        mintTx = await token.connect(owner).mint(anotherAccount.address, amount)
       })
 
       it("should incement totalSupply", async () => {
@@ -510,7 +508,7 @@ describe("UnderwriterToken", () => {
           expect(await token.totalSupply()).to.equal(expectedSupply)
         })
 
-        it("should decrement initialHolder balance", async () => {
+        it("should decrement owner's balance", async () => {
           const expectedBalance = initialSupply.sub(amount)
           expect(await token.balanceOf(initialHolder.address)).to.equal(
             expectedBalance
@@ -527,6 +525,74 @@ describe("UnderwriterToken", () => {
 
     describeBurn("for entire balance", initialSupply)
     describeBurn("for less amount than balance", initialSupply.sub(1))
+  })
+
+  describe("burnFrom", () => {
+    it("should reject burning more than balance", async () => {
+      await token
+        .connect(initialHolder)
+        .approve(anotherAccount.address, initialSupply.add(1))
+      await expect(
+        token
+          .connect(anotherAccount)
+          .burnFrom(initialHolder.address, initialSupply.add(1))
+      ).to.be.revertedWith("Burn amount exceeds balance")
+    })
+
+    it("should reject burning more than the allowance", async () => {
+      await token
+        .connect(initialHolder)
+        .approve(anotherAccount.address, initialSupply.sub(1))
+      await expect(
+        token
+          .connect(anotherAccount)
+          .burnFrom(initialHolder.address, initialSupply)
+      ).to.be.revertedWith("Burn amount exceeds allowance")
+    })
+
+    const describeBurnFrom = (description, amount) => {
+      describe(description, () => {
+        let burnTx
+        beforeEach("burning from", async () => {
+          await token
+            .connect(initialHolder)
+            .approve(anotherAccount.address, amount)
+          burnTx = await token
+            .connect(anotherAccount)
+            .burnFrom(initialHolder.address, amount)
+        })
+
+        it("should decrement totalSupply", async () => {
+          const expectedSupply = initialSupply.sub(amount)
+          expect(await token.totalSupply()).to.equal(expectedSupply)
+        })
+
+        it("should decrement owner's balance", async () => {
+          const expectedBalance = initialSupply.sub(amount)
+          expect(await token.balanceOf(initialHolder.address)).to.equal(
+            expectedBalance
+          )
+        })
+
+        it("should decrement allowance", async () => {
+          const allowance = await token.allowance(
+            initialHolder.address,
+            anotherAccount.address
+          )
+
+          expect(allowance).to.equal(0)
+        })
+
+        it("should emit Transfer event", async () => {
+          await expect(burnTx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
+        })
+      })
+    }
+
+    describeBurnFrom("for entire balance", initialSupply)
+    describeBurnFrom("for less amount than balance", initialSupply.sub(1))
   })
 
   describe("permit", () => {
