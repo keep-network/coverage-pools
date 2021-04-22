@@ -13,8 +13,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
 ///         coverage-pools
 contract EthAssetPool is Ownable {
-    IERC20 wethToken;
-    AssetPool assetPool;
+    IERC20 public wethToken;
+    AssetPool public assetPool;
 
     constructor(address _weth) {
         wethToken = IERC20(_weth);
