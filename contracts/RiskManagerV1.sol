@@ -5,6 +5,7 @@ pragma solidity <0.9.0;
 import "./CollateralPool.sol";
 import "./external/IDeposit.sol";
 import "./Auctioneer.sol";
+import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -41,7 +42,9 @@ contract RiskManagerV1 {
 
         require(currentState == CoveragePoolConstants.getLiquidationInProgressState(), "Deposit is not in liquidation state");
 
-        // auctioneer.earlyCloseAuction(auctionsByDepositId[tdtId]);
+        Auction auction = Auction(auctionsByDepositId[tdtId]);
+        // TODO: can we change an arg from Auction to address?
+        auctioneer.earlyCloseAuction(auction);
 
         // TODO: transfer 0.5% of the lot size to a notifier?
     }
@@ -63,10 +66,8 @@ contract RiskManagerV1 {
         //       Based on this data the auction length should be adjusted
         uint256 auctionLength = 86400; // hardcoded 24h
 
-        // TODO: would need change a signature and return an address from Auctioneer.createAuction()
-        // address auctionAddress = auctioneer.createAuction(tbtcToken, amountDesired, auctionLength);
-        // auctionsByDepositId[tdtId] = auctionAddress;
-
+        address auctionAddress = auctioneer.createAuction(tbtcToken, amountDesired, auctionLength);
+        auctionsByDepositId[tdtId] = auctionAddress;
 
         // TODO: transfer 0.5% of the lot size to a notifier.
         //       When should we transfer 0.5% to a notifier? Is it when an auction ends?
@@ -78,13 +79,8 @@ contract RiskManagerV1 {
     ///      for the coverage pool auction should be transferred to auctioneer.
     /// @param  tdtId ID of tBTC Deposit Token
     function collectTbtcSignerBonds(uint256 tdtId) public {
-
         IDeposit deposit = IDeposit(address(uint160(tdtId)));
-        // TODO: after purchasing signer bonds with TBTC, we need to transfer
-        //       ETH to auction takers (ppl who called Auction.takeOffer(amount)).
-        //       Need to track which taker bought how much.
         deposit.purchaseSignerBondsAtAuction();
-        
         
         deposit.withdrawFunds();
 

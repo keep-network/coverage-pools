@@ -3,12 +3,6 @@
 pragma solidity <0.9.0;
 
 contract CollateralPool {
-    address public riskManager;
-
-    constructor(address _riskManager) {
-        riskManager = _riskManager;
-    }
-
     /// @notice Seize funds from the collateral pool and put them aside for the
     ///         recipient to withdraw.
     /// @dev portionToSeize value was multiplied by FLOATING_POINT_DIVISOR for
