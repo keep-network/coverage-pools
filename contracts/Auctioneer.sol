@@ -134,6 +134,7 @@ contract Auctioneer is CloneFactory, Ownable {
         require(openAuctions[auctionAddress], "Address isn't an open auction");
 
         Auction auction = Auction(auctionAddress);
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         auction.earlyClose();
 
         // TODO: what should happen with funds from an early closed auction?

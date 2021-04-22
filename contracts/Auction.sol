@@ -53,6 +53,7 @@ contract Auction is IAuction {
 
     /// @notice Throws if called by any account other than the auctioneer.
     modifier onlyAuctioneer() {
+        //slither-disable-next-line incorrect-equality
         require(
             msg.sender == address(self.auctioneer),
             "Caller is not the auctioneer"
@@ -193,7 +194,7 @@ contract Auction is IAuction {
     ///         is bought by takers.
     /// @dev Can be called only by the auctioneer which may decide to early
     //       close the auction in case it is no longer needed.
-    function earlyClose() public onlyAuctioneer {
+    function earlyClose() external onlyAuctioneer {
         require(self.amountOutstanding > 0, "Auction must be open");
 
         harikari();
