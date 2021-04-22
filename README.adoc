@@ -1,8 +1,12 @@
-# coverage-pool
+:toc: macro
+
+= Coverage pool
 
 A governable, fee-earning asset pool to cover low-likelihood on-chain events.
 
-## What is it?
+toc::[]
+
+== What is it?
 
 A coverage pool is a flexible new money lego that can be used as a back-stop or
 "buyer of last resort" in on-chain financial systems.
@@ -16,7 +20,7 @@ algorithmic governance to reward underwriters. They're designed as building
 blocks rather than a standalone product, allowing system designers and
 communities to tailor risk management to their circumstances.
 
-## Goals
+== Goals
 
 1. Pool assets to back risk denominated in a particular asset.
 2. Manage those assets without unnecessary reliance on oracles.
@@ -35,7 +39,7 @@ Future iterations could introduce explicit synthetic asset minting for claim
 management, though that functionality should be easy to build atop the initial
 design.
 
-## Questions
+== Questions
 
 > Doesn't this already exist?
 
@@ -53,3 +57,36 @@ risk of yours, there are a variety of centralized and decentralized options on
 the market. If you need to cover risk in a new system... maybe because you're
 building a synthetic asset exchange, or a lending platform — coverage pools
 might be for you.
+
+== Build and test
+
+Coverage pool contracts use https://hardhat.org/[*Hardhat*] development
+environment. To build and deploy these contracts, please follow the instructions
+presented below.
+
+=== Prerequisites
+
+Please make sure you have the following prerequisites installed on your machine:
+
+- https://nodejs.org[Node.js] >12.22.1
+- https://yarnpkg.com[Yarn] >1.22.10
+
+=== Build contracts
+
+To build the smart contracts, install node packages first:
+```
+yarn install
+```
+Once packages are installed, you can build the smart contracts using:
+```
+yarn build
+```
+Compiled contracts will land in the `artifacts` directory.
+
+=== Test contracts
+
+There are multiple test scenarios living in the `test` directory.
+You can run them by doing:
+```
+yarn test
+```

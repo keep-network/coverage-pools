@@ -1,12 +1,13 @@
 const { expect } = require("chai")
 const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
-describe("UnderwriterToken", () => {
+describe("ERC20WithPermit", () => {
   // default Hardhat's networks blockchain, see https://hardhat.org/config/
   const hardhatNetworkId = 31337
 
   const initialSupply = to1e18(100)
 
+  let owner
   let initialHolder
   let recipient
   let anotherAccount
@@ -14,48 +15,40 @@ describe("UnderwriterToken", () => {
   let token
 
   beforeEach(async () => {
-    const UnderwriterToken = await ethers.getContractFactory(
-      "UnderwriterTokenStub"
-    )
-    token = await UnderwriterToken.deploy()
+    ;[
+      owner,
+      initialHolder,
+      recipient,
+      anotherAccount,
+    ] = await ethers.getSigners()
+
+    const ERC20WithPermit = await ethers.getContractFactory("ERC20WithPermit")
+    token = await ERC20WithPermit.deploy("My Token", "MT")
     await token.deployed()
-    await token.initialize()
 
-    initialHolder = await ethers.getSigner(0)
     await token.mint(initialHolder.address, initialSupply)
-
-    recipient = await ethers.getSigner(1)
-    anotherAccount = await ethers.getSigner(2)
   })
 
-  it("has a name", async () => {
-    expect(await token.name()).to.equal("Underwriter Token")
+  it("should have a name", async () => {
+    expect(await token.name()).to.equal("My Token")
   })
 
-  it("has a symbol", async () => {
-    expect(await token.symbol()).to.equal("COV")
+  it("should have a symbol", async () => {
+    expect(await token.symbol()).to.equal("MT")
   })
 
-  it("has 18 decimals", async () => {
+  it("should have 18 decimals", async () => {
     expect(await token.decimals()).to.equal(18)
   })
 
-  describe("initialization", async () => {
-    it("should happen only one time", async () => {
-      await expect(token.initialize()).to.be.revertedWith(
-        "Token already initialized"
-      )
-    })
-  })
-
-  describe("total supply", () => {
-    it("returns the total amount of tokens", async () => {
+  describe("totalSupply", () => {
+    it("should return the total amount of tokens", async () => {
       expect(await token.totalSupply()).to.equal(initialSupply)
     })
   })
 
-  describe("permit typehash", () => {
-    it("is keccak256 of EIP2612 Permit message", async () => {
+  describe("permit_typehash", () => {
+    it("should be keccak256 of EIP2612 Permit message", async () => {
       const expected = ethers.utils.keccak256(
         ethers.utils.toUtf8Bytes(
           "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
@@ -65,8 +58,8 @@ describe("UnderwriterToken", () => {
     })
   })
 
-  describe("domain separator", () => {
-    it("is keccak256 of EIP712 domain struct", async () => {
+  describe("domain_separator", () => {
+    it("should be keccak256 of EIP712 domain struct", async () => {
       const keccak256 = ethers.utils.keccak256
       const defaultAbiCoder = ethers.utils.defaultAbiCoder
       const toUtf8Bytes = ethers.utils.toUtf8Bytes
@@ -80,7 +73,7 @@ describe("UnderwriterToken", () => {
                 "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
               )
             ),
-            keccak256(toUtf8Bytes("Underwriter Token")),
+            keccak256(toUtf8Bytes("My Token")),
             keccak256(toUtf8Bytes("1")),
             hardhatNetworkId,
             token.address,
@@ -92,14 +85,14 @@ describe("UnderwriterToken", () => {
   })
 
   describe("balanceOf", () => {
-    describe("when the requested account has no tokens", () => {
-      it("returns zero", async () => {
+    context("when the requested account has no tokens", () => {
+      it("should return zero", async () => {
         expect(await token.balanceOf(anotherAccount.address)).to.equal(0)
       })
     })
 
-    describe("when the requested account has some tokens", () => {
-      it("returns the total amount of tokens", async () => {
+    context("when the requested account has some tokens", () => {
+      it("should return the total amount of tokens", async () => {
         expect(await token.balanceOf(initialHolder.address)).to.equal(
           initialSupply
         )
@@ -108,21 +101,21 @@ describe("UnderwriterToken", () => {
   })
 
   describe("transfer", () => {
-    describe("when the recipient is not the zero address", () => {
-      describe("when the sender does not have enough balance", () => {
+    context("when the recipient is not the zero address", () => {
+      context("when the sender does not have enough balance", () => {
         const amount = initialSupply.add(1)
 
-        it("reverts", async () => {
+        it("should revert", async () => {
           await expect(
             token.connect(initialHolder).transfer(recipient.address, amount)
           ).to.be.revertedWith("Transfer amount exceeds balance")
         })
       })
 
-      describe("when the sender transfers all balance", () => {
+      context("when the sender transfers all balance", () => {
         const amount = initialSupply
 
-        it("transfers the requested amount", async () => {
+        it("should transfer the requested amount", async () => {
           await token.connect(initialHolder).transfer(recipient.address, amount)
 
           expect(await token.balanceOf(initialHolder.address)).to.equal(0)
@@ -130,7 +123,7 @@ describe("UnderwriterToken", () => {
           expect(await token.balanceOf(recipient.address)).to.equal(amount)
         })
 
-        it("emits a transfer event", async () => {
+        it("should emit a transfer event", async () => {
           const tx = await token
             .connect(initialHolder)
             .transfer(recipient.address, amount)
@@ -141,10 +134,10 @@ describe("UnderwriterToken", () => {
         })
       })
 
-      describe("when the sender transfers zero tokens", () => {
+      context("when the sender transfers zero tokens", () => {
         const amount = ethers.BigNumber.from(0)
 
-        it("transfers the requested amount", async () => {
+        it("should transfer the requested amount", async () => {
           await token.connect(initialHolder).transfer(recipient.address, amount)
 
           expect(await token.balanceOf(initialHolder.address)).to.equal(
@@ -154,7 +147,7 @@ describe("UnderwriterToken", () => {
           expect(await token.balanceOf(recipient.address)).to.equal(0)
         })
 
-        it("emits a transfer event", async () => {
+        it("should emit a transfer event", async () => {
           const tx = await token
             .connect(initialHolder)
             .transfer(recipient.address, amount)
@@ -166,8 +159,8 @@ describe("UnderwriterToken", () => {
       })
     })
 
-    describe("when the recipient is the zero address", () => {
-      it("reverts", async () => {
+    context("when the recipient is the zero address", () => {
+      it("should revert", async () => {
         await expect(
           token.connect(initialHolder).transfer(ZERO_ADDRESS, initialSupply)
         ).to.be.revertedWith("Transfer to the zero address")
@@ -175,10 +168,10 @@ describe("UnderwriterToken", () => {
     })
   })
 
-  describe("transfer from", () => {
-    describe("when the token owner is not the zero address", () => {
-      describe("when the recipient is not the zero address", () => {
-        describe("when the spender has enough approved balance", () => {
+  describe("transferFrom", () => {
+    context("when the token owner is not the zero address", () => {
+      context("when the recipient is not the zero address", () => {
+        context("when the spender has enough approved balance", () => {
           const allowance = initialSupply
           beforeEach(async function () {
             await token
@@ -186,10 +179,10 @@ describe("UnderwriterToken", () => {
               .approve(anotherAccount.address, allowance)
           })
 
-          describe("when the token owner has enough balance", () => {
+          context("when the token owner has enough balance", () => {
             const amount = initialSupply
 
-            it("transfers the requested amount", async () => {
+            it("should transfer the requested amount", async () => {
               await token
                 .connect(anotherAccount)
                 .transferFrom(initialHolder.address, recipient.address, amount)
@@ -199,7 +192,7 @@ describe("UnderwriterToken", () => {
               expect(await token.balanceOf(recipient.address)).to.equal(amount)
             })
 
-            it("decreases the spender allowance", async () => {
+            it("should decrease the spender allowance", async () => {
               await token
                 .connect(anotherAccount)
                 .transferFrom(initialHolder.address, recipient.address, amount)
@@ -212,7 +205,7 @@ describe("UnderwriterToken", () => {
               ).to.equal(0)
             })
 
-            it("emits a transfer event", async () => {
+            it("should emit a transfer event", async () => {
               const tx = await token
                 .connect(anotherAccount)
                 .transferFrom(initialHolder.address, recipient.address, amount)
@@ -222,7 +215,7 @@ describe("UnderwriterToken", () => {
                 .withArgs(initialHolder.address, recipient.address, amount)
             })
 
-            it("emits an approval event", async () => {
+            it("should emit an approval event", async () => {
               const tx = await token
                 .connect(anotherAccount)
                 .transferFrom(initialHolder.address, recipient.address, amount)
@@ -237,7 +230,7 @@ describe("UnderwriterToken", () => {
             })
           })
 
-          describe("when the token owner does not have enough balance", () => {
+          context("when the token owner does not have enough balance", () => {
             const amount = initialSupply
 
             beforeEach(async () => {
@@ -246,7 +239,7 @@ describe("UnderwriterToken", () => {
                 .transfer(anotherAccount.address, 1)
             })
 
-            it("reverts", async () => {
+            it("should revert", async () => {
               await expect(
                 token
                   .connect(anotherAccount)
@@ -260,68 +253,71 @@ describe("UnderwriterToken", () => {
           })
         })
 
-        describe("when the spender does not have enough approved balance", () => {
-          const allowance = initialSupply.sub(1)
-
-          beforeEach(async () => {
-            await token
-              .connect(initialHolder)
-              .approve(anotherAccount.address, allowance)
-          })
-
-          describe("when the token owner has enough balance", () => {
-            const amount = initialSupply
-
-            it("reverts", async () => {
-              await expect(
-                token
-                  .connect(anotherAccount)
-                  .transferFrom(
-                    initialHolder.address,
-                    recipient.address,
-                    amount
-                  )
-              ).to.be.revertedWith("Transfer amount exceeds allowance")
-            })
-          })
-
-          describe("when the token owner does not have enough balance", () => {
-            const amount = initialSupply
+        context(
+          "when the spender does not have enough approved balance",
+          () => {
+            const allowance = initialSupply.sub(1)
 
             beforeEach(async () => {
               await token
                 .connect(initialHolder)
-                .transfer(anotherAccount.address, 1)
+                .approve(anotherAccount.address, allowance)
             })
 
-            it("reverts", async () => {
-              await expect(
-                token
-                  .connect(anotherAccount)
-                  .transferFrom(
-                    initialHolder.address,
-                    recipient.address,
-                    amount
-                  )
-              ).to.be.revertedWith("Transfer amount exceeds allowance")
-            })
-          })
+            context("when the token owner has enough balance", () => {
+              const amount = initialSupply
 
-          describe("when the token owner is the zero address", () => {
-            const allowance = initialSupply
-
-            it("reverts", async () => {
-              await expect(
-                token
-                  .connect(anotherAccount)
-                  .transferFrom(ZERO_ADDRESS, recipient.address, allowance)
-              ).to.be.revertedWith("Transfer amount exceeds allowance")
+              it("should revert", async () => {
+                await expect(
+                  token
+                    .connect(anotherAccount)
+                    .transferFrom(
+                      initialHolder.address,
+                      recipient.address,
+                      amount
+                    )
+                ).to.be.revertedWith("Transfer amount exceeds allowance")
+              })
             })
-          })
-        })
+
+            context("when the token owner does not have enough balance", () => {
+              const amount = initialSupply
+
+              beforeEach(async () => {
+                await token
+                  .connect(initialHolder)
+                  .transfer(anotherAccount.address, 1)
+              })
+
+              it("should revert", async () => {
+                await expect(
+                  token
+                    .connect(anotherAccount)
+                    .transferFrom(
+                      initialHolder.address,
+                      recipient.address,
+                      amount
+                    )
+                ).to.be.revertedWith("Transfer amount exceeds allowance")
+              })
+            })
+
+            context("when the token owner is the zero address", () => {
+              const allowance = initialSupply
+
+              it("should revert", async () => {
+                await expect(
+                  token
+                    .connect(anotherAccount)
+                    .transferFrom(ZERO_ADDRESS, recipient.address, allowance)
+                ).to.be.revertedWith("Transfer amount exceeds allowance")
+              })
+            })
+          }
+        )
       })
 
-      describe("when the recipient is the zero address", () => {
+      context("when the recipient is the zero address", () => {
         const allowance = initialSupply
 
         beforeEach(async () => {
@@ -330,7 +326,7 @@ describe("UnderwriterToken", () => {
             .approve(anotherAccount.address, allowance)
         })
 
-        it("reverts", async () => {
+        it("should revert", async () => {
           await expect(
             token
               .connect(anotherAccount)
@@ -342,11 +338,11 @@ describe("UnderwriterToken", () => {
   })
 
   describe("approve", () => {
-    describe("when the spender is not the zero address", () => {
-      describe("when the sender has enough balance", () => {
+    context("when the spender is not the zero address", () => {
+      context("when the sender has enough balance", () => {
         const allowance = initialSupply
 
-        it("emits an approval event", async () => {
+        it("should emit an approval event", async () => {
           const tx = await token
             .connect(initialHolder)
             .approve(anotherAccount.address, allowance)
@@ -356,8 +352,8 @@ describe("UnderwriterToken", () => {
             .withArgs(initialHolder.address, anotherAccount.address, allowance)
         })
 
-        describe("when there was no approved amount before", () => {
-          it("approves the requested amount", async () => {
+        context("when there was no approved amount before", () => {
+          it("should approve the requested amount", async () => {
             await token
               .connect(initialHolder)
               .approve(anotherAccount.address, allowance)
@@ -371,14 +367,14 @@ describe("UnderwriterToken", () => {
           })
         })
 
-        describe("when the spender had an approved amount", () => {
+        context("when the spender had an approved amount", () => {
           beforeEach(async () => {
             await token
               .connect(initialHolder)
               .approve(anotherAccount.address, allowance)
           })
 
-          it("approves the requested amount and replaces the previous one", async () => {
+          it("should approve the requested amount and replaces the previous one", async () => {
             const newAllowance = to1e18(100)
 
             await token
@@ -394,10 +390,10 @@ describe("UnderwriterToken", () => {
         })
       })
 
-      describe("when the sender does not have enough balance", () => {
+      context("when the sender does not have enough balance", () => {
         const allowance = initialSupply.add(1)
 
-        it("emits an approval event", async () => {
+        it("should emit an approval event", async () => {
           const tx = await token
             .connect(initialHolder)
             .approve(anotherAccount.address, allowance)
@@ -407,8 +403,8 @@ describe("UnderwriterToken", () => {
             .withArgs(initialHolder.address, anotherAccount.address, allowance)
         })
 
-        describe("when there was no approved amount before", () => {
-          it("approves the requested amount", async () => {
+        context("when there was no approved amount before", () => {
+          it("should approve the requested amount", async () => {
             await token
               .connect(initialHolder)
               .approve(anotherAccount.address, allowance)
@@ -422,14 +418,14 @@ describe("UnderwriterToken", () => {
           })
         })
 
-        describe("when the spender had an approved amount", () => {
+        context("when the spender had an approved amount", () => {
           beforeEach(async () => {
             await token
               .connect(initialHolder)
               .approve(anotherAccount.address, to1e18(1))
           })
 
-          it("approves the requested amount and replaces the previous one", async () => {
+          it("should approve the requested amount and replaces the previous one", async () => {
             await token
               .connect(initialHolder)
               .approve(anotherAccount.address, allowance)
@@ -444,9 +440,9 @@ describe("UnderwriterToken", () => {
       })
     })
 
-    describe("when the spender is the zero address", () => {
+    context("when the spender is the zero address", () => {
       const allowance = initialSupply
-      it("reverts", async () => {
+      it("should revert", async () => {
         await expect(
           token.connect(initialHolder).approve(ZERO_ADDRESS, allowance)
         ).to.be.revertedWith("Approve to the zero address")
@@ -454,30 +450,38 @@ describe("UnderwriterToken", () => {
     })
   })
 
-  describe("_mint", () => {
+  describe("mint", () => {
     const amount = to1e18(50)
-    it("rejects a zero account", async () => {
-      await expect(token.mint(ZERO_ADDRESS, amount)).to.be.revertedWith(
-        "Mint to the zero address"
-      )
+    it("should reject a zero account", async () => {
+      await expect(
+        token.connect(owner).mint(ZERO_ADDRESS, amount)
+      ).to.be.revertedWith("Mint to the zero address")
     })
 
-    describe("for a non zero account", () => {
+    context("when called not by the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          token.connect(initialHolder).mint(initialHolder.address, amount)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("for a non zero account", () => {
       let mintTx
       beforeEach("minting", async () => {
-        mintTx = await token.mint(anotherAccount.address, amount)
+        mintTx = await token.connect(owner).mint(anotherAccount.address, amount)
       })
 
-      it("increments totalSupply", async () => {
+      it("should incement totalSupply", async () => {
         const expectedSupply = initialSupply.add(amount)
         expect(await token.totalSupply()).to.equal(expectedSupply)
       })
 
-      it("increments recipient balance", async () => {
+      it("should increment recipient balance", async () => {
         expect(await token.balanceOf(anotherAccount.address)).to.equal(amount)
       })
 
-      it("emits Transfer event", async () => {
+      it("should emit Transfer event", async () => {
         await expect(mintTx)
           .to.emit(token, "Transfer")
           .withArgs(ZERO_ADDRESS, anotherAccount.address, amount)
@@ -485,50 +489,110 @@ describe("UnderwriterToken", () => {
     })
   })
 
-  describe("_burn", () => {
-    it("rejects a zero account", async () => {
-      await expect(token.burn(ZERO_ADDRESS, to1e18(1))).to.be.revertedWith(
-        "Burn from the zero address"
-      )
+  describe("burn", () => {
+    it("should reject burning more than balance", async () => {
+      await expect(
+        token.connect(initialHolder).burn(initialSupply.add(1))
+      ).to.be.revertedWith("Burn amount exceeds balance")
     })
 
-    describe("for a non zero account", () => {
-      it("rejects burning more than balance", async () => {
-        await expect(
-          token.burn(initialHolder.address, initialSupply.add(1))
-        ).to.be.revertedWith("Burn amount exceeds balance")
-      })
-
-      const describeBurn = (description, amount) => {
-        describe(description, () => {
-          let burnTx
-          beforeEach("burning", async () => {
-            burnTx = await token.burn(initialHolder.address, amount)
-          })
-
-          it("decrements totalSupply", async () => {
-            const expectedSupply = initialSupply.sub(amount)
-            expect(await token.totalSupply()).to.equal(expectedSupply)
-          })
-
-          it("decrements initialHolder balance", async () => {
-            const expectedBalance = initialSupply.sub(amount)
-            expect(await token.balanceOf(initialHolder.address)).to.equal(
-              expectedBalance
-            )
-          })
-
-          it("emits Transfer event", async () => {
-            await expect(burnTx)
-              .to.emit(token, "Transfer")
-              .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
-          })
+    const describeBurn = (description, amount) => {
+      describe(description, () => {
+        let burnTx
+        beforeEach("burning", async () => {
+          burnTx = await token.connect(initialHolder).burn(amount)
         })
-      }
 
-      describeBurn("for entire balance", initialSupply)
-      describeBurn("for less amount than balance", initialSupply.sub(1))
+        it("should decrement totalSupply", async () => {
+          const expectedSupply = initialSupply.sub(amount)
+          expect(await token.totalSupply()).to.equal(expectedSupply)
+        })
+
+        it("should decrement owner's balance", async () => {
+          const expectedBalance = initialSupply.sub(amount)
+          expect(await token.balanceOf(initialHolder.address)).to.equal(
+            expectedBalance
+          )
+        })
+
+        it("should emit Transfer event", async () => {
+          await expect(burnTx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
+        })
+      })
+    }
+
+    describeBurn("for entire balance", initialSupply)
+    describeBurn("for less amount than balance", initialSupply.sub(1))
+  })
+
+  describe("burnFrom", () => {
+    it("should reject burning more than balance", async () => {
+      await token
+        .connect(initialHolder)
+        .approve(anotherAccount.address, initialSupply.add(1))
+      await expect(
+        token
+          .connect(anotherAccount)
+          .burnFrom(initialHolder.address, initialSupply.add(1))
+      ).to.be.revertedWith("Burn amount exceeds balance")
     })
+
+    it("should reject burning more than the allowance", async () => {
+      await token
+        .connect(initialHolder)
+        .approve(anotherAccount.address, initialSupply.sub(1))
+      await expect(
+        token
+          .connect(anotherAccount)
+          .burnFrom(initialHolder.address, initialSupply)
+      ).to.be.revertedWith("Burn amount exceeds allowance")
+    })
+
+    const describeBurnFrom = (description, amount) => {
+      describe(description, () => {
+        let burnTx
+        beforeEach("burning from", async () => {
+          await token
+            .connect(initialHolder)
+            .approve(anotherAccount.address, amount)
+          burnTx = await token
+            .connect(anotherAccount)
+            .burnFrom(initialHolder.address, amount)
+        })
+
+        it("should decrement totalSupply", async () => {
+          const expectedSupply = initialSupply.sub(amount)
+          expect(await token.totalSupply()).to.equal(expectedSupply)
+        })
+
+        it("should decrement owner's balance", async () => {
+          const expectedBalance = initialSupply.sub(amount)
+          expect(await token.balanceOf(initialHolder.address)).to.equal(
+            expectedBalance
+          )
+        })
+
+        it("should decrement allowance", async () => {
+          const allowance = await token.allowance(
+            initialHolder.address,
+            anotherAccount.address
+          )
+
+          expect(allowance).to.equal(0)
+        })
+
+        it("should emit Transfer event", async () => {
+          await expect(burnTx)
+            .to.emit(token, "Transfer")
+            .withArgs(initialHolder.address, ZERO_ADDRESS, amount)
+        })
+      })
+    }
+
+    describeBurnFrom("for entire balance", initialSupply)
+    describeBurnFrom("for less amount than balance", initialSupply.sub(1))
   })
 
   describe("permit", () => {
@@ -598,8 +662,8 @@ describe("UnderwriterToken", () => {
       )
     }
 
-    describe("when permission expired", () => {
-      it("reverts", async () => {
+    context("when permission expired", () => {
+      it("should revert", async () => {
         const deadline = timestamp2020
         const signature = await getApproval(
           permittingHolderBalance,
@@ -623,8 +687,8 @@ describe("UnderwriterToken", () => {
       })
     })
 
-    describe("when permission has an invalid signature", () => {
-      it("reverts", async () => {
+    context("when permission has an invalid signature", () => {
+      it("should revert", async () => {
         const deadline = timestamp2025
         const signature = await getApproval(
           permittingHolderBalance,
@@ -646,10 +710,10 @@ describe("UnderwriterToken", () => {
       })
     })
 
-    describe("when the spender is not the zero address", () => {
-      describe("when the sender has enough balance", () => {
+    context("when the spender is not the zero address", () => {
+      context("when the sender has enough balance", () => {
         const allowance = permittingHolderBalance
-        it("emits an approval event", async () => {
+        it("should emit an approval event", async () => {
           const deadline = timestamp2025
           const signature = await getApproval(
             allowance,
@@ -678,8 +742,8 @@ describe("UnderwriterToken", () => {
             )
         })
 
-        describe("when there was no approved amount before", () => {
-          it("approves the requested amount", async () => {
+        context("when there was no approved amount before", () => {
+          it("should approve the requested amount", async () => {
             const deadline = timestamp2025
             const signature = await getApproval(
               allowance,
@@ -708,7 +772,7 @@ describe("UnderwriterToken", () => {
           })
         })
 
-        describe("when the spender had an approved amount", () => {
+        context("when the spender had an approved amount", () => {
           beforeEach(async () => {
             const deadline = timestamp2025
             const initialAllowance = allowance.sub(10)
@@ -731,7 +795,7 @@ describe("UnderwriterToken", () => {
               )
           })
 
-          it("approves the requested amount and replaces the previous one", async () => {
+          it("should approve the requested amount and replaces the previous one", async () => {
             const deadline = timestamp2025
             const signature = await getApproval(
               allowance,
@@ -761,9 +825,9 @@ describe("UnderwriterToken", () => {
         })
       })
 
-      describe("when the sender does not have enough balance", () => {
+      context("when the sender does not have enough balance", () => {
         const allowance = permittingHolderBalance.add(1)
-        it("emits an approval event", async () => {
+        it("should emit an approval event", async () => {
           const deadline = timestamp2025
           const signature = await getApproval(
             allowance,
@@ -792,8 +856,8 @@ describe("UnderwriterToken", () => {
             )
         })
 
-        describe("when there was no approved amount before", () => {
-          it("approves the requested amount", async () => {
+        context("when there was no approved amount before", () => {
+          it("should approve the requested amount", async () => {
             const deadline = timestamp2025
             const signature = await getApproval(
               allowance,
@@ -822,7 +886,7 @@ describe("UnderwriterToken", () => {
           })
         })
 
-        describe("when the spender had an approved amount", () => {
+        context("when the spender had an approved amount", () => {
           beforeEach(async () => {
             const deadline = timestamp2025
             const initialAllowance = allowance.sub(10)
@@ -845,7 +909,7 @@ describe("UnderwriterToken", () => {
               )
           })
 
-          it("approves the requested amount and replaces the previous one", async () => {
+          it("should approve the requested amount and replaces the previous one", async () => {
             const deadline = timestamp2025
             const signature = await getApproval(
               allowance,
@@ -876,9 +940,9 @@ describe("UnderwriterToken", () => {
       })
     })
 
-    describe("when the spender is the zero address", () => {
+    context("when the spender is the zero address", () => {
       const allowance = permittingHolderBalance
-      it("reverts", async () => {
+      it("should revert", async () => {
         const deadline = timestamp2025
         const signature = await getApproval(allowance, ZERO_ADDRESS, deadline)
 
@@ -898,7 +962,7 @@ describe("UnderwriterToken", () => {
       })
     })
 
-    describe("when given never expiring permit", () => {
+    context("when given never expiring permit", () => {
       // uint(-1)
       const allowance = ethers.BigNumber.from(
         "115792089237316195423570985008687907853269984665640564039457584007913129639935"
@@ -924,7 +988,7 @@ describe("UnderwriterToken", () => {
             signature.s
           )
       })
-      it("does not reduce approved amount", async () => {
+      it("should not reduce approved amount", async () => {
         expect(
           await token.allowance(
             permittingHolder.address,
