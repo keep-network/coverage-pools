@@ -3,12 +3,39 @@
 pragma solidity <0.9.0;
 
 import "./AssetPool.sol";
-import "./UnderwriterToken.sol";
+import "./CloneFactory.sol";
 import "./CoveragePoolConstants.sol";
+import "./UnderwriterToken.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RewardsPool is Ownable {}
+contract RewardsPool is CloneFactory, Ownable {
+    // Holds the address of the RewardsPoolStaking contract which will be used
+    // as a master contract for cloning.
+    address public masterRewardsPoolStaking;
+
+    // Maps AssetPool address to RewardsPoolStaking address created for this
+    // AssetPool.
+    mapping(address => address) public stakingPools;
+
+    constructor(address _masterRewardsPoolStaking) {
+        masterRewardsPoolStaking = _masterRewardsPoolStaking;
+    }
+
+    function setRewardRate(AssetPool assetPool, uint256 rate) public onlyOwner {
+        address assetPoolAddress = address(assetPool);
+        if (stakingPools[assetPoolAddress] == address(0)) {
+            address cloneAddress = createClone(masterRewardsPoolStaking);
+            RewardsPoolStaking(cloneAddress).initialize(
+                this,
+                assetPool.underwriterToken()
+            );
+            stakingPools[assetPoolAddress] = cloneAddress;
+        }
+
+        RewardsPoolStaking(stakingPools[assetPoolAddress]).setRewardRate(rate);
+    }
+}
 
 /// @title RewardsPoolStaking
 /// @notice Staking pool for the given underwriter token responsible for minting
@@ -24,8 +51,16 @@ contract RewardsPoolStaking {
     // One virtual reward token minted per second.
     uint256 public constant MINTING_RATE = 1e18;
 
+    RewardsPool public rewardsPool;
+
     // The stakeable underwriter token.
     UnderwriterToken public underwriterToken;
+
+    // Reward rate for the Asset Pool this staking pool was created for.
+    // Each asset pool in the collateral pool is assigned a relative rate
+    // in the rewards pool, establishing a way for governance to incentivize
+    // different assets to target a particular collateral pool composition.
+    uint256 public rewardRate;
 
     // Staked underwriter token balances per staker address.
     mapping(address => uint256) public balanceOf;
@@ -40,21 +75,38 @@ contract RewardsPoolStaking {
     event Staked(address indexed account, uint256 amount);
     event Unstaked(address indexed account, uint256 amount);
 
-    function initialize(UnderwriterToken _underwriterToken) public {
+    modifier onlyRewardsPool() {
+        require(
+            msg.sender == address(rewardsPool),
+            "Caller is not the RewardsPool"
+        );
+        _;
+    }
+
+    function initialize(
+        RewardsPool _rewardsPool,
+        UnderwriterToken _underwriterToken
+    ) public {
         require(
             address(underwriterToken) == address(0),
             "RewardsPoolStaking already initialized"
         );
 
+        rewardsPool = _rewardsPool;
         underwriterToken = _underwriterToken;
     }
 
-    function stake(uint256 amount) external {
+    function setRewardRate(uint256 _rewardRate) public onlyRewardsPool {
+        rewardRate = _rewardRate;
+    }
+
+    function stake(uint256 amount) public {
         updateReward(msg.sender);
         totalStaked = totalStaked.add(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
         emit Staked(msg.sender, amount);
         underwriterToken.safeTransferFrom(msg.sender, address(this), amount);
+        // TODO: emit event
     }
 
     function unstake(uint256 amount) external {
@@ -63,6 +115,7 @@ contract RewardsPoolStaking {
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
         emit Unstaked(msg.sender, amount);
         underwriterToken.safeTransfer(msg.sender, amount);
+        // TODO: emit event
     }
 
     function earned(address account) public view returns (uint256) {
