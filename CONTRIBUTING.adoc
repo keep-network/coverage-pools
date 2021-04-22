@@ -84,3 +84,13 @@ by Hardhat (`solidity.version` property defined in
 https://github.com/keep-network/coverage-pools/blob/main/hardhat.config.js[`hardhat.config.js`]).
 This way Slither will use the same version as used during the contract
 compilation process and avoid errors while performing the analysis.
+
+Once Slither is installed, you can run the analysis by simply doing:
+```
+slither .
+```
+A report with analysis outcomes will be presented. You'll need to decide
+whether to solve or ignore reported problems. If you decide to ignore,
+please double-check your decision to avoid ignoring a real vulnerability.
+For more information about problems triage, please refer
+https://github.com/crytic/slither/wiki/Usage#triage-mode[Slither usage docs].
