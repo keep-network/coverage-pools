@@ -3,13 +3,22 @@
 pragma solidity <0.9.0;
 
 import "./CollateralPool.sol";
-import "./external/IDeposit.sol";
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+
+interface IDeposit {
+    function withdrawFunds() external;
+
+    function currentState() external view returns (uint256);
+
+    function lotSizeTbtc() external view returns (uint256);
+
+    function purchaseSignerBondsAtAuction() external view;
+}
 
 /// @title RiskManagerV1 for tBTCv1
 contract RiskManagerV1 {
@@ -19,7 +28,7 @@ contract RiskManagerV1 {
     IERC20 public tbtcToken;
     Auctioneer public auctioneer;
 
-    mapping(uint256 => address) auctionsByDepositId;
+    mapping(uint256 => address) public auctionsByDepositId;
 
     constructor(IERC20 _token, address _auctioneer) {
         tbtcToken = _token;
@@ -29,10 +38,6 @@ contract RiskManagerV1 {
     /// @notice Receive Ether from tBTC for purchasing & withdrawing signer bonds
     receive() external payable {}
 
-    function getBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
     // TODO: who calls this function?
     /// @notice Closes an auction early.
     /// @param  tdtId ID of tBTC Deposit Token
@@ -40,7 +45,11 @@ contract RiskManagerV1 {
         IDeposit deposit = IDeposit(address(uint160(tdtId)));
         uint256 currentState = deposit.currentState();
 
-        require(currentState == CoveragePoolConstants.getLiquidationInProgressState(), "Deposit is not in liquidation state");
+        require(
+            currentState ==
+                CoveragePoolConstants.getLiquidationInProgressState(),
+            "Deposit is not in liquidation state"
+        );
 
         Auction auction = Auction(auctionsByDepositId[tdtId]);
         // TODO: can we change an arg from Auction to address?
@@ -55,7 +64,11 @@ contract RiskManagerV1 {
         IDeposit deposit = IDeposit(address(uint160(tdtId)));
         uint256 currentState = deposit.currentState();
 
-        require(currentState == CoveragePoolConstants.getLiquidationInProgressState(), "Deposit is not in liquidation state");
+        require(
+            currentState ==
+                CoveragePoolConstants.getLiquidationInProgressState(),
+            "Deposit is not in liquidation state"
+        );
 
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
         // TODO: Is it okay to lose precision here, ie 123456 / 1000 => 123?
@@ -66,7 +79,8 @@ contract RiskManagerV1 {
         //       Based on this data the auction length should be adjusted
         uint256 auctionLength = 86400; // hardcoded 24h
 
-        address auctionAddress = auctioneer.createAuction(tbtcToken, amountDesired, auctionLength);
+        address auctionAddress =
+            auctioneer.createAuction(tbtcToken, amountDesired, auctionLength);
         auctionsByDepositId[tdtId] = auctionAddress;
 
         // TODO: transfer 0.5% of the lot size to a notifier.
@@ -81,11 +95,15 @@ contract RiskManagerV1 {
     function collectTbtcSignerBonds(uint256 tdtId) public {
         IDeposit deposit = IDeposit(address(uint160(tdtId)));
         deposit.purchaseSignerBondsAtAuction();
-        
+
         deposit.withdrawFunds();
 
         // TODO: Convert (all?) available ETH to WETH
         //       Put WETH back to WETH asset pool
         //       "auctioneer" holds the funds for the Coverage Pool auction.
+    }
+
+    function getBalance() public view returns (uint256) {
+        return address(this).balance;
     }
 }
