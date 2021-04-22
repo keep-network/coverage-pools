@@ -28,82 +28,88 @@ contract RiskManagerV1 {
     IERC20 public tbtcToken;
     Auctioneer public auctioneer;
 
-    mapping(uint256 => address) public auctionsByDepositId;
+    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
+    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+
+    mapping(address => address) public auctionsByDepositAddress;
+
+    event NotifiedLiquidated(IDeposit deposit);
+    event NotifiedLiquidation(IDeposit deposit);
 
     constructor(IERC20 _token, address _auctioneer) {
         tbtcToken = _token;
         auctioneer = Auctioneer(_auctioneer);
     }
 
-    /// @notice Receive Ether from tBTC for purchasing & withdrawing signer bonds
+    /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
     receive() external payable {}
 
-    // TODO: who calls this function?
-    /// @notice Closes an auction early.
-    /// @param  tdtId ID of tBTC Deposit Token
-    function notifyLiquidated(uint256 tdtId) public {
-        IDeposit deposit = IDeposit(address(uint160(tdtId)));
-        uint256 currentState = deposit.currentState();
+    // TODO: What contract can withdraw ETH from here? Need to add a modifier that
+    //       restricts who can withdraw ETH.
+    //       Should it have a partial withdrawal option? Or is it all-or-nothing withdrawal?
+    /// @notice Withdraw ETH from this contract.
+    function withdrawFunds() external {
+        require(address(this).balance > 0, "Nothing to withdraw");
 
+        /* solhint-disable-next-line */
+        (bool success, ) = msg.sender.call{value: address(this).balance}("");
+        require(success, "Failed to withdraw ETH");
+    }
+
+    /// @notice Closes an auction early.
+    /// @param  deposit tBTC Deposit
+    function notifyLiquidated(IDeposit deposit) public {
         require(
-            currentState ==
-                CoveragePoolConstants.getLiquidationInProgressState(),
-            "Deposit is not in liquidation state"
+            deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
+            "Deposit is not in liquidated"
         );
 
-        Auction auction = Auction(auctionsByDepositId[tdtId]);
-        // TODO: can we change an arg from Auction to address?
+        Auction auction = Auction(auctionsByDepositAddress[address(deposit)]);
         auctioneer.earlyCloseAuction(auction);
 
+        emit NotifiedLiquidated(deposit);
+
         // TODO: transfer 0.5% of the lot size to a notifier?
+        //       When should we transfer 0.5% to a notifier?
     }
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
-    /// @param  tdtId ID of tBTC Deposit Token
-    function notifyLiquidation(uint256 tdtId) public {
-        IDeposit deposit = IDeposit(address(uint160(tdtId)));
-        uint256 currentState = deposit.currentState();
-
+    /// @param  deposit tBTC Deposit
+    function notifyLiquidation(IDeposit deposit) public {
         require(
-            currentState ==
-                CoveragePoolConstants.getLiquidationInProgressState(),
+            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
             "Deposit is not in liquidation state"
         );
 
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
-        // TODO: Is it okay to lose precision here, ie 123456 / 1000 => 123?
         uint256 notifierEarnings = lotSizeTbtc.mul(5).div(1000); // 0.5% of the lot size
         uint256 amountDesired = lotSizeTbtc.add(notifierEarnings);
 
         // TODO: Need to read the market conditions of assets based on Uniswap / 1inch
         //       Based on this data the auction length should be adjusted
-        uint256 auctionLength = 86400; // hardcoded 24h
+        uint256 auctionLength = 86400; // in sec, hardcoded 24h
 
         address auctionAddress =
             auctioneer.createAuction(tbtcToken, amountDesired, auctionLength);
-        auctionsByDepositId[tdtId] = auctionAddress;
+        auctionsByDepositAddress[address(deposit)] = auctionAddress;
 
-        // TODO: transfer 0.5% of the lot size to a notifier.
-        //       When should we transfer 0.5% to a notifier? Is it when an auction ends?
+        emit NotifiedLiquidation(deposit);
+
+        // TODO: transfer 0.5% of the lot size to a notifier?
+        //       When should we transfer 0.5% to a notifier?
     }
 
-    /// TODO: who calls this function? Shouldn't it be called inside Auctioneer.offerTaken()
-    ///       upon closing an auction?
-    /// @dev Call upon Coverage Pool auction end. At this point all the funds
+    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
     ///      for the coverage pool auction should be transferred to auctioneer.
-    /// @param  tdtId ID of tBTC Deposit Token
-    function collectTbtcSignerBonds(uint256 tdtId) public {
-        IDeposit deposit = IDeposit(address(uint160(tdtId)));
+    /// @param  deposit tBTC Deposit
+    function collectTbtcSignerBonds(IDeposit deposit) public {
+        // TODO: "auctioneer" holds TBTC for the Coverage Pool auction.
+        //       - if we purchase signer bonds from a RiskManager, then we need to allow
+        //       RiskManger to use TBTC on behalf of "auctioneer"
+        //       - otherwise, auctionner needs to buy signer bonds (ex. at the end of an
+        //       auction?)
         deposit.purchaseSignerBondsAtAuction();
 
         deposit.withdrawFunds();
-
-        // TODO: Convert (all?) available ETH to WETH
-        //       Put WETH back to WETH asset pool
-        //       "auctioneer" holds the funds for the Coverage Pool auction.
-    }
-
-    function getBalance() public view returns (uint256) {
-        return address(this).balance;
     }
 }
