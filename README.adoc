@@ -1,8 +1,8 @@
-# coverage-pool
+= Coverage pool
 
 A governable, fee-earning asset pool to cover low-likelihood on-chain events.
 
-## What is it?
+== What is it?
 
 A coverage pool is a flexible new money lego that can be used as a back-stop or
 "buyer of last resort" in on-chain financial systems.
@@ -16,7 +16,7 @@ algorithmic governance to reward underwriters. They're designed as building
 blocks rather than a standalone product, allowing system designers and
 communities to tailor risk management to their circumstances.
 
-## Goals
+== Goals
 
 1. Pool assets to back risk denominated in a particular asset.
 2. Manage those assets without unnecessary reliance on oracles.
@@ -35,7 +35,7 @@ Future iterations could introduce explicit synthetic asset minting for claim
 management, though that functionality should be easy to build atop the initial
 design.
 
-## Questions
+== Questions
 
 > Doesn't this already exist?
 
