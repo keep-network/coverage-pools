@@ -24,7 +24,6 @@ describe("Auction", () => {
   let bidder1
   let bidder2
   let auctioneer
-  let auctioneerSigner
   let collateralPool
 
   before(async () => {
@@ -48,7 +47,6 @@ describe("Auction", () => {
 
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
-    auctioneerSigner = await impersonateContract(auctioneer.address, owner)
 
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
@@ -570,10 +568,13 @@ describe("Auction", () => {
   })
 
   describe("earlyClose", () => {
+    let auctioneerSigner
     const auctionLength = 86400 // 24h in sec
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     beforeEach(async () => {
+      auctioneerSigner = await impersonateContract(auctioneer.address, owner)
+
       auction = await createAuction(auctionAmountDesired, auctionLength)
       await approveTestTokenForAuction(auction.address)
     })
