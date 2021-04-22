@@ -1,0 +1,96 @@
+= Contribution Guide
+
+👍🎉 First off, thanks for taking the time to contribute! 🎉👍 Contributions
+are welcome from anyone on the internet, and even the smallest of fixes
+are appreciated!
+
+The following is a set of guidelines for contributing to Keep and its
+packages. These are mostly guidelines, not rules. Use your best
+judgment, and feel free to propose changes to this document in a pull
+request.
+
+== Getting started
+
+1. Fork https://github.com/keep-network/coverage-pools[`keep-network/coverage-pools`]
+2. Clone your fork
+3. Follow the <<./README.adoc#build-and-test, Build and test>> section
+   in the repository's README.
+4. Setup the recommended <<Development Tooling>>.
+5. Open a PR against the `main` branch and describe the change you
+   are intending to undertake in the PR description.
+
+Before marking the PR as ready for review, make sure:
+
+* It passes all tests (`yarn test`).
+* It passes the linter checks (`yarn lint`) (see <<Pre-commit>> to make this
+  automatic).
+* It passes the Slither analysis (`slither .`) (see <<Slither analyzer>>).
+* It passes all continuous integration jobs.
+* Your changes have sufficient test coverage (e.g regression tests have
+  been added for bug fixes, unit tests for new features)
+
+== Development Tooling
+
+Commits
+https://help.github.com/en/articles/about-commit-signature-verification[must
+be signed].
+
+=== Continuous Integration
+
+This project uses https://github.com/features/actions[GitHub Actions] for
+continuous integration. All GitHub Actions jobs must be green to merge a PR.
+
+=== Pre-commit
+
+Pre-commit is a tool to install hooks that check code before commits are
+made. It can be helpful to install this, to automatically run linter
+checks and avoid pushing code that will not be accepted. Follow the
+https://pre-commit.com/[installation instructions here], and then run
+`pre-commit install` to install the hooks.
+
+=== Linting
+
+Linters and formatters for Solidity and JavaScript code are set up and
+run automatically as part of pre-commit hooks. These are checked again in CI
+builds to ensure they have been run and are passing.
+
+If you want to change a rule, or add a custom rule, to the JavaScript or
+Solidity linting, please propose these changes to our
+https://github.com/keep-network/solhint-config-keep[solhint-config-keep] and
+https://github.com/keep-network/eslint-config-keep[eslint-config-keep]
+packages. All other packages have it as a dependency.
+
+=== Slither analyzer
+
+https://github.com/crytic/slither[Slither] is a static analyzer used to detect
+contract vulnerabilities at development stage. A Slither analysis is run
+as part of the CI workflow and is required to merge a PR. It may be helpful
+to run it on the development machine, before pushing local changes to the remote
+branch. To install Slither, please follow the
+https://github.com/crytic/slither#how-to-install[Slither installation guide].
+You will need https://www.python.org/[Python] and
+https://github.com/ethereum/solidity[solc] as prerequisites. We strongly
+recommend to use the same versions as defined in the env variables of the
+`contracts-slither` CI job config defined in the
+https://github.com/keep-network/coverage-pools/blob/main/.github/workflows/contracts.yml[`.github/workflows/contracts.yml`]
+file:
+
+- `python-version` for Python version
+- `SOLC_VERSION` for solc version
+- `SLITHER_VERSION` for Slither version
+
+Keep in mind that solc version should be the same as the version used internally
+by Hardhat (`solidity.version` property defined in
+https://github.com/keep-network/coverage-pools/blob/main/hardhat.config.js[`hardhat.config.js`]).
+This way Slither will use the same version as used during the contract
+compilation process and avoid errors while performing the analysis.
+
+Once Slither is installed, you can run the analysis by simply doing:
+```
+slither .
+```
+A report with analysis outcomes will be presented. You'll need to decide
+whether to solve or ignore reported problems. If you decide to ignore,
+please double-check your decision to avoid ignoring a real vulnerability.
+For more information about problems triage, please refer
+https://github.com/crytic/slither/wiki/Usage#triage-mode[Slither usage docs].

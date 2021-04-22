@@ -69,7 +69,9 @@ jobs:
           solc-select use $SOLC_VERSION
 
       - name: Install Slither
-        run: pip3 install slither-analyzer
+        env:
+          SLITHER_VERSION: 0.7.1
+        run: pip3 install slither-analyzer==$SLITHER_VERSION
 
       - name: Cache yarn directory
         uses: c-hive/gha-yarn-cache@v1
