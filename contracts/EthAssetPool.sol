@@ -25,7 +25,7 @@ contract EthAssetPool is Ownable {
     ///         and mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function,  needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) public {
+    function deposit(uint256 amount) external payable {
         // TODO: implement or remove
         assetPool.deposit(amount);
     }
@@ -36,7 +36,7 @@ contract EthAssetPool is Ownable {
     ///         caller.
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function withdraw(uint256 covAmount) public {
+    function withdraw(uint256 covAmount) external {
         // TODO: implement or remove
         assetPool.withdraw(covAmount);
         msg.sender.transfer(covAmount);
