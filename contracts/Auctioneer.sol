@@ -131,17 +131,16 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @dev Can be called by contract owner to early close an auction if it
     ///      is no longer needed.
     function earlyCloseAuction(Auction auction) external onlyOwner {
-        require(
-            openAuctions[address(auction)],
-            "Address is not an open auction"
-        );
+        address auctionAddress = address(auction);
+
+        require(openAuctions[auctionAddress], "Address is not an open auction");
 
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         auction.earlyClose();
 
         // TODO: what should happen with funds from an early closed auction?
 
-        emit AuctionClosed(address(auction));
-        delete openAuctions[address(auction)];
+        emit AuctionClosed(auctionAddress);
+        delete openAuctions[auctionAddress];
     }
 }
