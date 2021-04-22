@@ -44,6 +44,7 @@ contract Auctioneer is CloneFactory, Ownable {
     function initialize(CollateralPool _collateralPool, address _masterAuction)
         external
     {
+        require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;
         masterAuction = _masterAuction;
@@ -83,6 +84,8 @@ contract Auctioneer is CloneFactory, Ownable {
         // from the collateral pool.
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
+        //
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
@@ -107,6 +110,7 @@ contract Auctioneer is CloneFactory, Ownable {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
+        //slither-disable-next-line reentrancy-benign,reentrancy-events
         auction.initialize(
             address(this),
             tokenAccepted,

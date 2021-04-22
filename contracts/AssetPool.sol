@@ -50,7 +50,7 @@ contract AssetPool is Ownable {
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) public {
+    function deposit(uint256 amount) external {
         _deposit(msg.sender, amount);
     }
 
@@ -59,7 +59,7 @@ contract AssetPool is Ownable {
     ///         should be withdrawn.
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function withdraw(uint256 covAmount) public {
+    function withdraw(uint256 covAmount) external {
         // TODO: Implement exit market. All withdrawals from the pool that
         // accept a fixed delay can do so without a fee. Any underwriter who
         // wants to withdraw more quickly will forfeit part of their collateral
@@ -83,7 +83,7 @@ contract AssetPool is Ownable {
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
-    function claim(address recipient, uint256 amount) public onlyOwner {
+    function claim(address recipient, uint256 amount) external onlyOwner {
         collateralToken.safeTransfer(recipient, amount);
     }
 
