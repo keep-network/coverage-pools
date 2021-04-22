@@ -131,7 +131,7 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @dev Can be called by contract owner to early close an auction if it
     ///      is no longer needed.
     function earlyCloseAuction(address auctionAddress) external onlyOwner {
-        require(openAuctions[auctionAddress], "Address isn't an open auction");
+        require(openAuctions[auctionAddress], "Address is not an open auction");
 
         Auction auction = Auction(auctionAddress);
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events

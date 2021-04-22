@@ -328,7 +328,7 @@ describe("Auctioneer", () => {
 
         await expect(
           auctioneer.connect(owner).earlyCloseAuction(auctionAddress)
-        ).to.be.revertedWith("Address isn't an open auction")
+        ).to.be.revertedWith("Address is not an open auction")
       })
     })
 
@@ -336,7 +336,7 @@ describe("Auctioneer", () => {
       it("should revert", async () => {
         await expect(
           auctioneer.connect(owner).earlyCloseAuction(await bidder.getAddress())
-        ).to.be.revertedWith("Address isn't an open auction")
+        ).to.be.revertedWith("Address is not an open auction")
       })
     })
 
