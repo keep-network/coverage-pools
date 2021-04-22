@@ -15,6 +15,8 @@ contract RewardsPool is Ownable {}
 ///         virtual reward tokens based on underwriter's staked tokens balances.
 ///         RewardsPool contract references multiple RewardsPoolStaking contracts,
 ///         one per each stakeable underwriter token with non-zero reward weight.
+/// @dev    Contract is not meant to be deloyed directly and is instead cloned
+///         by RewardsPool.
 contract RewardsPoolStaking {
     using SafeMath for uint256;
     using SafeERC20 for UnderwriterToken;
@@ -38,7 +40,12 @@ contract RewardsPoolStaking {
     event Staked(address indexed account, uint256 amount);
     event Unstaked(address indexed account, uint256 amount);
 
-    constructor(UnderwriterToken _underwriterToken) {
+    function initialize(UnderwriterToken _underwriterToken) public {
+        require(
+            address(underwriterToken) == address(0),
+            "RewardsPoolStaking already initialized"
+        );
+
         underwriterToken = _underwriterToken;
     }
 

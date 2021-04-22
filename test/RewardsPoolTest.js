@@ -35,10 +35,9 @@ describe("RewardsPoolStaking", () => {
         },
       }
     )
-    rewardsPoolStaking = await RewardsPoolStaking.deploy(
-      underwriterToken.address
-    )
+    rewardsPoolStaking = await RewardsPoolStaking.deploy()
     await rewardsPoolStaking.deployed()
+    await rewardsPoolStaking.initialize(underwriterToken.address)
 
     const createUnderwriterWithTokens = async (index) => {
       const underwriter = await ethers.getSigner(index)
@@ -55,6 +54,16 @@ describe("RewardsPoolStaking", () => {
     underwriter1 = await createUnderwriterWithTokens(1)
     underwriter2 = await createUnderwriterWithTokens(2)
     underwriter3 = await createUnderwriterWithTokens(3)
+  })
+
+  describe("initialize", () => {
+    context("when called more than once", async () => {
+      it("reverts", async () => {
+        await expect(
+          rewardsPoolStaking.initialize(underwriterToken.address)
+        ).to.be.revertedWith("RewardsPoolStaking already initialized")
+      })
+    })
   })
 
   describe("stake", () => {
