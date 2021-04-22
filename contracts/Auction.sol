@@ -74,7 +74,8 @@ contract Auction is IAuction {
         IERC20 _tokenAccepted,
         uint256 _amountDesired,
         uint256 _auctionLength
-    ) public {
+    ) external {
+        //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
         self.auctioneer = Auctioneer(_auctioneer);
@@ -95,11 +96,13 @@ contract Auction is IAuction {
     ///      The other way is to buy a portion of an auction. In this case an
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    function takeOffer(uint256 amount) override public {
+    function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
-        uint256 onOffer = _onOffer();
+        uint256 amountOnOffer = _onOffer();
+
+        //slither-disable-next-line reentrancy-no-eth
         self.tokenAccepted.safeTransferFrom(
             msg.sender,
             address(self.auctioneer),
@@ -107,7 +110,7 @@ contract Auction is IAuction {
         );
 
         uint256 portionToSeize =
-            onOffer.mul(amountToTransfer).div(self.amountOutstanding);
+            amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             uint256 FLOATING_POINT_DIVISOR =
@@ -130,6 +133,8 @@ contract Auction is IAuction {
             // amount paid in this function call so that the auction can offer
             // no worse financial outcome for the next takers than the current
             // taker has.
+            //
+            //slither-disable-next-line divide-before-multiply
             self.startTimeOffset = self.startTimeOffset.add(
                 timePassed.mul(ratioAmountPaid).div(FLOATING_POINT_DIVISOR)
             );
@@ -143,6 +148,8 @@ contract Auction is IAuction {
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
         // proceeds
+        //
+        //slither-disable-next-line reentrancy-no-eth
         self.auctioneer.offerTaken(
             msg.sender,
             self.tokenAccepted,
@@ -150,6 +157,7 @@ contract Auction is IAuction {
             portionToSeize
         );
 
+        //slither-disable-next-line incorrect-equality
         if (self.amountOutstanding == 0) {
             harikari();
         }
@@ -157,14 +165,17 @@ contract Auction is IAuction {
 
     /// @notice Takes an offer from an auction buyer with a minimum required tokens
     ///         to buy in case another transaction was faster with an offer that
-    ///         left outstanding amount in a state which cannot meet 'amount' value 
+    ///         left outstanding amount in a state which cannot meet 'amount' value
     ///         in this transaction.
     /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction.
     ///      If `amountOutstanding` < 'minAmount', transaction will revert.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
     /// @param minAmount minimum amount of tokens to buy
-    function takeOfferWithMin(uint256 amount, uint256 minAmount) public {
-        require(self.amountOutstanding >= minAmount, "Can't fulfill minimum offer");
+    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
+        require(
+            self.amountOutstanding >= minAmount,
+            "Can't fulfill minimum offer"
+        );
         takeOffer(amount);
     }
 
@@ -174,7 +185,7 @@ contract Auction is IAuction {
     ///      collateral pool. Ex. if 35% available of the collateral pool,
     ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
-    function onOffer() public view override returns (uint256, uint256) {
+    function onOffer() external view override returns (uint256, uint256) {
         return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
     }
 
