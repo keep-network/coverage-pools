@@ -19,8 +19,8 @@ contract EthAssetPool is AssetPool {
         wethToken = IERC20(_weth);
     }
 
-    /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints underwriter tokens representing pool's ownership.
+    /// @notice Accepts the given amount of ETH as a deposit, wraps it in WETH
+    ///         and mints underwriter tokens representing pool's ownership.
     /// @dev This function is a shortcut for approve + deposit.
     function receiveApproval(
         address from,
@@ -37,9 +37,9 @@ contract EthAssetPool is AssetPool {
         super._deposit(from, amount);
     }
 
-    /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints underwriter tokens representing pool's ownership.
-    /// @dev Before calling this function, collateral token needs to have the
+    /// @notice Accepts the given amount of ETH as a deposit, wraps it in WETH
+    ///         and mints underwriter tokens representing pool's ownership.
+    /// @dev Before calling this function,  needs to have the
     ///      required amount accepted to transfer to the asset pool.
     function deposit(uint256 amount) public override {
         // TODO: implement or remove
