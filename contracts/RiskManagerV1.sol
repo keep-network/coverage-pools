@@ -72,7 +72,7 @@ contract RiskManagerV1 {
 
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
         // TODO: Is it okay to lose precision here, ie 123456 / 1000 => 123?
-        uint256 notifierEarnings = lotSizeTbtc.div(1000).mul(5); // 0.5% of the lot size
+        uint256 notifierEarnings = lotSizeTbtc.mul(5).div(1000); // 0.5% of the lot size
         uint256 amountDesired = lotSizeTbtc.add(notifierEarnings);
 
         // TODO: Need to read the market conditions of assets based on Uniswap / 1inch
