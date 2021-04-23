@@ -29,10 +29,6 @@ contract WETH9 {
         emit Withdrawal(msg.sender, wad);
     }
 
-    function totalSupply() public view returns (uint256) {
-        return address(this).balance;
-    }
-
     function approve(address guy, uint256 wad) public returns (bool) {
         allowance[msg.sender][guy] = wad;
         emit Approval(msg.sender, guy, wad);
@@ -64,5 +60,9 @@ contract WETH9 {
         emit Transfer(src, dst, wad);
 
         return true;
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return address(this).balance;
     }
 }
