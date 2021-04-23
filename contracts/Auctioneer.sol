@@ -8,7 +8,6 @@ import "./CollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-// TODO auctioneer should be able to close an auction early
 // TODO auctioneer should be able to speed up auctions based on exit market activity
 
 /// @title Auctioneer
@@ -126,5 +125,22 @@ contract Auctioneer is CloneFactory, Ownable {
             amountDesired,
             cloneAddress
         );
+    }
+
+    /// @notice Tears down an open auction with given address immediately.
+    /// @dev Can be called by contract owner to early close an auction if it
+    ///      is no longer needed.
+    function earlyCloseAuction(Auction auction) external onlyOwner {
+        address auctionAddress = address(auction);
+
+        require(openAuctions[auctionAddress], "Address is not an open auction");
+
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        auction.earlyClose();
+
+        // TODO: what should happen with funds from an early closed auction?
+
+        emit AuctionClosed(auctionAddress);
+        delete openAuctions[auctionAddress];
     }
 }
