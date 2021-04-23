@@ -12,7 +12,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 interface IWETH is IERC20 {
     event Deposit(address indexed dst, uint256 amount);
     event Withdrawal(address indexed src, uint256 amount);
+
     function deposit() external payable;
+
     function withdraw(uint256 amount) external;
 }
 
@@ -20,7 +22,6 @@ interface IWETH is IERC20 {
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
 ///         coverage-pools
 contract EthAssetPool is Ownable {
-
     // TODO: Think about a solution for a scenario when user sends Ether
     // directly to EthAssetPool contract (without calling deposit)
     using SafeERC20 for IERC20;
@@ -55,7 +56,16 @@ contract EthAssetPool is Ownable {
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the eth asset pool.
     function withdraw(uint256 covAmount) external {
-        assetPool.underwriterToken().safeTransferFrom(msg.sender, address(this), covAmount);
+        require(
+            assetPool.underwriterToken().allowance(msg.sender, address(this)) >=
+                covAmount,
+            "Not enought Underwriter tokens approved"
+        );
+        assetPool.underwriterToken().safeTransferFrom(
+            msg.sender,
+            address(this),
+            covAmount
+        );
         assetPool.underwriterToken().approve(address(assetPool), covAmount);
         assetPool.withdraw(covAmount);
         weth.withdraw(covAmount);
