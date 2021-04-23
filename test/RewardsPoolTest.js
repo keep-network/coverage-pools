@@ -138,6 +138,8 @@ describe("RewardsPoolStaking", () => {
     context("when there are more than one underwriter staking", () => {
       beforeEach(async () => {
         await rewardsPoolStaking.connect(underwriter1).stake(to1e18(10))
+        // hardhat will mine the second transaction in a block with +1s block
+        // time, hence +1s
         await rewardsPoolStaking.connect(underwriter2).stake(to1e18(5)) // +1s
       })
 
