@@ -33,8 +33,8 @@ contract RiskManagerV1 {
 
     mapping(address => address) public auctionsByDepositAddress;
 
-    event NotifiedLiquidated(IDeposit deposit);
-    event NotifiedLiquidation(IDeposit deposit);
+    event NotifiedLiquidated(address indexed notifier, address deposit);
+    event NotifiedLiquidation(address indexed notifier, address deposit);
 
     constructor(IERC20 _token, address _auctioneer) {
         tbtcToken = _token;
@@ -44,70 +44,52 @@ contract RiskManagerV1 {
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
     receive() external payable {}
 
-    // TODO: What contract can withdraw ETH from here? Need to add a modifier that
-    //       restricts who can withdraw ETH.
-    //       Should it have a partial withdrawal option? Or is it all-or-nothing withdrawal?
-    /// @notice Withdraw ETH from this contract.
-    function withdrawFunds() external {
-        require(address(this).balance > 0, "Nothing to withdraw");
-
-        /* solhint-disable-next-line */
-        (bool success, ) = msg.sender.call{value: address(this).balance}("");
-        require(success, "Failed to withdraw ETH");
-    }
-
     /// @notice Closes an auction early.
-    /// @param  deposit tBTC Deposit
-    function notifyLiquidated(IDeposit deposit) public {
+    /// @param  depositAddress tBTC Deposit address
+    function notifyLiquidated(address depositAddress) external {
+        IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
             "Deposit is not in liquidated"
         );
+        emit NotifiedLiquidated(msg.sender, depositAddress);
 
-        Auction auction = Auction(auctionsByDepositAddress[address(deposit)]);
+        Auction auction = Auction(auctionsByDepositAddress[depositAddress]);
         auctioneer.earlyCloseAuction(auction);
-
-        emit NotifiedLiquidated(deposit);
-
-        // TODO: transfer 0.5% of the lot size to a notifier?
-        //       When should we transfer 0.5% to a notifier?
     }
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
-    /// @param  deposit tBTC Deposit
-    function notifyLiquidation(IDeposit deposit) public {
+    /// @param  depositAddress tBTC Deposit address
+    function notifyLiquidation(address depositAddress) external {
+        IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
             "Deposit is not in liquidation state"
         );
 
+        // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
-        uint256 notifierEarnings = lotSizeTbtc.mul(5).div(1000); // 0.5% of the lot size
-        uint256 amountDesired = lotSizeTbtc.add(notifierEarnings);
 
-        // TODO: Need to read the market conditions of assets based on Uniswap / 1inch
+        // TODO: Need to read the market conditions of assets from Uniswap / 1inch
         //       Based on this data the auction length should be adjusted
         uint256 auctionLength = 86400; // in sec, hardcoded 24h
 
+        emit NotifiedLiquidation(msg.sender, depositAddress);
+
         address auctionAddress =
-            auctioneer.createAuction(tbtcToken, amountDesired, auctionLength);
-        auctionsByDepositAddress[address(deposit)] = auctionAddress;
-
-        emit NotifiedLiquidation(deposit);
-
-        // TODO: transfer 0.5% of the lot size to a notifier?
-        //       When should we transfer 0.5% to a notifier?
+            auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+        auctionsByDepositAddress[depositAddress] = auctionAddress;
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
     ///      for the coverage pool auction should be transferred to auctioneer.
     /// @param  deposit tBTC Deposit
-    function collectTbtcSignerBonds(IDeposit deposit) public {
+    function collectTbtcSignerBonds(IDeposit deposit) external {
         // TODO: "auctioneer" holds TBTC for the Coverage Pool auction.
-        //       - if we purchase signer bonds from a RiskManager, then we need to allow
+        //       - if we purchase signer bonds from this RiskManager, then we need to allow
         //       RiskManger to use TBTC on behalf of "auctioneer"
         //       - otherwise, auctionner needs to buy signer bonds (ex. at the end of an
-        //       auction?)
+        //       auction - last takeOffer() call)
         deposit.purchaseSignerBondsAtAuction();
 
         deposit.withdrawFunds();
