@@ -41,7 +41,7 @@ contract RewardsPoolStaking {
         underwriterToken = _underwriterToken;
     }
 
-    function stake(uint256 amount) public {
+    function stake(uint256 amount) external {
         updateReward(msg.sender);
         totalStaked = totalStaked.add(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
@@ -49,7 +49,7 @@ contract RewardsPoolStaking {
         // TODO: emit event
     }
 
-    function unstake(uint256 amount) public {
+    function unstake(uint256 amount) external {
         updateReward(msg.sender);
         totalStaked = totalStaked.sub(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
