@@ -59,7 +59,7 @@ contract EthAssetPool is Ownable {
         require(
             assetPool.underwriterToken().allowance(msg.sender, address(this)) >=
                 covAmount,
-            "Not enought Underwriter tokens approved"
+            "Not enough Underwriter tokens approved"
         );
         assetPool.underwriterToken().safeTransferFrom(
             msg.sender,
