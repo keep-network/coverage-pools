@@ -57,6 +57,14 @@ contract RewardsPoolStaking {
         // TODO: emit event
     }
 
+    function earned(address account) public view returns (uint256) {
+        return
+            balanceOf[account]
+                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
+                .div(CoveragePoolConstants.getFloatingPointDivisor())
+                .add(rewards[account]);
+    }
+    
     function updateReward(address account) internal {
         rewardPerTokenAccumulated = rewardPerToken();
         /* solhint-disable-next-line not-rely-on-time */
@@ -82,13 +90,5 @@ contract RewardsPoolStaking {
                     .mul(CoveragePoolConstants.getFloatingPointDivisor())
                     .div(totalStaked)
             );
-    }
-
-    function earned(address account) public view returns (uint256) {
-        return
-            balanceOf[account]
-                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
-                .div(CoveragePoolConstants.getFloatingPointDivisor())
-                .add(rewards[account]);
     }
 }
