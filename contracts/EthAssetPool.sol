@@ -3,36 +3,49 @@
 pragma solidity <0.9.0;
 
 import "./AssetPool.sol";
+import "./UnderwriterToken.sol";
 
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+interface IWETH is IERC20 {
+    event Deposit(address indexed dst, uint256 amount);
+    event Withdrawal(address indexed src, uint256 amount);
+    function deposit() external payable;
+    function withdraw(uint256 amount) external;
+}
 
 /// @title EthAssetPool
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
 ///         coverage-pools
 contract EthAssetPool is Ownable {
-    address public wethContract;
+
+    // TODO: Think about a solution for a scenario when user sends Ether
+    // directly to EthAssetPool contract (without calling deposit)
+    using SafeERC20 for IERC20;
+    using SafeERC20 for UnderwriterToken;
+    using SafeMath for uint256;
+
+    IWETH public weth;
     AssetPool public assetPool;
 
-    constructor(address _wethContract) {
-        // TODO: check if you can cast weth contract to IERC20 if the contract
-        // does not explicitly inherits from the IERC20 (but implements the
-        // necessary functions), like this contract:
-        // https://github.com/gnosis/canonical-weth/blob/master/contracts/WETH9.sol
-        wethContract = _wethContract;
-        assetPool = new AssetPool(IERC20(_wethContract));
+    constructor(IWETH _weth) {
+        weth = _weth;
+        assetPool = new AssetPool(_weth);
     }
 
-    /// @notice Accepts the given amount of ETH as a deposit, wraps it in WETH
+    /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
     ///         and mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function,  needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) external payable {
-        // TODO: check if this function is correct,
-        // add protection agains reentrancy attack
-        (bool success, ) = wethContract.call{value: msg.value}("");
-        require(success, "Failed to send Ether");
-        assetPool.deposit(amount);
+    function deposit() external payable {
+        require(msg.value > 0, "No ether sent to deposit");
+        weth.deposit{value: msg.value}();
+        weth.approve(address(assetPool), msg.value);
+        assetPool.deposit(msg.value);
+        //TODO: Check how many underwriter tokens should the user receive
+        assetPool.underwriterToken().safeTransfer(msg.sender, msg.value);
     }
 
     /// @notice Withdraws ETH from the asset pool. Accepts the amount of
@@ -40,12 +53,14 @@ contract EthAssetPool is Ownable {
     ///         should be withdrawn. After withdrawing it returns ETH to the
     ///         caller.
     /// @dev Before calling this function, underwriter token needs to have the
-    ///      required amount accepted to transfer to the asset pool.
+    ///      required amount accepted to transfer to the eth asset pool.
     function withdraw(uint256 covAmount) external {
-        // TODO: check if this function is correct,
-        // add protection agains reentrancy attack
+        assetPool.underwriterToken().safeTransferFrom(msg.sender, address(this), covAmount);
+        assetPool.underwriterToken().approve(address(assetPool), covAmount);
         assetPool.withdraw(covAmount);
-        (bool success, ) = msg.sender.call{value: covAmount}("");
-        require(success, "Failed to send Ether");
+        weth.withdraw(covAmount);
+        //TODO: Using transfer is not recommended, replace with call and guards
+        // against reentrancy attack
+        msg.sender.transfer(covAmount);
     }
 }
