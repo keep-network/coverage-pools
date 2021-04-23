@@ -109,6 +109,14 @@ describe("RewardsPoolStaking", () => {
         await rewardsPoolStaking.balanceOf(underwriter2.address)
       ).to.be.equal(to1e18(7))
     })
+
+    context("when trying to unstake more than staked", () => {
+      it("reverts", async () => {
+        await expect(
+          rewardsPoolStaking.connect(underwriter2).unstake(to1e18(8))
+        ).to.be.revertedWith("SafeMath: subtraction overflow")
+      })
+    })
   })
 
   describe("earned", () => {
