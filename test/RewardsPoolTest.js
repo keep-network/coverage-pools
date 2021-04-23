@@ -1,5 +1,9 @@
 const { expect } = require("chai")
-const { to1e18, increaseTime } = require("./helpers/contract-test-helpers")
+const {
+  to1e18,
+  to1ePrecision,
+  increaseTime,
+} = require("./helpers/contract-test-helpers")
 const { BigNumber } = ethers
 
 describe("RewardsPoolStaking", () => {
@@ -120,7 +124,7 @@ describe("RewardsPoolStaking", () => {
   })
 
   describe("earned", () => {
-    const precision = ethers.BigNumber.from("1000000000000") // 0.000001
+    const precision = to1ePrecision(1, 12) // 0.000001
 
     context("when there is one underwriter staking", () => {
       beforeEach(async () => {
