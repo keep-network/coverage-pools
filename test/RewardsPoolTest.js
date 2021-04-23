@@ -239,7 +239,7 @@ describe("RewardsPoolStaking", () => {
         //   10/25 * 11 = 4.40 reward tokens go to underwriter1
         //   15/25 * 11 = 6.6 reward tokens go to underwriter2
         //
-        // For the next second (during underwriter3 unstake):
+        // For the next second (during underwriter1 total unstaking):
         //   10/55 * 1 = 0.18(18) reward tokens go to underwriter1
         //   15/55 * 1 = 0.27(27) reward tokens go to underwriter2
         //   30/55 * 1 = 0.54(54) reward tokens go to underwriter3
