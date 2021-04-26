@@ -8,9 +8,7 @@ import "./CoveragePoolConstants.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RewardsPool is Ownable {
-
-}
+contract RewardsPool is Ownable {}
 
 /// @title RewardsPoolStaking
 /// @notice Staking pool for the given underwriter token responsible for minting
@@ -67,7 +65,7 @@ contract RewardsPoolStaking {
                 .div(CoveragePoolConstants.getFloatingPointDivisor())
                 .add(rewards[account]);
     }
-    
+
     function updateReward(address account) internal {
         rewardPerTokenAccumulated = rewardPerToken();
         /* solhint-disable-next-line not-rely-on-time */
