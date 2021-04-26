@@ -3,14 +3,12 @@ const { to1e18 } = require("./helpers/contract-test-helpers")
 
 // FIXME Is there a better way to obtain a handle to contract?
 const UnderwriterTokenJson = require("../artifacts/contracts/UnderwriterToken.sol/UnderwriterToken.json")
-const AssetPoolJson = require("../artifacts/contracts/AssetPool.sol/AssetPool.json")
 
 describe("EthAssetPool", () => {
   let ethAssetPool
-  let coveragePool
 
   let wethToken
-  let assetPool
+  let wethAssetPool
   let underwriterToken
 
   let underwriter1
@@ -18,25 +16,23 @@ describe("EthAssetPool", () => {
   let underwriter3
 
   beforeEach(async () => {
-    coveragePool = await ethers.getSigner(7)
-
     const WethToken = await ethers.getContractFactory("WETH9")
     wethToken = await WethToken.deploy()
     await wethToken.deployed()
 
-    const EthAssetPool = await ethers.getContractFactory("EthAssetPool")
-    ethAssetPool = await EthAssetPool.deploy(wethToken.address)
-    await ethAssetPool.deployed()
-    //await ethAssetPool.transferOwnership(coveragePool.address)
+    const AssetPool = await ethers.getContractFactory("AssetPool")
+    wethAssetPool = await AssetPool.deploy(wethToken.address)
+    await wethAssetPool.deployed()
 
-    assetPool = new ethers.Contract(
-      await ethAssetPool.assetPool(),
-      AssetPoolJson.abi,
-      ethers.provider
+    const EthAssetPool = await ethers.getContractFactory("EthAssetPool")
+    ethAssetPool = await EthAssetPool.deploy(
+      wethToken.address,
+      wethAssetPool.address
     )
+    await ethAssetPool.deployed()
 
     underwriterToken = new ethers.Contract(
-      await assetPool.underwriterToken(),
+      await wethAssetPool.underwriterToken(),
       UnderwriterTokenJson.abi,
       ethers.provider
     )
@@ -73,7 +69,7 @@ describe("EthAssetPool", () => {
       })
 
       it("should transfer deposited amount of WETH to the pool", async () => {
-        expect(await wethToken.balanceOf(assetPool.address)).to.equal(
+        expect(await wethToken.balanceOf(wethAssetPool.address)).to.equal(
           to1e18(420)
         )
         expect(await wethToken.balanceOf(underwriter1.address)).to.equal(0)

@@ -26,11 +26,11 @@ contract EthAssetPool {
     using SafeMath for uint256;
 
     IWETH public weth;
-    AssetPool public assetPool;
+    AssetPool public wethAssetPool;
 
-    constructor(IWETH _weth) {
+    constructor(IWETH _weth, AssetPool _wethAssetPool) {
         weth = _weth;
-        assetPool = new AssetPool(_weth);
+        wethAssetPool = _wethAssetPool;
     }
 
     /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
@@ -38,10 +38,10 @@ contract EthAssetPool {
     function deposit() external payable {
         require(msg.value > 0, "No ether sent to deposit");
         weth.deposit{value: msg.value}();
-        weth.approve(address(assetPool), msg.value);
-        assetPool.deposit(msg.value);
+        weth.approve(address(wethAssetPool), msg.value);
+        wethAssetPool.deposit(msg.value);
         //TODO: Check how many underwriter tokens should the user receive
-        assetPool.underwriterToken().safeTransfer(msg.sender, msg.value);
+        wethAssetPool.underwriterToken().safeTransfer(msg.sender, msg.value);
     }
 
     /// @notice Withdraws ETH from the asset pool. Accepts the amount of
@@ -52,17 +52,22 @@ contract EthAssetPool {
     ///      required amount accepted to transfer to the eth asset pool.
     function withdraw(uint256 covAmount) external {
         require(
-            assetPool.underwriterToken().allowance(msg.sender, address(this)) >=
-                covAmount,
+            wethAssetPool.underwriterToken().allowance(
+                msg.sender,
+                address(this)
+            ) >= covAmount,
             "Not enough Underwriter tokens approved"
         );
-        assetPool.underwriterToken().safeTransferFrom(
+        wethAssetPool.underwriterToken().safeTransferFrom(
             msg.sender,
             address(this),
             covAmount
         );
-        assetPool.underwriterToken().approve(address(assetPool), covAmount);
-        assetPool.withdraw(covAmount);
+        wethAssetPool.underwriterToken().approve(
+            address(wethAssetPool),
+            covAmount
+        );
+        wethAssetPool.withdraw(covAmount);
         weth.withdraw(covAmount);
         //TODO: Using transfer is not recommended, replace with call and guards
         // against reentrancy attack
