@@ -40,8 +40,13 @@ contract EthAssetPool {
         weth.deposit{value: msg.value}();
         weth.approve(address(wethAssetPool), msg.value);
         wethAssetPool.deposit(msg.value);
-        //TODO: Check how many underwriter tokens should the user receive
-        wethAssetPool.underwriterToken().safeTransfer(msg.sender, msg.value);
+        //TODO: Check if the amount of Underwriter tokens is correct
+        uint256 transferAmount =
+            wethAssetPool.underwriterToken().balanceOf(address(this));
+        wethAssetPool.underwriterToken().safeTransfer(
+            msg.sender,
+            transferAmount
+        );
     }
 
     /// @notice Withdraws ETH from the asset pool. Accepts the amount of
