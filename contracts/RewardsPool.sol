@@ -26,11 +26,11 @@ contract RewardsPool is CloneFactory, Ownable {
         address assetPoolAddress = address(assetPool);
         if (stakingPools[assetPoolAddress] == address(0)) {
             address cloneAddress = createClone(masterRewardsPoolStaking);
+            stakingPools[assetPoolAddress] = cloneAddress;
             RewardsPoolStaking(cloneAddress).initialize(
                 this,
                 assetPool.underwriterToken()
             );
-            stakingPools[assetPoolAddress] = cloneAddress;
         }
 
         RewardsPoolStaking(stakingPools[assetPoolAddress]).setRewardRate(rate);
