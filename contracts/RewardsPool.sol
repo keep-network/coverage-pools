@@ -19,10 +19,17 @@ contract RewardsPool is CloneFactory, Ownable {
     mapping(address => address) public stakingPools;
 
     constructor(address _masterRewardsPoolStaking) {
+        require(
+            _masterRewardsPoolStaking != address(0),
+            "Invalid master RewardsPoolStaking addres"
+        );
         masterRewardsPoolStaking = _masterRewardsPoolStaking;
     }
 
-    function setRewardRate(AssetPool assetPool, uint256 rate) external onlyOwner {
+    function setRewardRate(AssetPool assetPool, uint256 rate)
+        external
+        onlyOwner
+    {
         address assetPoolAddress = address(assetPool);
         if (stakingPools[assetPoolAddress] == address(0)) {
             address cloneAddress = createClone(masterRewardsPoolStaking);
