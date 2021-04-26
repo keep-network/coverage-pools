@@ -41,14 +41,9 @@ describe("EthAssetPool", () => {
       ethers.provider
     )
 
-    const createUnderwriterWithTokens = async (index) => {
-      const underwriter = await ethers.getSigner(index)
-      return underwriter
-    }
-
-    underwriter1 = await createUnderwriterWithTokens(1)
-    underwriter2 = await createUnderwriterWithTokens(2)
-    underwriter3 = await createUnderwriterWithTokens(3)
+    underwriter1 = await ethers.getSigner(1)
+    underwriter2 = await ethers.getSigner(2)
+    underwriter3 = await ethers.getSigner(3)
   })
 
   describe("deposit", () => {
@@ -75,6 +70,15 @@ describe("EthAssetPool", () => {
         await ethAssetPool
           .connect(underwriter3)
           .deposit({ value: depositedUnderwriter3 })
+      })
+
+      it("should transfer deposited amount of WETH to the pool", async () => {
+        expect(await wethToken.balanceOf(assetPool.address)).to.equal(
+          to1e18(420)
+        )
+        expect(await wethToken.balanceOf(underwriter1.address)).to.equal(0)
+        expect(await wethToken.balanceOf(underwriter2.address)).to.equal(0)
+        expect(await wethToken.balanceOf(underwriter3.address)).to.equal(0)
       })
 
       it("should mint underwriter tokens", async () => {
