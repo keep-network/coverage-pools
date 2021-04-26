@@ -49,9 +49,6 @@ describe("EthAssetPool", () => {
     underwriter1 = await createUnderwriterWithTokens(1)
     underwriter2 = await createUnderwriterWithTokens(2)
     underwriter3 = await createUnderwriterWithTokens(3)
-    underwriter4 = await createUnderwriterWithTokens(4)
-    underwriter5 = await createUnderwriterWithTokens(5)
-    underwriter6 = await createUnderwriterWithTokens(6)
   })
 
   describe("deposit", () => {
