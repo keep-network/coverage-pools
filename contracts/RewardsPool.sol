@@ -18,6 +18,12 @@ contract RewardsPool is CloneFactory, Ownable {
     // AssetPool.
     mapping(address => address) public stakingPools;
 
+    event RewardRateUpdated(
+        address indexed assetPool,
+        address indexed rewardsPoolStaking,
+        uint256 newRate
+    );
+
     constructor(address _masterRewardsPoolStaking) {
         require(
             _masterRewardsPoolStaking != address(0),
@@ -31,16 +37,19 @@ contract RewardsPool is CloneFactory, Ownable {
         onlyOwner
     {
         address assetPoolAddress = address(assetPool);
-        if (stakingPools[assetPoolAddress] == address(0)) {
-            address cloneAddress = createClone(masterRewardsPoolStaking);
-            stakingPools[assetPoolAddress] = cloneAddress;
-            RewardsPoolStaking(cloneAddress).initialize(
+        address stakingPoolAddress = stakingPools[assetPoolAddress];
+        if (stakingPoolAddress == address(0)) {
+            stakingPoolAddress = createClone(masterRewardsPoolStaking);
+            stakingPools[assetPoolAddress] = stakingPoolAddress;
+            RewardsPoolStaking(stakingPoolAddress).initialize(
                 this,
                 assetPool.underwriterToken()
             );
         }
 
-        RewardsPoolStaking(stakingPools[assetPoolAddress]).setRewardRate(rate);
+        RewardsPoolStaking(stakingPoolAddress).setRewardRate(rate);
+        // slither-disable-next-line reentrancy-events
+        emit RewardRateUpdated(assetPoolAddress, stakingPoolAddress, rate);
     }
 }
 

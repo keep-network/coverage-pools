@@ -3,6 +3,7 @@ const {
   to1e18,
   to1ePrecision,
   increaseTime,
+  pastEvents,
   ZERO_ADDRESS,
 } = require("./helpers/contract-test-helpers")
 const { BigNumber } = ethers
@@ -65,8 +66,9 @@ describe("RewardsPool", () => {
     })
 
     context("when called for the given asset pool for the first time", () => {
+      let tx
       beforeEach(async () => {
-        await rewardsPool
+        tx = await rewardsPool
           .connect(governance)
           .setRewardRate(assetPool1.address, 9)
         await rewardsPool
@@ -98,11 +100,25 @@ describe("RewardsPool", () => {
         expect(await stakingPool1.rewardRate()).to.equal(9)
         expect(await stakingPool2.rewardRate()).to.equal(3)
       })
+
+      it("emits RewardsRateUpdated event", async () => {
+        const events = pastEvents(
+          await tx.wait(),
+          rewardsPool,
+          "RewardRateUpdated"
+        )
+        expect(events.length).to.equal(1)
+        expect(events[0].args["assetPool"]).to.equal(assetPool1.address)
+        expect(events[0].args["rewardsPoolStaking"]).to.be.properAddress
+        expect(events[0].args["newRate"]).to.equal(9)
+      })
     })
 
     context("when called for the given asset pool again", () => {
       let stakingPoolAddress1
       let stakingPoolAddress2
+
+      let tx
 
       beforeEach(async () => {
         await rewardsPool
@@ -115,7 +131,7 @@ describe("RewardsPool", () => {
         stakingPoolAddress1 = await rewardsPool.stakingPools(assetPool1.address)
         stakingPoolAddress2 = await rewardsPool.stakingPools(assetPool2.address)
 
-        await rewardsPool
+        tx = await rewardsPool
           .connect(governance)
           .setRewardRate(assetPool1.address, 1)
         await rewardsPool
@@ -146,6 +162,20 @@ describe("RewardsPool", () => {
 
         expect(await stakingPool1.rewardRate()).to.equal(1)
         expect(await stakingPool2.rewardRate()).to.equal(5)
+      })
+
+      it("emits RewardsRateUpdated event", async () => {
+        const events = pastEvents(
+          await tx.wait(),
+          rewardsPool,
+          "RewardRateUpdated"
+        )
+        expect(events.length).to.equal(1)
+        expect(events[0].args["assetPool"]).to.equal(assetPool1.address)
+        expect(events[0].args["rewardsPoolStaking"]).to.equal(
+          stakingPoolAddress1
+        )
+        expect(events[0].args["newRate"]).to.equal(1)
       })
     })
   })
