@@ -22,7 +22,7 @@ contract RewardsPool is CloneFactory, Ownable {
         masterRewardsPoolStaking = _masterRewardsPoolStaking;
     }
 
-    function setRewardRate(AssetPool assetPool, uint256 rate) public onlyOwner {
+    function setRewardRate(AssetPool assetPool, uint256 rate) external onlyOwner {
         address assetPoolAddress = address(assetPool);
         if (stakingPools[assetPoolAddress] == address(0)) {
             address cloneAddress = createClone(masterRewardsPoolStaking);
@@ -86,7 +86,7 @@ contract RewardsPoolStaking {
     function initialize(
         RewardsPool _rewardsPool,
         UnderwriterToken _underwriterToken
-    ) public {
+    ) external {
         require(
             address(underwriterToken) == address(0),
             "RewardsPoolStaking already initialized"
@@ -96,11 +96,11 @@ contract RewardsPoolStaking {
         underwriterToken = _underwriterToken;
     }
 
-    function setRewardRate(uint256 _rewardRate) public onlyRewardsPool {
+    function setRewardRate(uint256 _rewardRate) external onlyRewardsPool {
         rewardRate = _rewardRate;
     }
 
-    function stake(uint256 amount) public {
+    function stake(uint256 amount) external {
         updateReward(msg.sender);
         totalStaked = totalStaked.add(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
