@@ -222,9 +222,20 @@ describe("RewardsPoolStaking", () => {
 
   describe("setRewardRate", () => {
     context("when called by rewards pool", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await rewardsPoolStaking.connect(rewardsPool).setRewardRate(1234)
+      })
+
       it("updates rewards rate", async () => {
-        await rewardsPoolStaking.connect(rewardsPool).setRewardRate(1234)
         expect(await rewardsPoolStaking.rewardRate()).to.be.equal(1234)
+      })
+
+      it("emits RewardRateUpdated event", async () => {
+        await expect(tx)
+          .to.emit(rewardsPoolStaking, "RewardRateUpdated")
+          .withArgs(1234)
       })
     })
 

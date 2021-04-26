@@ -81,6 +81,7 @@ contract RewardsPoolStaking {
 
     event Staked(address indexed account, uint256 amount);
     event Unstaked(address indexed account, uint256 amount);
+    event RewardRateUpdated(uint256 newRate);
 
     modifier onlyRewardsPool() {
         require(
@@ -105,6 +106,7 @@ contract RewardsPoolStaking {
 
     function setRewardRate(uint256 _rewardRate) external onlyRewardsPool {
         rewardRate = _rewardRate;
+        emit RewardRateUpdated(rewardRate);
     }
 
     function stake(uint256 amount) external {
