@@ -5,8 +5,9 @@ const { to1e18 } = require("./helpers/contract-test-helpers")
 const UnderwriterTokenJson = require("../artifacts/contracts/UnderwriterToken.sol/UnderwriterToken.json")
 
 describe("EthAssetPool", () => {
-  let ethAssetPool
+  let coveragePool
 
+  let ethAssetPool
   let wethToken
   let wethAssetPool
   let underwriterToken
@@ -15,7 +16,11 @@ describe("EthAssetPool", () => {
   let underwriter2
   let underwriter3
 
+  const assertionPrecision = ethers.BigNumber.from("1000000000000") // 0.000001
+
   beforeEach(async () => {
+    coveragePool = await ethers.getSigner(7)
+
     const WethToken = await ethers.getContractFactory("WETH9")
     wethToken = await WethToken.deploy()
     await wethToken.deployed()
@@ -23,6 +28,7 @@ describe("EthAssetPool", () => {
     const AssetPool = await ethers.getContractFactory("AssetPool")
     wethAssetPool = await AssetPool.deploy(wethToken.address)
     await wethAssetPool.deployed()
+    await wethAssetPool.transferOwnership(coveragePool.address)
 
     const EthAssetPool = await ethers.getContractFactory("EthAssetPool")
     ethAssetPool = await EthAssetPool.deploy(
@@ -119,13 +125,39 @@ describe("EthAssetPool", () => {
         ).to.be.equal(to1e18(140)) // 70 + 70 = 140 COV
       })
     })
+
+    context("when some WETH tokens were claimed by the pool", () => {
+      const depositedUnderwriter1 = to1e18(100)
+      const depositedUnderwriter2 = to1e18(70)
+      const claimedTokens = to1e18(35)
+
+      beforeEach(async () => {
+        await ethAssetPool
+          .connect(underwriter1)
+          .deposit({ value: depositedUnderwriter1 })
+        await ethAssetPool
+          .connect(underwriter2)
+          .deposit({ value: depositedUnderwriter2 })
+
+        await wethAssetPool
+          .connect(coveragePool)
+          .claim(coveragePool.address, claimedTokens)
+      })
+
+      it("should mint underwriter tokens", async () => {
+        await ethAssetPool.connect(underwriter3).deposit({ value: to1e18(20) })
+
+        expect(
+          await underwriterToken.balanceOf(underwriter3.address)
+        ).to.be.closeTo(
+          ethers.BigNumber.from("25185185000000000000"), // 20 * 170 / 135 = ~25.185185
+          assertionPrecision
+        )
+      })
+    })
   })
 
   describe("withdraw", () => {
     // TODO: implement
-  })
-
-  describe("claim", () => {
-    // TODO: implement if necessary
   })
 })
