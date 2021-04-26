@@ -38,8 +38,6 @@ contract EthAssetPool is Ownable {
 
     /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
     ///         and mints underwriter tokens representing pool's ownership.
-    /// @dev Before calling this function,  needs to have the
-    ///      required amount accepted to transfer to the asset pool.
     function deposit() external payable {
         require(msg.value > 0, "No ether sent to deposit");
         weth.deposit{value: msg.value}();
