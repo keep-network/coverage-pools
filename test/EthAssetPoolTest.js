@@ -93,6 +93,36 @@ describe("EthAssetPool", () => {
         ).to.be.equal(to1e18(20))
       })
     })
+
+    context("when ETH deposit already exists", () => {
+      const depositedUnderwriter1 = to1e18(100)
+      const depositedUnderwriter2 = to1e18(70)
+
+      beforeEach(async () => {
+        await ethAssetPool
+          .connect(underwriter1)
+          .deposit({ value: depositedUnderwriter1 })
+        await ethAssetPool
+          .connect(underwriter2)
+          .deposit({ value: depositedUnderwriter2 })
+      })
+
+      it("should mint underwriter tokens", async () => {
+        await ethAssetPool
+          .connect(underwriter1)
+          .deposit({ value: depositedUnderwriter1 })
+        await ethAssetPool
+          .connect(underwriter2)
+          .deposit({ value: depositedUnderwriter2 })
+
+        expect(
+          await underwriterToken.balanceOf(underwriter1.address)
+        ).to.be.equal(to1e18(200)) // 100 + 100 = 200 COV
+        expect(
+          await underwriterToken.balanceOf(underwriter2.address)
+        ).to.be.equal(to1e18(140)) // 70 + 70 = 140 COV
+      })
+    })
   })
 
   describe("withdraw", () => {
