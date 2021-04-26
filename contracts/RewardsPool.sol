@@ -48,16 +48,16 @@ contract RewardsPoolStaking {
         updateReward(msg.sender);
         totalStaked = totalStaked.add(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
-        underwriterToken.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
+        underwriterToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function unstake(uint256 amount) external {
         updateReward(msg.sender);
         totalStaked = totalStaked.sub(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
-        underwriterToken.safeTransfer(msg.sender, amount);
         emit Unstaked(msg.sender, amount);
+        underwriterToken.safeTransfer(msg.sender, amount);
     }
 
     function earned(address account) public view returns (uint256) {
