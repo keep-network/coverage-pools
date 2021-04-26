@@ -27,7 +27,7 @@ describe("EthAssetPool", () => {
     const EthAssetPool = await ethers.getContractFactory("EthAssetPool")
     ethAssetPool = await EthAssetPool.deploy(wethToken.address)
     await ethAssetPool.deployed()
-    await ethAssetPool.transferOwnership(coveragePool.address)
+    //await ethAssetPool.transferOwnership(coveragePool.address)
 
     assetPool = new ethers.Contract(
       await ethAssetPool.assetPool(),

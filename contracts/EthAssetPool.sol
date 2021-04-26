@@ -21,7 +21,7 @@ interface IWETH is IERC20 {
 /// @title EthAssetPool
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
 ///         coverage-pools
-contract EthAssetPool is Ownable {
+contract EthAssetPool {
     // TODO: Think about a solution for a scenario when user sends Ether
     // directly to EthAssetPool contract (without calling deposit)
     using SafeERC20 for IERC20;
