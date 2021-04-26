@@ -37,6 +37,9 @@ contract RewardsPoolStaking {
     mapping(address => uint256) internal rewards;
     uint256 internal lastUpdateTime;
 
+    event Staked(address indexed account, uint256 amount);
+    event Unstaked(address indexed account, uint256 amount);
+
     constructor(UnderwriterToken _underwriterToken) {
         underwriterToken = _underwriterToken;
     }
@@ -46,7 +49,7 @@ contract RewardsPoolStaking {
         totalStaked = totalStaked.add(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
         underwriterToken.safeTransferFrom(msg.sender, address(this), amount);
-        // TODO: emit event
+        emit Staked(msg.sender, amount);
     }
 
     function unstake(uint256 amount) external {
@@ -54,7 +57,7 @@ contract RewardsPoolStaking {
         totalStaked = totalStaked.sub(amount);
         balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
         underwriterToken.safeTransfer(msg.sender, amount);
-        // TODO: emit event
+        emit Unstaked(msg.sender, amount);
     }
 
     function earned(address account) public view returns (uint256) {

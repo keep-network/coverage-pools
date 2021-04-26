@@ -58,8 +58,10 @@ describe("RewardsPoolStaking", () => {
   })
 
   describe("stake", () => {
+    let tx
+
     beforeEach(async () => {
-      await rewardsPoolStaking.connect(underwriter1).stake(to1e18(18))
+      tx = await rewardsPoolStaking.connect(underwriter1).stake(to1e18(18))
       await rewardsPoolStaking.connect(underwriter2).stake(to1e18(7))
     })
 
@@ -81,14 +83,22 @@ describe("RewardsPoolStaking", () => {
         await rewardsPoolStaking.balanceOf(underwriter2.address)
       ).to.be.equal(to1e18(7))
     })
+
+    it("emits Staked event", async () => {
+      await expect(tx)
+        .to.emit(rewardsPoolStaking, "Staked")
+        .withArgs(underwriter1.address, to1e18(18))
+    })
   })
 
   describe("unstake", () => {
+    let tx
+
     beforeEach(async () => {
       await rewardsPoolStaking.connect(underwriter1).stake(to1e18(18))
       await rewardsPoolStaking.connect(underwriter2).stake(to1e18(7))
 
-      await rewardsPoolStaking.connect(underwriter1).unstake(to1e18(4))
+      tx = await rewardsPoolStaking.connect(underwriter1).unstake(to1e18(4))
     })
 
     it("transfers back unstaked underwriter tokens", async () => {
@@ -112,6 +122,12 @@ describe("RewardsPoolStaking", () => {
       expect(
         await rewardsPoolStaking.balanceOf(underwriter2.address)
       ).to.be.equal(to1e18(7))
+    })
+
+    it("emits Unstaked event", async () => {
+      await expect(tx)
+        .to.emit(rewardsPoolStaking, "Unstaked")
+        .withArgs(underwriter1.address, to1e18(4))
     })
 
     context("when trying to unstake more than staked", () => {
