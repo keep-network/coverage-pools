@@ -31,7 +31,8 @@ contract RiskManagerV1 {
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
 
-    mapping(address => address) public auctionsByDepositAddress;
+    // deposit in liquidation address => coverage pool auction address
+    mapping(address => address) public auctionsByDepositsInLiquidation;
 
     event NotifiedLiquidated(address indexed notifier, address deposit);
     event NotifiedLiquidation(address indexed notifier, address deposit);
@@ -50,12 +51,15 @@ contract RiskManagerV1 {
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
-            "Deposit is not in liquidated"
+            "Deposit is not in liquidated state"
         );
         emit NotifiedLiquidated(msg.sender, depositAddress);
 
-        Auction auction = Auction(auctionsByDepositAddress[depositAddress]);
+        Auction auction =
+            Auction(auctionsByDepositsInLiquidation[depositAddress]);
         auctioneer.earlyCloseAuction(auction);
+
+        delete auctionsByDepositsInLiquidation[depositAddress];
     }
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
@@ -78,7 +82,7 @@ contract RiskManagerV1 {
 
         address auctionAddress =
             auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
-        auctionsByDepositAddress[depositAddress] = auctionAddress;
+        auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
