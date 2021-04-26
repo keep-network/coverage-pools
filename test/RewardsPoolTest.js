@@ -57,8 +57,8 @@ describe("RewardsPool", () => {
   })
 
   describe("setRewardRate", () => {
-    context("when called not by the governance", () => {
-      it("reverts", async () => {
+    context("when caller is not the governance", () => {
+      it("should revert", async () => {
         await expect(
           rewardsPool.setRewardRate(assetPool1.address, 2)
         ).to.be.revertedWith("Ownable: caller is not the owner")
@@ -76,7 +76,7 @@ describe("RewardsPool", () => {
           .setRewardRate(assetPool2.address, 3)
       })
 
-      it("creates a staking pool", async () => {
+      it("should create a staking pool", async () => {
         expect(await rewardsPool.stakingPools(assetPool1.address)).to.not.equal(
           ZERO_ADDRESS
         )
@@ -85,7 +85,7 @@ describe("RewardsPool", () => {
         )
       })
 
-      it("sets reward rate for the staking pool", async () => {
+      it("should set reward rate for the staking pool", async () => {
         const stakingPool1 = new ethers.Contract(
           await rewardsPool.stakingPools(assetPool1.address),
           RewardsPoolStakingJson.abi,
@@ -101,7 +101,7 @@ describe("RewardsPool", () => {
         expect(await stakingPool2.rewardRate()).to.equal(3)
       })
 
-      it("emits RewardsRateUpdated event", async () => {
+      it("should emit RewardsRateUpdated event", async () => {
         const events = pastEvents(
           await tx.wait(),
           rewardsPool,
@@ -139,7 +139,7 @@ describe("RewardsPool", () => {
           .setRewardRate(assetPool2.address, 5)
       })
 
-      it("does not create a new staking pool", async () => {
+      it("should not create a new staking pool", async () => {
         expect(await rewardsPool.stakingPools(assetPool1.address)).to.equal(
           stakingPoolAddress1
         )
@@ -148,7 +148,7 @@ describe("RewardsPool", () => {
         )
       })
 
-      it("updates reward rate for the staking pool", async () => {
+      it("should update reward rate for the staking pool", async () => {
         const stakingPool1 = new ethers.Contract(
           stakingPoolAddress1,
           RewardsPoolStakingJson.abi,
@@ -164,7 +164,7 @@ describe("RewardsPool", () => {
         expect(await stakingPool2.rewardRate()).to.equal(5)
       })
 
-      it("emits RewardsRateUpdated event", async () => {
+      it("should emit RewardsRateUpdated event", async () => {
         const events = pastEvents(
           await tx.wait(),
           rewardsPool,
@@ -239,7 +239,7 @@ describe("RewardsPoolStaking", () => {
 
   describe("initialize", () => {
     context("when called more than once", () => {
-      it("reverts", async () => {
+      it("should revert", async () => {
         await expect(
           rewardsPoolStaking.initialize(
             rewardsPool.address,
@@ -251,26 +251,26 @@ describe("RewardsPoolStaking", () => {
   })
 
   describe("setRewardRate", () => {
-    context("when called by rewards pool", () => {
+    context("when caller is the rewards pool", () => {
       let tx
 
       beforeEach(async () => {
         tx = await rewardsPoolStaking.connect(rewardsPool).setRewardRate(1234)
       })
 
-      it("updates rewards rate", async () => {
+      it("should update rewards rate", async () => {
         expect(await rewardsPoolStaking.rewardRate()).to.be.equal(1234)
       })
 
-      it("emits RewardRateUpdated event", async () => {
+      it("should emit RewardRateUpdated event", async () => {
         await expect(tx)
           .to.emit(rewardsPoolStaking, "RewardRateUpdated")
           .withArgs(1234)
       })
     })
 
-    context("when called by not the rewards pool", () => {
-      it("reverts", async () => {
+    context("when caller is not the rewards pool", () => {
+      it("should revert", async () => {
         await expect(
           rewardsPoolStaking.connect(underwriter1).setRewardRate(999)
         ).to.be.revertedWith("Caller is not the RewardsPool")
@@ -286,17 +286,17 @@ describe("RewardsPoolStaking", () => {
       await rewardsPoolStaking.connect(underwriter2).stake(to1e18(7))
     })
 
-    it("transfers staked underwriter tokens", async () => {
+    it("should transfer staked underwriter tokens", async () => {
       expect(
         await underwriterToken.balanceOf(rewardsPoolStaking.address)
       ).to.be.equal(to1e18(25))
     })
 
-    it("updates total staked balance", async () => {
+    it("should update total staked balance", async () => {
       expect(await rewardsPoolStaking.totalStaked()).to.be.equal(to1e18(25))
     })
 
-    it("updates staked underwriter token balances", async () => {
+    it("should update staked underwriter token balances", async () => {
       expect(
         await rewardsPoolStaking.balanceOf(underwriter1.address)
       ).to.be.equal(to1e18(18))
@@ -305,7 +305,7 @@ describe("RewardsPoolStaking", () => {
       ).to.be.equal(to1e18(7))
     })
 
-    it("emits Staked event", async () => {
+    it("should emit Staked event", async () => {
       await expect(tx)
         .to.emit(rewardsPoolStaking, "Staked")
         .withArgs(underwriter1.address, to1e18(18))
@@ -332,11 +332,11 @@ describe("RewardsPoolStaking", () => {
       ).to.be.equal(underwriterTokenInitialBalance.sub(to1e18(14)))
     })
 
-    it("updates total staked balance", async () => {
+    it("should update total staked balance", async () => {
       expect(await rewardsPoolStaking.totalStaked()).to.be.equal(to1e18(21))
     })
 
-    it("updates staked underwriter token balances", async () => {
+    it("should update staked underwriter token balances", async () => {
       expect(
         await rewardsPoolStaking.balanceOf(underwriter1.address)
       ).to.be.equal(to1e18(14))
@@ -345,14 +345,14 @@ describe("RewardsPoolStaking", () => {
       ).to.be.equal(to1e18(7))
     })
 
-    it("emits Unstaked event", async () => {
+    it("should emit Unstaked event", async () => {
       await expect(tx)
         .to.emit(rewardsPoolStaking, "Unstaked")
         .withArgs(underwriter1.address, to1e18(4))
     })
 
     context("when trying to unstake more than staked", () => {
-      it("reverts", async () => {
+      it("should revert", async () => {
         await expect(
           rewardsPoolStaking.connect(underwriter2).unstake(to1e18(8))
         ).to.be.revertedWith("SafeMath: subtraction overflow")
@@ -368,7 +368,7 @@ describe("RewardsPoolStaking", () => {
         await rewardsPoolStaking.connect(underwriter1).stake(to1e18(80))
       })
 
-      it("mints one reward token per second for that underwriter", async () => {
+      it("should mint one reward token per second for that underwriter", async () => {
         await increaseTime(1000)
         expect(
           await rewardsPoolStaking.earned(underwriter1.address)
@@ -384,7 +384,7 @@ describe("RewardsPoolStaking", () => {
         await rewardsPoolStaking.connect(underwriter2).stake(to1e18(5)) // +1s
       })
 
-      it("mints reward tokens proportionally to tokens staked over time", async () => {
+      it("should mint reward tokens proportionally to tokens staked over time", async () => {
         await increaseTime(100)
 
         // For the first 1 second:
@@ -417,7 +417,7 @@ describe("RewardsPoolStaking", () => {
         await rewardsPoolStaking.connect(underwriter3).stake(to1e18(30)) // +1s
       })
 
-      it("mints reward tokens proportionally to tokens staked over time", async () => {
+      it("should mint reward tokens proportionally to tokens staked over time", async () => {
         await increaseTime(100)
 
         // For the first 11 seconds:
@@ -462,7 +462,7 @@ describe("RewardsPoolStaking", () => {
         await rewardsPoolStaking.connect(underwriter1).unstake(to1e18(10)) // +1s
       })
 
-      it("mints reward tokens proportionally to tokens staked over time", async () => {
+      it("should mint reward tokens proportionally to tokens staked over time", async () => {
         await increaseTime(100)
 
         // For the first 1 second:
