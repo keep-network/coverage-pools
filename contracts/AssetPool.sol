@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
 /// @title AssetPool
 /// @notice Asset pool is a component of a Coverage Pool. Each Asset Pool
 ///         accepts a single ERC20 token as collateral, and returns an
