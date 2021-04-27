@@ -1,4 +1,6 @@
-pragma solidity >=0.4.22 <0.6.0;
+// SPDX-License-Identifier: MIT
+
+pragma solidity 0.7.6;
 
 contract WETH9 {
     string public name = "Wrapped Ether";
@@ -13,7 +15,7 @@ contract WETH9 {
     event Deposit(address indexed dst, uint256 wad);
     event Withdrawal(address indexed src, uint256 wad);
 
-    function() external payable {
+    receive() external payable {
         deposit();
     }
 
