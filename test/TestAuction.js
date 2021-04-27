@@ -9,7 +9,9 @@ const {
   impersonateContract,
 } = require("./helpers/contract-test-helpers")
 
+const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
+const IDeposit = require("../artifacts/contracts/external/Tbtc.sol/IDeposit.json")
 const { BigNumber } = ethers
 
 // amount of test tokens that an auction (aka spender) is allowed
@@ -17,6 +19,7 @@ const { BigNumber } = ethers
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 const precision = 0.001 // to mitigate evm delays
+const depositLiquidationInProgressState = 10
 
 describe("Auction", () => {
   let testToken
@@ -33,10 +36,15 @@ describe("Auction", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
+    const DepositStates = await ethers.getContractFactory("DepositStates")
+    const depositStates = await DepositStates.deploy()
+    await depositStates.deployed()
+
     const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
+        DepositStates: depositStates.address,
       },
     })
     const CollateralPool = await ethers.getContractFactory("CollateralPool")
@@ -55,6 +63,14 @@ describe("Auction", () => {
     await collateralPool.deployed()
 
     await auctioneer.initialize(collateralPool.address, masterAuction.address)
+
+    mockIDeposit = await deployMockContract(owner, IDeposit.abi)
+    await mockIDeposit.mock.currentState.returns(
+      depositLiquidationInProgressState
+    )
+
+    await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
+    await mockIDeposit.mock.withdrawFunds.returns()
   })
 
   beforeEach(async () => {
@@ -97,7 +113,8 @@ describe("Auction", () => {
           auctioneer.createAuction(
             testToken.address,
             auctionAmountDesired,
-            auctionLength
+            auctionLength,
+            mockIDeposit.address
           )
         ).to.be.revertedWith("Amount desired must be greater than zero")
       })
@@ -207,6 +224,7 @@ describe("Auction", () => {
         await auction
           .connect(bidder2)
           .takeOfferWithMin(partialOfferAmount, minAmount)
+
         // auctioneer should receive the auction's desired amount
         expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
           auctionAmountDesired
@@ -306,7 +324,7 @@ describe("Auction", () => {
         // another bidder is trying to take offer on a closed auction
         await expect(
           auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Address: call to non-contract")
+        ).to.be.revertedWith("Auction was deleted")
       })
     })
 
@@ -562,7 +580,7 @@ describe("Auction", () => {
 
         await expect(
           auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Address: call to non-contract")
+        ).to.be.revertedWith("Auction was deleted")
       })
     })
   })
@@ -624,7 +642,8 @@ describe("Auction", () => {
     const createAuctionTx = await auctioneer.createAuction(
       testToken.address,
       auctionAmountDesired,
-      auctionLength
+      auctionLength,
+      mockIDeposit.address
     )
 
     const receipt = await createAuctionTx.wait()

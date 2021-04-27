@@ -4,7 +4,7 @@ const expect = chai.expect
 const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
-const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
+const IDeposit = require("../artifacts/contracts/external/Tbtc.sol/IDeposit.json")
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
