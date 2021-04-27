@@ -5,6 +5,7 @@ pragma solidity <0.9.0;
 import "./Auctioneer.sol";
 import "./interfaces/IAuction.sol";
 import "./CoveragePoolConstants.sol";
+import {IDeposit, DepositStates} from "./external/Tbtc.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -73,7 +74,7 @@ contract Auction is IAuction {
     /// @param _auctionLength the amount of time it takes for the auction to get
     ///                       to 100% of all collateral on offer, in seconds.
     function initialize(
-        address _auctioneer,
+        address payable _auctioneer,
         IERC20 _tokenAccepted,
         uint256 _amountDesired,
         uint256 _auctionLength
@@ -146,6 +147,14 @@ contract Auction is IAuction {
     function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
+        require(address(self.auctioneer) != address(0), "Auction was deleted");
+        IDeposit deposit = self.auctioneer.openAuctions(address(this));
+        // revert if tbtc deposit was liquidated outside the coverage pool auction
+        require(
+            deposit.currentState() != DepositStates.getDepositLiquidatedState(),
+            "Deposit was liquidated"
+        );
+
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 amountOnOffer = _onOffer();
 

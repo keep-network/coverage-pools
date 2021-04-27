@@ -6,19 +6,10 @@ import "./CollateralPool.sol";
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
+import {IDeposit, DepositStates} from "./external/Tbtc.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-
-interface IDeposit {
-    function withdrawFunds() external;
-
-    function currentState() external view returns (uint256);
-
-    function lotSizeTbtc() external view returns (uint256);
-
-    function purchaseSignerBondsAtAuction() external view;
-}
 
 /// @title RiskManagerV1 for tBTCv1
 contract RiskManagerV1 {
@@ -28,29 +19,23 @@ contract RiskManagerV1 {
     IERC20 public tbtcToken;
     Auctioneer public auctioneer;
 
-    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
-    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
-
     // deposit in liquidation address => coverage pool auction address
     mapping(address => address) public auctionsByDepositsInLiquidation;
 
     event NotifiedLiquidated(address indexed notifier, address deposit);
     event NotifiedLiquidation(address indexed notifier, address deposit);
 
-    constructor(IERC20 _token, address _auctioneer) {
+    constructor(IERC20 _token, address payable _auctioneer) {
         tbtcToken = _token;
         auctioneer = Auctioneer(_auctioneer);
     }
-
-    /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
-    receive() external payable {}
 
     /// @notice Closes an auction early.
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidated(address depositAddress) external {
         IDeposit deposit = IDeposit(depositAddress);
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
+            deposit.currentState() == DepositStates.getDepositLiquidatedState(),
             "Deposit is not in liquidated state"
         );
         emit NotifiedLiquidated(msg.sender, depositAddress);
@@ -67,7 +52,8 @@ contract RiskManagerV1 {
     function notifyLiquidation(address depositAddress) external {
         IDeposit deposit = IDeposit(depositAddress);
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            deposit.currentState() ==
+                DepositStates.getDepositLiquidationInProgressState(),
             "Deposit is not in liquidation state"
         );
 
@@ -81,21 +67,12 @@ contract RiskManagerV1 {
         emit NotifiedLiquidation(msg.sender, depositAddress);
 
         address auctionAddress =
-            auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+            auctioneer.createAuction(
+                tbtcToken,
+                lotSizeTbtc,
+                auctionLength,
+                deposit
+            );
         auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
-    }
-
-    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
-    ///      for the coverage pool auction should be transferred to auctioneer.
-    /// @param  deposit tBTC Deposit
-    function collectTbtcSignerBonds(IDeposit deposit) external {
-        // TODO: "auctioneer" holds TBTC for the Coverage Pool auction.
-        //       - if we purchase signer bonds from this RiskManager, then we need to allow
-        //       RiskManger to use TBTC on behalf of "auctioneer"
-        //       - otherwise, auctionner needs to buy signer bonds (ex. at the end of an
-        //       auction - last takeOffer() call)
-        deposit.purchaseSignerBondsAtAuction();
-
-        deposit.withdrawFunds();
     }
 }
