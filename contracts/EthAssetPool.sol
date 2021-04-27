@@ -33,6 +33,12 @@ contract EthAssetPool {
         wethAssetPool = _wethAssetPool;
     }
 
+    /// @notice Accepts plain Ether transfers (i.e. sent using send() or
+    ///         transfer())
+    /// @dev Needed for accepting Ether sent from the WETH contract when
+    ///      withdrawing
+    receive() external payable {}
+
     /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
     ///         and mints underwriter tokens representing pool's ownership.
     function deposit() external payable {
@@ -73,9 +79,9 @@ contract EthAssetPool {
             covAmount
         );
         wethAssetPool.withdraw(covAmount);
-        weth.withdraw(covAmount);
-        //TODO: Using transfer is not recommended, replace with call and guards
-        // against reentrancy attack
-        msg.sender.transfer(covAmount);
+        uint256 withdrawAmount = weth.balanceOf(address(this));
+        weth.withdraw(withdrawAmount);
+        // TODO: Using transfer is not recommended, replace with call
+        msg.sender.transfer(address(this).balance);
     }
 }

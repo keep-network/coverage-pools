@@ -158,6 +158,33 @@ describe("EthAssetPool", () => {
   })
 
   describe("withdraw", () => {
-    // TODO: implement
+    const precisionEthBalance = ethers.BigNumber.from("1000000000000000") // 0.001
+
+    context("when withdrawing ETH without aproving", () => {
+
+    })
+
+    context("when withdrawing entire deposited ETH amount", () => {
+      const amount = to1e18(120)
+
+      beforeEach(async () => {
+        await ethAssetPool.connect(underwriter1).deposit({ value: amount })
+        await underwriterToken
+          .connect(underwriter1)
+          .approve(ethAssetPool.address, amount)
+        })
+
+      it("should burn underwriter tokens", async () => {
+        const balanceBefore = await ethers.provider.getBalance(underwriter1.address);
+        await ethAssetPool.connect(underwriter1).withdraw(amount)
+
+        const balanceAfter = await ethers.provider.getBalance(underwriter1.address);
+        expect(balanceAfter).to.be.closeTo(balanceBefore.add(amount), precisionEthBalance);
+
+        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
+          0
+        )
+      })
+    })
   })
 })
