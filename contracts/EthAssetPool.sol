@@ -51,6 +51,7 @@ contract EthAssetPool {
     function deposit() external payable {
         require(msg.value > 0, "No ether sent to deposit");
         weth.deposit{value: msg.value}();
+        //slither-disable-next-line unused-return
         weth.approve(address(wethAssetPool), msg.value);
         wethAssetPool.deposit(msg.value);
         uint256 transferAmount =
@@ -80,6 +81,7 @@ contract EthAssetPool {
             address(this),
             covAmount
         );
+        //slither-disable-next-line unused-return
         wethAssetPool.underwriterToken().approve(
             address(wethAssetPool),
             covAmount
