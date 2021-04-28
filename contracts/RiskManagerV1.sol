@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 {
+contract RiskManagerV1 is IRiskManager {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -21,6 +21,8 @@ contract RiskManagerV1 {
 
     // deposit in liquidation address => coverage pool auction address
     mapping(address => address) public auctionsByDepositsInLiquidation;
+    // auctions => deposits
+    mapping(address => address) public depositsInLiquidationByAuctions;
 
     event NotifiedLiquidated(address indexed notifier, address deposit);
     event NotifiedLiquidation(address indexed notifier, address deposit);
@@ -29,6 +31,9 @@ contract RiskManagerV1 {
         tbtcToken = _token;
         auctioneer = Auctioneer(_auctioneer);
     }
+
+    /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
+    receive() external payable {}
 
     /// @notice Closes an auction early.
     /// @param  depositAddress tBTC Deposit address
@@ -45,6 +50,7 @@ contract RiskManagerV1 {
         auctioneer.earlyCloseAuction(auction);
 
         delete auctionsByDepositsInLiquidation[depositAddress];
+        delete depositsInLiquidationByAuctions[address(auction)];
     }
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
@@ -67,12 +73,21 @@ contract RiskManagerV1 {
         emit NotifiedLiquidation(msg.sender, depositAddress);
 
         address auctionAddress =
-            auctioneer.createAuction(
-                tbtcToken,
-                lotSizeTbtc,
-                auctionLength,
-                deposit
-            );
+            auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
+        depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
+    }
+
+    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
+    ///      for the coverage pool auction should be transferred to this contract.
+    /// @param auction Coverage pool auction.
+    function collectCollateral(Auction auction) external override {
+        IDeposit deposit =
+            IDeposit(depositsInLiquidationByAuctions[address(auction)]);
+        // Buy signers bonds ETH with TBTC acquired from the auction (msg.sender)
+        deposit.purchaseSignerBondsAtAuction();
+
+        // ETH will be withdrawn to this contract
+        deposit.withdrawFunds();
     }
 }

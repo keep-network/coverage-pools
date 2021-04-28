@@ -5,9 +5,11 @@ pragma solidity <0.9.0;
 import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CollateralPool.sol";
+import "./interfaces/IRiskManager.sol";
 import {IDeposit} from "./external/Tbtc.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 // TODO auctioneer should be able to speed up auctions based on exit market activity
 
@@ -18,11 +20,15 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory, Ownable {
+    using SafeERC20 for IERC20;
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
     // auction address => tbtc deposit address
-    mapping(address => IDeposit) public openAuctions;
+    mapping(address => bool) public openAuctions;
+
+    // auction address => risk manager (V1 or V2 or V-any)
+    mapping(address => address) public riskManagersByAuctions;
 
     CollateralPool public collateralPool;
 
@@ -39,9 +45,6 @@ contract Auctioneer is CloneFactory, Ownable {
         uint256 portionToSeize // This amount should be divided by FLOATING_POINT_DIVISOR
     );
     event AuctionClosed(address indexed auction);
-
-    /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
-    receive() external payable {}
 
     /// @dev Initialize the auctioneer
     /// @param _collateralPool The address of the master deposit contract.
@@ -73,10 +76,7 @@ contract Auctioneer is CloneFactory, Ownable {
         uint256 tokenAmountPaid,
         uint256 portionToSeize
     ) external {
-        require(
-            address(openAuctions[msg.sender]) != address(0),
-            "Sender isn't an auction"
-        );
+        require(openAuctions[msg.sender], "Sender isn't an auction");
 
         emit AuctionOfferTaken(
             msg.sender,
@@ -98,9 +98,16 @@ contract Auctioneer is CloneFactory, Ownable {
 
         if (!auction.isOpen()) {
             emit AuctionClosed(msg.sender);
+
+            uint256 amount = 42; // TODO: get amount in TBTC for the paid auction (amountDesired)
+            tokenPaid.safeTransfer(riskManagersByAuctions[msg.sender], amount);
+
+            IRiskManager riskManager =
+                IRiskManager(riskManagersByAuctions[msg.sender]);
             // collect tbtc signer bonds when the auction is paid out
-            collectTbtcSignerBonds(openAuctions[msg.sender]);
+            riskManager.collectCollateral(auction);
             delete openAuctions[msg.sender];
+            delete riskManagersByAuctions[msg.sender];
         }
     }
 
@@ -115,8 +122,7 @@ contract Auctioneer is CloneFactory, Ownable {
     function createAuction(
         IERC20 tokenAccepted,
         uint256 amountDesired,
-        uint256 auctionLength,
-        IDeposit deposit
+        uint256 auctionLength
     ) external onlyOwner returns (address) {
         address cloneAddress = createClone(masterAuction);
 
@@ -129,7 +135,8 @@ contract Auctioneer is CloneFactory, Ownable {
             auctionLength
         );
 
-        openAuctions[cloneAddress] = deposit;
+        openAuctions[cloneAddress] = true;
+        riskManagersByAuctions[cloneAddress] = msg.sender; // auction => riskManager
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -146,10 +153,7 @@ contract Auctioneer is CloneFactory, Ownable {
     function earlyCloseAuction(Auction auction) external onlyOwner {
         address auctionAddress = address(auction);
 
-        require(
-            address(openAuctions[auctionAddress]) != address(0),
-            "Address is not an open auction"
-        );
+        require(openAuctions[auctionAddress], "Address is not an open auction");
 
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         auction.earlyClose();
@@ -158,16 +162,5 @@ contract Auctioneer is CloneFactory, Ownable {
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
-    }
-
-    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
-    ///      for the coverage pool auction should be transferred to this contract.
-    /// @param deposit Tbtc deposit.
-    function collectTbtcSignerBonds(IDeposit deposit) internal {
-        // Buy signers bonds ETH with TBTC acquired from the auction (msg.sender)
-        deposit.purchaseSignerBondsAtAuction();
-
-        // ETH will be withdrawn to this contract
-        deposit.withdrawFunds();
     }
 }
