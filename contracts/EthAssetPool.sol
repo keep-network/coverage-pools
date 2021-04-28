@@ -8,6 +8,9 @@ import "./UnderwriterToken.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/* NOTE: Depositing ETH should be done by calling deposit().
+         Do not use plain ETH transfers. */
+
 /// @title IWETH
 /// @notice Represents functionality allowing for depositing, withdrawing and
 ///         managing WETH (Wrapped ETH). WETH tokens conform to the ERC20
@@ -39,7 +42,8 @@ contract EthAssetPool {
     /// @notice Accepts plain Ether transfers (i.e. sent using send() or
     ///         transfer())
     /// @dev Needed for accepting Ether sent from the WETH contract when
-    ///      withdrawing
+    ///      withdrawing. Do not use plain Ether transfers to deposit, send
+    //       Ether through the deposit function instead.
     receive() external payable {}
 
     /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
