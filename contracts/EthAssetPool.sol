@@ -8,8 +8,8 @@ import "./UnderwriterToken.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/* NOTE: Depositing ETH should be done by calling deposit().
-         Do not use plain ETH transfers. */
+/* NOTE: Depositing ETH should only be done by calling deposit().
+         DO NOT USE PLAIN ETH TRANSFERS */
 
 /// @title IWETH
 /// @notice Represents functionality allowing for depositing, withdrawing and
@@ -27,8 +27,6 @@ interface IWETH is IERC20 {
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
 ///         coverage-pools.
 contract EthAssetPool {
-    // TODO: Think about a solution for a scenario when user sends Ether
-    // directly to EthAssetPool contract (without calling deposit)
     using SafeERC20 for UnderwriterToken;
 
     IWETH public weth;
