@@ -7,23 +7,26 @@ import "./UnderwriterToken.sol";
 
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title IWETH
+/// @notice Represents functionality allowing for depositing, withdrawing and
+///         managing WETH (Wrapped ETH). WETH tokens conform to the ERC20
+///         standard and always exchange with ETH at a 1:1 ratio.
 interface IWETH is IERC20 {
+    /// @notice Accepts ETH and creates WETH tokens for the caller.
     function deposit() external payable;
 
+    /// @notice Withdraws deposited WETH tokens and sends ETH to the caller.
     function withdraw(uint256 amount) external;
 }
 
 /// @title EthAssetPool
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
-///         coverage-pools
+///         coverage-pools.
 contract EthAssetPool {
     // TODO: Think about a solution for a scenario when user sends Ether
     // directly to EthAssetPool contract (without calling deposit)
-    using SafeERC20 for IERC20;
     using SafeERC20 for UnderwriterToken;
-    using SafeMath for uint256;
 
     IWETH public weth;
     AssetPool public wethAssetPool;
