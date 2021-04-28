@@ -206,7 +206,7 @@ describe("RewardsPoolStaking", () => {
     await coveragePoolConstants.deployed()
 
     const RewardsPoolStaking = await ethers.getContractFactory(
-      "RewardsPoolStaking",
+      "RewardsPoolStakingStub",
       {
         libraries: {
           CoveragePoolConstants: coveragePoolConstants.address,
@@ -219,6 +219,11 @@ describe("RewardsPoolStaking", () => {
       rewardsPool.address,
       underwriterToken.address
     )
+
+    // Set reward rate to `1`. This is needed because a manually created
+    // RewardPoolStaking contract has a zero reward rate. Setting it to
+    // `1` is needed to obtain non-zero earnings.
+    await rewardsPoolStaking.connect(rewardsPool).setRewardRate(1)
 
     const createUnderwriterWithTokens = async (index) => {
       const underwriter = await ethers.getSigner(index)
@@ -255,17 +260,33 @@ describe("RewardsPoolStaking", () => {
       let tx
 
       beforeEach(async () => {
-        tx = await rewardsPoolStaking.connect(rewardsPool).setRewardRate(1234)
+        tx = await rewardsPoolStaking.connect(rewardsPool).setRewardRate(2)
       })
 
       it("should update rewards rate", async () => {
-        expect(await rewardsPoolStaking.rewardRate()).to.be.equal(1234)
+        expect(await rewardsPoolStaking.rewardRate()).to.be.equal(2)
+      })
+
+      it("should update reward per token accumulated", async () => {
+        // Stake is needed to obtain a non-zero rewardPerTokenAccumulated amount.
+        await rewardsPoolStaking.connect(underwriter1).stake(to1e18(1))
+
+        const previousAccumulated = await rewardsPoolStaking.getRewardPerTokenAccumulated()
+        const previousUpdate = await rewardsPoolStaking.getLastUpdateTime()
+
+        await rewardsPoolStaking.connect(rewardsPool).setRewardRate(3)
+
+        const currentAccumulated = await rewardsPoolStaking.getRewardPerTokenAccumulated()
+        const currentUpdate = await rewardsPoolStaking.getLastUpdateTime()
+
+        expect(currentAccumulated.gt(previousAccumulated)).to.be.true
+        expect(currentUpdate.gt(previousUpdate)).to.be.true
       })
 
       it("should emit RewardRateUpdated event", async () => {
         await expect(tx)
           .to.emit(rewardsPoolStaking, "RewardRateUpdated")
-          .withArgs(1234)
+          .withArgs(2)
       })
     })
 
