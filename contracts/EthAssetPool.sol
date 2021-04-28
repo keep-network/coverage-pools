@@ -46,7 +46,6 @@ contract EthAssetPool {
         weth.deposit{value: msg.value}();
         weth.approve(address(wethAssetPool), msg.value);
         wethAssetPool.deposit(msg.value);
-        //TODO: Check if the amount of Underwriter tokens is correct
         uint256 transferAmount =
             wethAssetPool.underwriterToken().balanceOf(address(this));
         wethAssetPool.underwriterToken().safeTransfer(
