@@ -87,8 +87,10 @@ contract EthAssetPool {
         wethAssetPool.withdraw(covAmount);
         uint256 withdrawAmount = weth.balanceOf(address(this));
         weth.withdraw(withdrawAmount);
-        /* solhint-disable-next-line avoid-low-level-calls */
+        /* solhint-disable avoid-low-level-calls */
+        // slither-disable-next-line low-level-calls
         (bool success, ) = msg.sender.call{value: address(this).balance}("");
         require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
     }
 }
