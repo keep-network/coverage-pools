@@ -88,6 +88,7 @@ contract EthAssetPool {
         uint256 withdrawAmount = weth.balanceOf(address(this));
         weth.withdraw(withdrawAmount);
         // TODO: Using transfer is not recommended, replace with call
+        //slither-disable-next-line arbitrary-send
         msg.sender.transfer(address(this).balance);
     }
 }
