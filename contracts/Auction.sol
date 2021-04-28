@@ -146,7 +146,6 @@ contract Auction is IAuction {
     function takeOffer(uint256 amount) public override {
         // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
-
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 amountOnOffer = _onOffer();
 

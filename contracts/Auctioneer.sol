@@ -6,7 +6,6 @@ import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CollateralPool.sol";
 import "./interfaces/IRiskManager.sol";
-import {IDeposit} from "./external/Tbtc.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
