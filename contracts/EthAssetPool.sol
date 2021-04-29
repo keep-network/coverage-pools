@@ -8,9 +8,6 @@ import "./UnderwriterToken.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/* NOTE: Depositing ETH should only be done by calling deposit().
-         DO NOT USE PLAIN ETH TRANSFERS */
-
 /// @title IWETH
 /// @notice Represents functionality allowing for depositing, withdrawing and
 ///         managing WETH (Wrapped ETH). WETH tokens conform to the ERC20
