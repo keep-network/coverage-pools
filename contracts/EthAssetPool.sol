@@ -42,11 +42,13 @@ contract EthAssetPool {
     }
 
     /// @notice Accepts plain Ether transfers (i.e. sent using send() or
-    ///         transfer())
+    ///         transfer()), but only from the WETH contract
     /// @dev Needed for accepting Ether sent from the WETH contract when
     ///      withdrawing. Do not use plain Ether transfers to deposit, send
     //       Ether through the deposit function instead.
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender == address(weth), "Plain ETH transfers not allowed");
+    }
 
     /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
     ///         and mints underwriter tokens representing pool's ownership.
