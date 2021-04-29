@@ -8,6 +8,7 @@ const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
+const auctionLength = 86400 // 24h
 
 describe("RiskManagerV1", () => {
   let testToken
@@ -29,7 +30,8 @@ describe("RiskManagerV1", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
-      auctioneer.address
+      auctioneer.address,
+      auctionLength
     )
     await riskManagerV1.deployed()
 
