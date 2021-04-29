@@ -114,8 +114,8 @@ contract RewardsPoolStaking {
     }
 
     function setRewardRate(uint256 _rewardRate) external onlyRewardsPool {
-        rewardRate = _rewardRate;
         updateReward(address(0));
+        rewardRate = _rewardRate;
         emit RewardRateUpdated(rewardRate);
     }
 
