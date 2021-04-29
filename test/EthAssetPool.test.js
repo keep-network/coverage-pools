@@ -136,19 +136,21 @@ describe("EthAssetPool", () => {
 
     context("when withdrawing entire deposited Ether amount", () => {
       const amount = to1e18(120)
+      let tx
 
       beforeEach(async () => {
         await ethAssetPool.connect(underwriter1).deposit({ value: amount })
         await underwriterToken
           .connect(underwriter1)
           .approve(ethAssetPool.address, amount)
+        tx = await ethAssetPool.connect(underwriter1).withdraw(amount)
+      })
+
+      it("should transfer Ether to the underwriter", async () => {
+        await expect(tx).to.changeEtherBalance(underwriter1, amount)
       })
 
       it("should burn underwriter tokens", async () => {
-        await expect(
-          await ethAssetPool.connect(underwriter1).withdraw(amount)
-        ).to.changeEtherBalance(underwriter1, amount)
-
         expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
           0
         )
@@ -157,19 +159,21 @@ describe("EthAssetPool", () => {
 
     context("when withdrawing some deposited Ether amount", () => {
       const amount = to1e18(120)
+      let tx
 
       beforeEach(async () => {
         await ethAssetPool.connect(underwriter1).deposit({ value: amount })
         await underwriterToken
           .connect(underwriter1)
           .approve(ethAssetPool.address, amount)
+        tx = await ethAssetPool.connect(underwriter1).withdraw(to1e18(30))
+      })
+
+      it("should transfer Ether to the underwriter", async () => {
+        await expect(tx).to.changeEtherBalance(underwriter1, to1e18(30))
       })
 
       it("should burn underwriter tokens", async () => {
-        await expect(
-          await ethAssetPool.connect(underwriter1).withdraw(to1e18(30))
-        ).to.changeEtherBalance(underwriter1, to1e18(30))
-
         expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
           to1e18(90)
         )
