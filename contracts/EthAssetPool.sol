@@ -71,8 +71,7 @@ contract EthAssetPool {
         underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
         underwriterToken.safeApprove(address(wethAssetPool), covAmount);
         wethAssetPool.withdraw(covAmount);
-        uint256 withdrawAmount = weth.balanceOf(address(this));
-        weth.withdraw(withdrawAmount);
+        weth.withdraw(weth.balanceOf(address(this)));
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls,arbitrary-send
         (bool success, ) = msg.sender.call{value: address(this).balance}("");
