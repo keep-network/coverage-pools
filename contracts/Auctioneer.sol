@@ -5,7 +5,6 @@ pragma solidity <0.9.0;
 import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CollateralPool.sol";
-import "./interfaces/IRiskManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -25,9 +24,6 @@ contract Auctioneer is CloneFactory, Ownable {
     address public masterAuction;
     // auction address => tbtc deposit address
     mapping(address => bool) public openAuctions;
-
-    // auction address => risk manager (V1 or V2 or V-any)
-    mapping(address => address) public riskManagersByAuctions;
 
     CollateralPool public collateralPool;
 
@@ -96,17 +92,10 @@ contract Auctioneer is CloneFactory, Ownable {
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
+            actBeforeAuctionClose(auction);
+
             emit AuctionClosed(msg.sender);
-
-            uint256 amount = 42; // TODO: get amount in TBTC for the paid auction (amountDesired)
-            tokenPaid.safeTransfer(riskManagersByAuctions[msg.sender], amount);
-
-            IRiskManager riskManager =
-                IRiskManager(riskManagersByAuctions[msg.sender]);
-            // collect tbtc signer bonds when the auction is paid out
-            riskManager.collectCollateral(auction);
             delete openAuctions[msg.sender];
-            delete riskManagersByAuctions[msg.sender];
         }
     }
 
@@ -135,7 +124,6 @@ contract Auctioneer is CloneFactory, Ownable {
         );
 
         openAuctions[cloneAddress] = true;
-        riskManagersByAuctions[cloneAddress] = msg.sender; // auction => riskManager
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -162,4 +150,6 @@ contract Auctioneer is CloneFactory, Ownable {
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
     }
+
+    function actBeforeAuctionClose(Auction auction) public virtual {}
 }

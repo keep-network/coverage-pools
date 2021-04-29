@@ -11,7 +11,7 @@ const {
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
-const IDeposit = require("../artifacts/contracts/external/Tbtc.sol/IDeposit.json")
+const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
 const { BigNumber } = ethers
 
 // amount of test tokens that an auction (aka spender) is allowed
@@ -36,15 +36,10 @@ describe("Auction", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const DepositStates = await ethers.getContractFactory("DepositStates")
-    const depositStates = await DepositStates.deploy()
-    await depositStates.deployed()
-
     const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
-        DepositStates: depositStates.address,
       },
     })
     const CollateralPool = await ethers.getContractFactory("CollateralPool")
@@ -113,8 +108,7 @@ describe("Auction", () => {
           auctioneer.createAuction(
             testToken.address,
             auctionAmountDesired,
-            auctionLength,
-            mockIDeposit.address
+            auctionLength
           )
         ).to.be.revertedWith("Amount desired must be greater than zero")
       })
@@ -324,7 +318,7 @@ describe("Auction", () => {
         // another bidder is trying to take offer on a closed auction
         await expect(
           auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Auction was deleted")
+        ).to.be.revertedWith("Address: call to non-contract")
       })
     })
 
@@ -580,7 +574,7 @@ describe("Auction", () => {
 
         await expect(
           auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Auction was deleted")
+        ).to.be.revertedWith("Address: call to non-contract")
       })
     })
   })
@@ -642,8 +636,7 @@ describe("Auction", () => {
     const createAuctionTx = await auctioneer.createAuction(
       testToken.address,
       auctionAmountDesired,
-      auctionLength,
-      mockIDeposit.address
+      auctionLength
     )
 
     const receipt = await createAuctionTx.wait()
