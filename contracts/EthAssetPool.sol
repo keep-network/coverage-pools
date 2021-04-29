@@ -28,6 +28,7 @@ interface IWETH is IERC20 {
 ///         coverage-pools.
 contract EthAssetPool {
     using SafeERC20 for UnderwriterToken;
+    using SafeERC20 for IWETH;
 
     IWETH public weth;
     AssetPool public wethAssetPool;
@@ -49,8 +50,7 @@ contract EthAssetPool {
     function deposit() external payable {
         require(msg.value > 0, "No ether sent to deposit");
         weth.deposit{value: msg.value}();
-        //slither-disable-next-line unused-return
-        weth.approve(address(wethAssetPool), msg.value);
+        weth.safeApprove(address(wethAssetPool), msg.value);
         wethAssetPool.deposit(msg.value);
         uint256 transferAmount =
             wethAssetPool.underwriterToken().balanceOf(address(this));
@@ -79,8 +79,7 @@ contract EthAssetPool {
             address(this),
             covAmount
         );
-        //slither-disable-next-line unused-return
-        wethAssetPool.underwriterToken().approve(
+        wethAssetPool.underwriterToken().safeApprove(
             address(wethAssetPool),
             covAmount
         );
