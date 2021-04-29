@@ -7,6 +7,7 @@ Solidity and a few linter adjustments */
 
 pragma solidity 0.7.6;
 
+/* solhint-disable reason-string */
 contract WETH9 {
     string public name = "Wrapped Ether";
     string public symbol = "WETH";
@@ -30,7 +31,7 @@ contract WETH9 {
     }
 
     function withdraw(uint256 wad) public {
-        require(balanceOf[msg.sender] >= wad, "Not enough WETH tokens");
+        require(balanceOf[msg.sender] >= wad);
         balanceOf[msg.sender] -= wad;
         msg.sender.transfer(wad);
         emit Withdrawal(msg.sender, wad);
@@ -51,13 +52,10 @@ contract WETH9 {
         address dst,
         uint256 wad
     ) public returns (bool) {
-        require(balanceOf[src] >= wad, "Not enough WETH tokens");
+        require(balanceOf[src] >= wad);
 
         if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
-            require(
-                allowance[src][msg.sender] >= wad,
-                "Not enough WETH tokens approved"
-            );
+            require(allowance[src][msg.sender] >= wad);
             allowance[src][msg.sender] -= wad;
         }
 
