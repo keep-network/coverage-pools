@@ -68,10 +68,6 @@ contract EthAssetPool {
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the eth asset pool.
     function withdraw(uint256 covAmount) external {
-        require(
-            underwriterToken.allowance(msg.sender, address(this)) >= covAmount,
-            "Not enough Underwriter tokens approved"
-        );
         underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
         underwriterToken.safeApprove(address(wethAssetPool), covAmount);
         wethAssetPool.withdraw(covAmount);

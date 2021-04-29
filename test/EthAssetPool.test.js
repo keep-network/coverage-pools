@@ -174,7 +174,7 @@ describe("EthAssetPool", () => {
       it("should revert", async () => {
         await expect(
           ethAssetPool.connect(underwriter1).withdraw(amount)
-        ).to.be.revertedWith("Not enough Underwriter tokens approved")
+        ).to.be.revertedWith("Transfer amount exceeds allowance")
       })
     })
 
