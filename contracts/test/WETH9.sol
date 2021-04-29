@@ -3,7 +3,7 @@
 /* This is a copy of the WETH contract deployed at
 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2, but with fallback function replaced
 with receive() function, so that the contract can compile with newer versions of
-Solidity */
+Solidity and a few linter adjustments */
 
 pragma solidity 0.7.6;
 
