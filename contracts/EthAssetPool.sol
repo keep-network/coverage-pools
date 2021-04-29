@@ -27,15 +27,17 @@ interface IWETH is IERC20 {
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
 ///         coverage-pools.
 contract EthAssetPool {
-    using SafeERC20 for UnderwriterToken;
+    using SafeERC20 for IUnderwriterToken;
     using SafeERC20 for IWETH;
 
     IWETH public weth;
     AssetPool public wethAssetPool;
+    IUnderwriterToken public underwriterToken;
 
     constructor(IWETH _weth, AssetPool _wethAssetPool) {
         weth = _weth;
         wethAssetPool = _wethAssetPool;
+        underwriterToken = _wethAssetPool.underwriterToken();
     }
 
     /// @notice Accepts plain Ether transfers (i.e. sent using send() or
@@ -52,11 +54,9 @@ contract EthAssetPool {
         weth.deposit{value: msg.value}();
         weth.safeApprove(address(wethAssetPool), msg.value);
         wethAssetPool.deposit(msg.value);
-        uint256 transferAmount =
-            wethAssetPool.underwriterToken().balanceOf(address(this));
-        wethAssetPool.underwriterToken().safeTransfer(
+        underwriterToken.safeTransfer(
             msg.sender,
-            transferAmount
+            underwriterToken.balanceOf(address(this))
         );
     }
 
@@ -68,21 +68,11 @@ contract EthAssetPool {
     ///      required amount accepted to transfer to the eth asset pool.
     function withdraw(uint256 covAmount) external {
         require(
-            wethAssetPool.underwriterToken().allowance(
-                msg.sender,
-                address(this)
-            ) >= covAmount,
+            underwriterToken.allowance(msg.sender, address(this)) >= covAmount,
             "Not enough Underwriter tokens approved"
         );
-        wethAssetPool.underwriterToken().safeTransferFrom(
-            msg.sender,
-            address(this),
-            covAmount
-        );
-        wethAssetPool.underwriterToken().safeApprove(
-            address(wethAssetPool),
-            covAmount
-        );
+        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
+        underwriterToken.safeApprove(address(wethAssetPool), covAmount);
         wethAssetPool.withdraw(covAmount);
         uint256 withdrawAmount = weth.balanceOf(address(this));
         weth.withdraw(withdrawAmount);
