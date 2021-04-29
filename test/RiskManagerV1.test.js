@@ -53,17 +53,19 @@ describe("RiskManagerV1", () => {
     })
 
     context("when deposit is in liquidation state", () => {
-      it("should emit NotifiedLiquidation event", async () => {
-        const tx = await notifyLiquidation()
+      let notifyLiquidationTx
 
-        await expect(tx)
+      beforeEach(async () => {
+        notifyLiquidationTx = await notifyLiquidation()
+      })
+
+      it("should emit NotifiedLiquidation event", async () => {
+        await expect(notifyLiquidationTx)
           .to.emit(riskManagerV1, "NotifiedLiquidation")
           .withArgs(mockIDeposit.address, notifier.address)
       })
 
       it("should create an auction and populate auction's map", async () => {
-        await notifyLiquidation()
-
         const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
           mockIDeposit.address
         )
@@ -87,18 +89,11 @@ describe("RiskManagerV1", () => {
 
     context("when deposit is in liquidated state", () => {
       beforeEach(async () => {
-        await mockIDeposit.mock.currentState.returns(
-          depositLiquidationInProgressState
-        )
-        await mockIDeposit.mock.lotSizeTbtc.returns(to1e18(1))
-        await riskManagerV1
-          .connect(notifier)
-          .notifyLiquidation(mockIDeposit.address)
+        await notifyLiquidation()
+        await mockIDeposit.mock.currentState.returns(depositLiquidatedState)
       })
 
       it("should emit notified liquidated event", async () => {
-        await mockIDeposit.mock.currentState.returns(depositLiquidatedState)
-
         await expect(
           riskManagerV1.connect(notifier).notifyLiquidated(mockIDeposit.address)
         )
@@ -107,8 +102,6 @@ describe("RiskManagerV1", () => {
       })
 
       it("should early close an auction", async () => {
-        await mockIDeposit.mock.currentState.returns(depositLiquidatedState)
-
         const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
           mockIDeposit.address
         )
