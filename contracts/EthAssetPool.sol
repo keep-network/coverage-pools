@@ -25,7 +25,8 @@ interface IWETH is IERC20 {
 
 /// @title EthAssetPool
 /// @notice EthAssetPool wraps AssetPool to allow ETH to be used in
-///         coverage-pools.
+///         coverage-pools. ETH is wrapped into WETH when depositing and WETH is
+///         unwrapped into ETH when withdrawing.
 contract EthAssetPool {
     using SafeERC20 for IUnderwriterToken;
     using SafeERC20 for IWETH;
@@ -50,7 +51,7 @@ contract EthAssetPool {
     /// @notice Accepts the amount of ETH sent as a deposit, wraps it in WETH
     ///         and mints underwriter tokens representing pool's ownership.
     function deposit() external payable {
-        require(msg.value > 0, "No ether sent to deposit");
+        require(msg.value > 0, "No Ether sent to deposit");
         weth.deposit{value: msg.value}();
         weth.safeApprove(address(wethAssetPool), msg.value);
         wethAssetPool.deposit(msg.value);

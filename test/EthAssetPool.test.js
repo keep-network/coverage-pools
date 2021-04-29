@@ -59,7 +59,7 @@ describe("EthAssetPool", () => {
       it("should revert", async () => {
         await expect(
           ethAssetPool.connect(underwriter1).deposit({ value: 0 })
-        ).to.be.revertedWith("No ether sent to deposit")
+        ).to.be.revertedWith("No Ether sent to deposit")
       })
     })
 
