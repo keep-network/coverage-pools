@@ -85,11 +85,11 @@ contract RiskManagerV1 {
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
 
-        delete auctionsByDepositsInLiquidation[depositAddress];
-
         Auction auction =
             Auction(auctionsByDepositsInLiquidation[depositAddress]);
         auctioneer.earlyCloseAuction(auction);
+        //slither-disable-next-line reentrancy-no-eth
+        delete auctionsByDepositsInLiquidation[depositAddress];
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
