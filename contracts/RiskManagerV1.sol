@@ -85,6 +85,10 @@ contract RiskManagerV1 {
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
 
+        // TODO: In case of an auction early close, we might end up having
+        //       TBTC hanging in this contract. Need to decide what to do with
+        //       these tokens.
+
         Auction auction =
             Auction(auctionsByDepositsInLiquidation[depositAddress]);
         auctioneer.earlyCloseAuction(auction);
