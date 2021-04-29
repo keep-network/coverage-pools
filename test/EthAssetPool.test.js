@@ -194,4 +194,17 @@ describe("EthAssetPool", () => {
       })
     })
   })
+
+  describe("receive", () => {
+    context("when sending Ether directly to the contract", () => {
+      it("should revert", async () => {
+        await expect(
+          underwriter1.sendTransaction({
+            to: ethAssetPool.address,
+            value: to1e18(100),
+          })
+        ).to.be.revertedWith("Plain ETH transfers not allowed")
+      })
+    })
+  })
 })
