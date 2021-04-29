@@ -12,7 +12,7 @@ const depositLiquidatedState = 11
 describe("RiskManagerV1", () => {
   let testToken
   let owner
-  let account1
+  let notifier
   let auctioneer
   let riskManagerV1
   let mockIDeposit
@@ -36,7 +36,7 @@ describe("RiskManagerV1", () => {
     await auctioneer.transferOwnership(riskManagerV1.address)
 
     owner = await ethers.getSigner(0)
-    account1 = await ethers.getSigner(1)
+    notifier = await ethers.getSigner(1)
 
     mockIDeposit = await deployMockContract(owner, IDeposit.abi)
   })
@@ -58,7 +58,7 @@ describe("RiskManagerV1", () => {
 
         await expect(tx)
           .to.emit(riskManagerV1, "NotifiedLiquidation")
-          .withArgs(account1.address, mockIDeposit.address)
+          .withArgs(mockIDeposit.address, notifier.address)
       })
 
       it("should create an auction and populate auction's map", async () => {
@@ -86,21 +86,27 @@ describe("RiskManagerV1", () => {
     })
 
     context("when deposit is in liquidated state", () => {
-      it("should emit notified liquidated event", async () => {
-        await notifyLiquidation()
+      beforeEach(async () => {
+        await mockIDeposit.mock.currentState.returns(
+          depositLiquidationInProgressState
+        )
+        await mockIDeposit.mock.lotSizeTbtc.returns(to1e18(1))
+        await riskManagerV1
+          .connect(notifier)
+          .notifyLiquidation(mockIDeposit.address)
+      })
 
+      it("should emit notified liquidated event", async () => {
         await mockIDeposit.mock.currentState.returns(depositLiquidatedState)
 
         await expect(
-          riskManagerV1.connect(account1).notifyLiquidated(mockIDeposit.address)
+          riskManagerV1.connect(notifier).notifyLiquidated(mockIDeposit.address)
         )
           .to.emit(riskManagerV1, "NotifiedLiquidated")
-          .withArgs(account1.address, mockIDeposit.address)
+          .withArgs(mockIDeposit.address, notifier.address)
       })
 
       it("should early close an auction", async () => {
-        await notifyLiquidation()
-
         await mockIDeposit.mock.currentState.returns(depositLiquidatedState)
 
         const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
@@ -108,7 +114,7 @@ describe("RiskManagerV1", () => {
         )
 
         await riskManagerV1
-          .connect(account1)
+          .connect(notifier)
           .notifyLiquidated(mockIDeposit.address)
 
         expect(
@@ -127,7 +133,7 @@ describe("RiskManagerV1", () => {
     )
     await mockIDeposit.mock.lotSizeTbtc.returns(to1e18(1))
     const tx = await riskManagerV1
-      .connect(account1)
+      .connect(notifier)
       .notifyLiquidation(mockIDeposit.address)
     return tx
   }
