@@ -43,6 +43,8 @@ contract RiskManagerV1 {
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
+    //
+    //slither-disable-next-line locked-ether
     receive() external payable {}
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
@@ -69,6 +71,7 @@ contract RiskManagerV1 {
 
         address auctionAddress =
             auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+        //slither-disable-next-line reentrancy-benign
         auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
     }
 
@@ -82,11 +85,11 @@ contract RiskManagerV1 {
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
 
+        delete auctionsByDepositsInLiquidation[depositAddress];
+
         Auction auction =
             Auction(auctionsByDepositsInLiquidation[depositAddress]);
         auctioneer.earlyCloseAuction(auction);
-
-        delete auctionsByDepositsInLiquidation[depositAddress];
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
@@ -95,6 +98,8 @@ contract RiskManagerV1 {
     function collectTbtcSignerBonds(IDeposit deposit) external {
         deposit.purchaseSignerBondsAtAuction();
 
+        // TODO: Once receiving ETH, funds need to be processes further, so
+        //       they won't be locked in this contract.
         deposit.withdrawFunds();
     }
 }
