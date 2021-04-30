@@ -99,16 +99,23 @@ describe("EthAssetPool", () => {
         await ethAssetPool
           .connect(underwriter2)
           .deposit({ value: depositedUnderwriter2 })
-      })
-
-      it("should mint underwriter tokens", async () => {
         await ethAssetPool
           .connect(underwriter1)
           .deposit({ value: depositedUnderwriter1 })
         await ethAssetPool
           .connect(underwriter2)
           .deposit({ value: depositedUnderwriter2 })
+      })
 
+      it("should transfer deposited amount of WETH to the pool", async () => {
+        expect(await wethToken.balanceOf(wethAssetPool.address)).to.equal(
+          to1e18(340)
+        )
+        expect(await wethToken.balanceOf(underwriter1.address)).to.equal(0)
+        expect(await wethToken.balanceOf(underwriter2.address)).to.equal(0)
+      })
+
+      it("should mint underwriter tokens", async () => {
         expect(
           await underwriterToken.balanceOf(underwriter1.address)
         ).to.be.equal(to1e18(200)) // 100 + 100 = 200
