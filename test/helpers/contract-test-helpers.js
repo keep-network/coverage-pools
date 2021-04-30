@@ -28,7 +28,8 @@ function pastEvents(receipt, contract, eventName) {
 }
 
 async function increaseTime(time) {
-  await ethers.provider.send("evm_increaseTime", [time])
+  const now = (await ethers.provider.getBlock("latest")).timestamp
+  await ethers.provider.send("evm_setNextBlockTimestamp", [now + time])
   await ethers.provider.send("evm_mine")
 }
 
