@@ -114,6 +114,7 @@ contract RewardsPoolStaking {
     }
 
     function setRewardRate(uint256 _rewardRate) external onlyRewardsPool {
+        updateReward(address(0));
         rewardRate = _rewardRate;
         emit RewardRateUpdated(rewardRate);
     }
@@ -163,7 +164,7 @@ contract RewardsPoolStaking {
                 block
                     .timestamp
                     .sub(lastUpdateTime)
-                    .mul(MINTING_RATE)
+                    .mul(MINTING_RATE.mul(rewardRate))
                     .mul(CoveragePoolConstants.getFloatingPointDivisor())
                     .div(totalStaked)
             );

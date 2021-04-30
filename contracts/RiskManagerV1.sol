@@ -33,8 +33,8 @@ contract RiskManagerV1 is Auctioneer {
     // auctions => deposits
     mapping(address => address) public depositsInLiquidationByAuctions;
 
-    event NotifiedLiquidated(address indexed notifier, address deposit);
-    event NotifiedLiquidation(address indexed notifier, address deposit);
+    event NotifiedLiquidated(address indexed deposit, address notifier);
+    event NotifiedLiquidation(address indexed deposit, address notifier);
 
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
@@ -45,25 +45,9 @@ contract RiskManagerV1 is Auctioneer {
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
+    //
+    //slither-disable-next-line locked-ether
     receive() external payable {}
-
-    /// @notice Closes an auction early.
-    /// @param  depositAddress tBTC Deposit address
-    function notifyLiquidated(address depositAddress) external {
-        IDeposit deposit = IDeposit(depositAddress);
-        require(
-            deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
-            "Deposit is not in liquidated state"
-        );
-        emit NotifiedLiquidated(msg.sender, depositAddress);
-
-        Auction auction =
-            Auction(auctionsByDepositsInLiquidation[depositAddress]);
-        auctioneer.earlyCloseAuction(auction);
-
-        delete auctionsByDepositsInLiquidation[depositAddress];
-        delete depositsInLiquidationByAuctions[address(auction)];
-    }
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
     /// @param  depositAddress tBTC Deposit address
@@ -74,6 +58,10 @@ contract RiskManagerV1 is Auctioneer {
             "Deposit is not in liquidation state"
         );
 
+        // TODO: check the deposit collateralization
+        //       Risk manager will create an auction only for deposits that nobody
+        //       else is willing to take.
+
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
 
@@ -81,12 +69,34 @@ contract RiskManagerV1 is Auctioneer {
         //       Based on this data the auction length should be adjusted
         uint256 auctionLength = 86400; // in sec, hardcoded 24h
 
-        emit NotifiedLiquidation(msg.sender, depositAddress);
+        emit NotifiedLiquidation(depositAddress, msg.sender);
 
         address auctionAddress =
             auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+        //slither-disable-next-line reentrancy-benign
         auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
         depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
+    }
+
+    /// @notice Closes an auction early.
+    /// @param  depositAddress tBTC Deposit address
+    function notifyLiquidated(address depositAddress) external {
+        IDeposit deposit = IDeposit(depositAddress);
+        require(
+            deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
+            "Deposit is not in liquidated state"
+        );
+        emit NotifiedLiquidated(depositAddress, msg.sender);
+
+        // TODO: In case of an auction early close, we might end up having
+        //       TBTC hanging in this contract. Need to decide what to do with
+        //       these tokens.
+
+        Auction auction =
+            Auction(auctionsByDepositsInLiquidation[depositAddress]);
+        auctioneer.earlyCloseAuction(auction);
+        //slither-disable-next-line reentrancy-no-eth
+        delete auctionsByDepositsInLiquidation[depositAddress];
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
@@ -106,7 +116,8 @@ contract RiskManagerV1 is Auctioneer {
         // Buy signers bonds ETH with TBTC acquired from the auction (msg.sender)
         deposit.purchaseSignerBondsAtAuction();
 
-        // ETH will be withdrawn to this contract
+        // TODO: Once ETH received, funds need to be processes further, so
+        //       they won't be locked in this contract.
         deposit.withdrawFunds();
 
         delete auctionsByDepositsInLiquidation[address(deposit)];
