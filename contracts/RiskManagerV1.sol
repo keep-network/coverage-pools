@@ -94,6 +94,7 @@ contract RiskManagerV1 is Auctioneer {
         earlyCloseAuction(auction);
         //slither-disable-next-line reentrancy-no-eth
         delete auctionsByDepositsInLiquidation[depositAddress];
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
         delete depositsInLiquidationByAuctions[address(auction)];
     }
 
@@ -103,8 +104,13 @@ contract RiskManagerV1 is Auctioneer {
     function actBeforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =
             IDeposit(depositsInLiquidationByAuctions[address(auction)]);
+
+        delete auctionsByDepositsInLiquidation[address(deposit)];
+        delete depositsInLiquidationByAuctions[address(auction)];
+
         uint256 approvedAmount = deposit.lotSizeTbtc();
-        tbtcToken.approve(address(deposit), approvedAmount);
+        bool success = tbtcToken.approve(address(deposit), approvedAmount);
+        require(success, "TBTC Token approval failed");
 
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
@@ -112,8 +118,5 @@ contract RiskManagerV1 is Auctioneer {
         // TODO: Once ETH received, funds need to be processes further, so
         //       they won't be locked in this contract.
         deposit.withdrawFunds();
-
-        delete auctionsByDepositsInLiquidation[address(deposit)];
-        delete depositsInLiquidationByAuctions[address(auction)];
     }
 }

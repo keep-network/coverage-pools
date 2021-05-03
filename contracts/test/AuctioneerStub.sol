@@ -13,7 +13,7 @@ contract AuctioneerStub is Auctioneer {
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
-    ) public returns (address) {
+    ) public {
         createAuction(tokenAccepted, amountDesired, auctionLength);
     }
 
