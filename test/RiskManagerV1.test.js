@@ -5,15 +5,17 @@ const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
+const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
+const auctionLotSize = to1e18(1)
 
 describe("RiskManagerV1", () => {
   let testToken
   let owner
   let notifier
-  let auctioneer
+  let bidder
   let riskManagerV1
   let mockIDeposit
 
@@ -22,21 +24,37 @@ describe("RiskManagerV1", () => {
     testToken = await TestToken.deploy()
     await testToken.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("Auctioneer")
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
+    const CoveragePoolConstants = await ethers.getContractFactory(
+      "CoveragePoolConstants"
+    )
+    const coveragePoolConstants = await CoveragePoolConstants.deploy()
+    await coveragePoolConstants.deployed()
+
+    const Auction = await ethers.getContractFactory("Auction", {
+      libraries: {
+        CoveragePoolConstants: coveragePoolConstants.address,
+      },
+    })
+    const CollateralPoolStub = await ethers.getContractFactory(
+      "CollateralPoolStub"
+    )
+    collateralPoolStub = await CollateralPoolStub.deploy()
+    await collateralPoolStub.deployed()
+
+    masterAuction = await Auction.deploy()
+    await masterAuction.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
-    riskManagerV1 = await RiskManagerV1.deploy(
-      testToken.address,
-      auctioneer.address
+    riskManagerV1 = await RiskManagerV1.deploy(testToken.address)
+    await riskManagerV1.initialize(
+      collateralPoolStub.address,
+      masterAuction.address
     )
     await riskManagerV1.deployed()
 
-    await auctioneer.transferOwnership(riskManagerV1.address)
-
     owner = await ethers.getSigner(0)
     notifier = await ethers.getSigner(1)
+    bidder = await ethers.getSigner(2)
 
     mockIDeposit = await deployMockContract(owner, IDeposit.abi)
   })
@@ -115,7 +133,67 @@ describe("RiskManagerV1", () => {
             createdAuctionAddress
           )
         ).to.equal(ZERO_ADDRESS)
-        expect(await auctioneer.openAuctions(createdAuctionAddress)).to.be.false
+        expect(await riskManagerV1.openAuctions(createdAuctionAddress)).to.be
+          .false
+      })
+    })
+  })
+
+  describe("actBeforeAuctionClose", () => {
+    let auctionAddress
+    let auction
+
+    beforeEach(async () => {
+      await testToken.mint(bidder.address, auctionLotSize)
+      await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
+      await mockIDeposit.mock.withdrawFunds.returns()
+
+      await notifyLiquidation(mockIDeposit.address)
+      auctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+        mockIDeposit.address
+      )
+      await testToken.connect(bidder).approve(auctionAddress, auctionLotSize)
+
+      auction = new ethers.Contract(auctionAddress, Auction.abi, owner)
+    })
+
+    context("when the entire deposit was bought", () => {
+      beforeEach(async () => {
+        // take entire auction
+        await auction.connect(bidder).takeOffer(auctionLotSize)
+      })
+      it("should delete auction from the auctions map", async () => {
+        expect(
+          await riskManagerV1.auctionsByDepositsInLiquidation(
+            mockIDeposit.address
+          )
+        ).to.equal(ZERO_ADDRESS)
+      })
+
+      it("should delete deposit from the deposits map", async () => {
+        expect(
+          await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
+        ).to.equal(ZERO_ADDRESS)
+      })
+    })
+
+    context("when the deposit was bought partially", () => {
+      beforeEach(async () => {
+        // take partial auction
+        await auction.connect(bidder).takeOffer(auctionLotSize.sub(1))
+      })
+      it("should keep auction in the auction map", async () => {
+        expect(
+          await riskManagerV1.auctionsByDepositsInLiquidation(
+            mockIDeposit.address
+          )
+        ).to.equal(auctionAddress)
+      })
+
+      it("should keep deposit in the deposits map", async () => {
+        expect(
+          await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
+        ).to.equal(mockIDeposit.address)
       })
     })
   })
@@ -124,7 +202,7 @@ describe("RiskManagerV1", () => {
     await mockIDeposit.mock.currentState.returns(
       depositLiquidationInProgressState
     )
-    await mockIDeposit.mock.lotSizeTbtc.returns(to1e18(1))
+    await mockIDeposit.mock.lotSizeTbtc.returns(auctionLotSize)
     const tx = await riskManagerV1
       .connect(notifier)
       .notifyLiquidation(mockIDeposit.address)

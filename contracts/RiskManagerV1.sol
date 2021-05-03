@@ -25,8 +25,9 @@ contract RiskManagerV1 is Auctioneer {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
+    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
+    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
     IERC20 public tbtcToken;
-    Auctioneer public auctioneer;
 
     // deposit in liquidation address => coverage pool auction address
     mapping(address => address) public auctionsByDepositsInLiquidation;
@@ -36,12 +37,8 @@ contract RiskManagerV1 is Auctioneer {
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
 
-    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
-    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
-
-    constructor(IERC20 _token, address _auctioneer) {
+    constructor(IERC20 _token) {
         tbtcToken = _token;
-        auctioneer = Auctioneer(_auctioneer);
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -72,7 +69,7 @@ contract RiskManagerV1 is Auctioneer {
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         address auctionAddress =
-            auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+            createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         //slither-disable-next-line reentrancy-benign
         auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
         depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
@@ -94,26 +91,22 @@ contract RiskManagerV1 is Auctioneer {
 
         Auction auction =
             Auction(auctionsByDepositsInLiquidation[depositAddress]);
-        auctioneer.earlyCloseAuction(auction);
+        earlyCloseAuction(auction);
         //slither-disable-next-line reentrancy-no-eth
         delete auctionsByDepositsInLiquidation[depositAddress];
+        delete depositsInLiquidationByAuctions[address(auction)];
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
     ///      for the coverage pool auction should be transferred to this contract.
     /// @param auction Coverage pool auction.
-    function actBeforeAuctionClose(Auction auction) public override {
+    function actBeforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =
             IDeposit(depositsInLiquidationByAuctions[address(auction)]);
-        // revert transaction in case deposit was bought outside this contract
-        require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
-            "Deposit is not in liquidation state"
-        );
         uint256 approvedAmount = deposit.lotSizeTbtc();
         tbtcToken.approve(address(deposit), approvedAmount);
 
-        // Buy signers bonds ETH with TBTC acquired from the auction (msg.sender)
+        // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
 
         // TODO: Once ETH received, funds need to be processes further, so
