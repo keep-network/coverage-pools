@@ -50,6 +50,7 @@ contract Auction is IAuction {
     }
 
     AuctionStorage public self;
+    bool public isMasterContract;
 
     /// @notice Throws if called by any account other than the auctioneer.
     modifier onlyAuctioneer() {
@@ -60,6 +61,10 @@ contract Auction is IAuction {
         );
 
         _;
+    }
+
+    constructor() {
+        isMasterContract = true;
     }
 
     /// @notice Initializes auction
@@ -78,6 +83,7 @@ contract Auction is IAuction {
         uint256 _amountDesired,
         uint256 _auctionLength
     ) external {
+        require(!isMasterContract, "Can not initialize master contract");
         //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
@@ -213,6 +219,7 @@ contract Auction is IAuction {
     /// @dev Delete all storage and destroy the contract. Should only be called
     ///      after an auction has closed.
     function harikari() internal {
+        require(!isMasterContract, "Master contract can not harikari");
         address payable addr = address(uint160(address(self.auctioneer)));
         delete self;
         selfdestruct(addr);
