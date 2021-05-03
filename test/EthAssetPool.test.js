@@ -1,8 +1,6 @@
 const { expect } = require("chai")
 const { to1e18 } = require("./helpers/contract-test-helpers")
 
-const UnderwriterTokenJson = require("../artifacts/contracts/UnderwriterToken.sol/UnderwriterToken.json")
-
 describe("EthAssetPool", () => {
   let ethAssetPool
   let wethToken
@@ -18,9 +16,17 @@ describe("EthAssetPool", () => {
     wethToken = await WethToken.deploy()
     await wethToken.deployed()
 
+    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
+    underwriterToken = await UnderwriterToken.deploy()
+    await underwriterToken.deployed()
+
     const AssetPool = await ethers.getContractFactory("AssetPool")
-    wethAssetPool = await AssetPool.deploy(wethToken.address)
+    wethAssetPool = await AssetPool.deploy(
+      wethToken.address,
+      underwriterToken.address
+    )
     await wethAssetPool.deployed()
+    await underwriterToken.transferOwnership(wethAssetPool.address)
 
     const EthAssetPool = await ethers.getContractFactory("EthAssetPool")
     ethAssetPool = await EthAssetPool.deploy(
@@ -28,12 +34,6 @@ describe("EthAssetPool", () => {
       wethAssetPool.address
     )
     await ethAssetPool.deployed()
-
-    underwriterToken = new ethers.Contract(
-      await wethAssetPool.underwriterToken(),
-      UnderwriterTokenJson.abi,
-      ethers.provider
-    )
 
     underwriter1 = await ethers.getSigner(1)
     underwriter2 = await ethers.getSigner(2)
