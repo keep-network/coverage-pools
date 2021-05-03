@@ -31,7 +31,7 @@ describe("Auctioneer", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("Auctioneer")
+    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
@@ -95,20 +95,6 @@ describe("Auctioneer", () => {
         expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
         expect(events[0].args["amount"]).to.equal(auctionAmountDesired)
         expect(events[0].args["auctionAddress"]).to.be.properAddress
-      })
-    })
-
-    context("when caller is not the owner", () => {
-      it("should revert", async () => {
-        await expect(
-          auctioneer
-            .connect(bidder)
-            .createAuction(
-              testToken.address,
-              auctionAmountDesired,
-              auctionLength
-            )
-        ).to.be.revertedWith("caller is not the owner")
       })
     })
   })
@@ -302,21 +288,21 @@ describe("Auctioneer", () => {
 
     context("when the auction is still open", () => {
       it("should close the auction", async () => {
-        await auctioneer.connect(owner).earlyCloseAuction(auctionAddress)
+        await auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
 
         expect(await auction.isOpen()).to.be.false
       })
 
       it("should emit the auction closed event", async () => {
         await expect(
-          auctioneer.connect(owner).earlyCloseAuction(auctionAddress)
+          auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
         )
           .to.emit(auctioneer, "AuctionClosed")
           .withArgs(auctionAddress)
       })
 
       it("should no longer track the auction", async () => {
-        await auctioneer.connect(owner).earlyCloseAuction(auctionAddress)
+        await auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
 
         expect(await auctioneer.openAuctions(auctionAddress)).to.be.false
       })
@@ -327,7 +313,7 @@ describe("Auctioneer", () => {
         await auction.connect(bidder).takeOffer(auctionAmountDesired)
 
         await expect(
-          auctioneer.connect(owner).earlyCloseAuction(auctionAddress)
+          auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
         ).to.be.revertedWith("Address is not an open auction")
       })
     })
@@ -335,16 +321,10 @@ describe("Auctioneer", () => {
     context("when the auction doesn't exist", () => {
       it("should revert", async () => {
         await expect(
-          auctioneer.connect(owner).earlyCloseAuction(await bidder.getAddress())
+          auctioneer
+            .connect(bidder)
+            .callEarlyCloseAuction(await bidder.getAddress())
         ).to.be.revertedWith("Address is not an open auction")
-      })
-    })
-
-    context("when the caller is not the owner", () => {
-      it("should revert", async () => {
-        await expect(
-          auctioneer.connect(bidder).earlyCloseAuction(auctionAddress)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
@@ -352,7 +332,7 @@ describe("Auctioneer", () => {
   async function createAuction() {
     const createAuctionTx = await auctioneer
       .connect(owner)
-      .createAuction(testToken.address, auctionAmountDesired, auctionLength)
+      .callCreateAuction(testToken.address, auctionAmountDesired, auctionLength)
 
     return await createAuctionTx.wait()
   }

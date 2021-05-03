@@ -111,7 +111,7 @@ contract Auctioneer is CloneFactory, Ownable {
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
-    ) external onlyOwner returns (address) {
+    ) internal returns (address) {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
@@ -137,7 +137,7 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @notice Tears down an open auction with given address immediately.
     /// @dev Can be called by contract owner to early close an auction if it
     ///      is no longer needed.
-    function earlyCloseAuction(Auction auction) external onlyOwner {
+    function earlyCloseAuction(Auction auction) internal {
         address auctionAddress = address(auction);
 
         require(openAuctions[auctionAddress], "Address is not an open auction");
@@ -151,5 +151,5 @@ contract Auctioneer is CloneFactory, Ownable {
         delete openAuctions[auctionAddress];
     }
 
-    function actBeforeAuctionClose(Auction auction) public virtual {}
+    function actBeforeAuctionClose(Auction auction) internal virtual {}
 }
