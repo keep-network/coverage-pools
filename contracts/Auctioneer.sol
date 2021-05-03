@@ -21,7 +21,6 @@ contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
-    // auction address => tbtc deposit address
     mapping(address => bool) public openAuctions;
 
     CollateralPool public collateralPool;

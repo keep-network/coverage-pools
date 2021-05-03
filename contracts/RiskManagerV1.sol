@@ -29,9 +29,9 @@ contract RiskManagerV1 is Auctioneer {
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
     IERC20 public tbtcToken;
 
-    // deposit in liquidation address => coverage pool auction address
+    // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public auctionsByDepositsInLiquidation;
-    // auctions => deposits
+    // opened coverage pool auction => deposit in liquidation
     mapping(address => address) public depositsInLiquidationByAuctions;
 
     event NotifiedLiquidated(address indexed deposit, address notifier);
@@ -115,7 +115,7 @@ contract RiskManagerV1 is Auctioneer {
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
 
-        // TODO: Once ETH received, funds need to be processes further, so
+        // TODO: Once ETH is received, funds need to be processes further, so
         //       they won't be locked in this contract.
         deposit.withdrawFunds();
     }
