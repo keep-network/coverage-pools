@@ -1,9 +1,6 @@
 const { expect } = require("chai")
 const { to1e18 } = require("./helpers/contract-test-helpers")
 
-// FIXME Is there a better way to obtain a handle to contract?
-const UnderwriterTokenJson = require("../artifacts/contracts/UnderwriterToken.sol/UnderwriterToken.json")
-
 describe("AssetPool", () => {
   let assetPool
   let coveragePool
@@ -28,16 +25,18 @@ describe("AssetPool", () => {
     collateralToken = await TestToken.deploy()
     await collateralToken.deployed()
 
+    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
+    underwriterToken = await UnderwriterToken.deploy("Underwriter Token", "COV")
+    await underwriterToken.deployed()
+
     const AssetPool = await ethers.getContractFactory("AssetPool")
-    assetPool = await AssetPool.deploy(collateralToken.address)
+    assetPool = await AssetPool.deploy(
+      collateralToken.address,
+      underwriterToken.address
+    )
     await assetPool.deployed()
     await assetPool.transferOwnership(coveragePool.address)
-
-    underwriterToken = new ethers.Contract(
-      await assetPool.underwriterToken(),
-      UnderwriterTokenJson.abi,
-      ethers.provider
-    )
+    await underwriterToken.transferOwnership(assetPool.address)
 
     const createUnderwriterWithTokens = async (index) => {
       const underwriter = await ethers.getSigner(index)

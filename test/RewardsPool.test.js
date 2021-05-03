@@ -26,11 +26,32 @@ describe("RewardsPool", () => {
     const collateralToken2 = await TestToken.deploy()
     await collateralToken2.deployed()
 
+    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
+    const underwriterToken1 = await UnderwriterToken.deploy(
+      "Underwriter Token 1",
+      "COV1"
+    )
+    await underwriterToken1.deployed()
+    const underwriterToken2 = await UnderwriterToken.deploy(
+      "Underwriter Token 2",
+      "COV2"
+    )
+    await underwriterToken2.deployed()
+
     const AssetPool = await ethers.getContractFactory("AssetPool")
-    assetPool1 = await AssetPool.deploy(collateralToken1.address)
+    assetPool1 = await AssetPool.deploy(
+      collateralToken1.address,
+      underwriterToken1.address
+    )
     await assetPool1.deployed()
-    assetPool2 = await AssetPool.deploy(collateralToken2.address)
+    assetPool2 = await AssetPool.deploy(
+      collateralToken2.address,
+      underwriterToken2.address
+    )
     await assetPool2.deployed()
+
+    await underwriterToken1.transferOwnership(assetPool1.address)
+    await underwriterToken2.transferOwnership(assetPool2.address)
 
     const CoveragePoolConstants = await ethers.getContractFactory(
       "CoveragePoolConstants"
@@ -196,7 +217,7 @@ describe("RewardsPoolStaking", () => {
     rewardsPool = await ethers.getSigner(1)
 
     const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
-    underwriterToken = await UnderwriterToken.deploy()
+    underwriterToken = await UnderwriterToken.deploy("Underwriter Token", "COV")
     await underwriterToken.deployed()
 
     const CoveragePoolConstants = await ethers.getContractFactory(

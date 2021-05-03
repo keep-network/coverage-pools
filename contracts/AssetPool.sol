@@ -24,9 +24,9 @@ contract AssetPool is Ownable {
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
 
-    constructor(IERC20 _collateralToken) {
+    constructor(IERC20 _collateralToken, UnderwriterToken _underwriterToken) {
         collateralToken = _collateralToken;
-        underwriterToken = new UnderwriterToken();
+        underwriterToken = _underwriterToken;
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
