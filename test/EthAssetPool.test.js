@@ -17,7 +17,7 @@ describe("EthAssetPool", () => {
     await wethToken.deployed()
 
     const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
-    underwriterToken = await UnderwriterToken.deploy()
+    underwriterToken = await UnderwriterToken.deploy("Underwriter Token", "COV")
     await underwriterToken.deployed()
 
     const AssetPool = await ethers.getContractFactory("AssetPool")
