@@ -5,7 +5,7 @@ const {
   increaseTime,
 } = require("../helpers/contract-test-helpers")
 
-describe("RewardPool", () => {
+describe("RewardPoolV2", () => {
   const assetPool1 = "0x0000000000000000000000000000000000000001"
   const assetPool2 = "0x0000000000000000000000000000000000000002"
   const assetPool3 = "0x0000000000000000000000000000000000000003"
@@ -13,8 +13,8 @@ describe("RewardPool", () => {
   let pool
 
   beforeEach(async () => {
-    const RewardPool = await ethers.getContractFactory("RewardPool")
-    pool = await RewardPool.deploy()
+    const RewardPoolV2 = await ethers.getContractFactory("RewardPoolV2")
+    pool = await RewardPoolV2.deploy()
     await pool.deployed()
   })
 
