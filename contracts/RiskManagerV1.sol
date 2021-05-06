@@ -10,13 +10,22 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+/// @notice This is an interface with just a few function signatures of a main
+///         contract for tBTC. For more info and function description
+///         please see:
+///         https://github.com/keep-network/tbtc/blob/master/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
+    /// @notice Withdraw the ETH balance of the deposit allotted to the caller.
     function withdrawFunds() external;
 
+    /// @notice Closes a tBTC deposit auction and purchases the signer bonds by
+    ///         transferring the lot size in TBTC.
     function purchaseSignerBondsAtAuction() external;
 
+    /// @notice Get the integer representing the current state of deposit.
     function currentState() external view returns (uint256);
 
+    /// @notice Get this deposit's lot size in TBTC.
     function lotSizeTbtc() external view returns (uint256);
 }
 
@@ -120,7 +129,7 @@ contract RiskManagerV1 is Auctioneer {
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
 
-        // TODO: Once ETH is received, funds need to be processes further, so
+        // TODO: Once ETH is received, funds need to be processed further, so
         //       they won't be locked in this contract.
         deposit.withdrawFunds();
     }
