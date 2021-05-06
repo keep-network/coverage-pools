@@ -5,6 +5,7 @@ const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
+const ISignerBondsProcessor = require("../artifacts/contracts/RiskManagerV1.sol/ISignerBondsProcessor.json")
 const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const depositLiquidationInProgressState = 10
@@ -14,6 +15,7 @@ const auctionLotSize = to1e18(1)
 describe("RiskManagerV1", () => {
   let testToken
   let owner
+  let mockISignerBondsProcessor
   let notifier
   let bidder
   let riskManagerV1
@@ -23,6 +25,13 @@ describe("RiskManagerV1", () => {
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
     await testToken.deployed()
+
+    owner = await ethers.getSigner(0)
+
+    mockISignerBondsProcessor = await deployMockContract(
+      owner,
+      ISignerBondsProcessor.abi
+    )
 
     const CoveragePoolConstants = await ethers.getContractFactory(
       "CoveragePoolConstants"
@@ -45,14 +54,16 @@ describe("RiskManagerV1", () => {
     await masterAuction.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
-    riskManagerV1 = await RiskManagerV1.deploy(testToken.address)
+    riskManagerV1 = await RiskManagerV1.deploy(
+      testToken.address,
+      mockISignerBondsProcessor.address
+    )
     await riskManagerV1.initialize(
       collateralPoolStub.address,
       masterAuction.address
     )
     await riskManagerV1.deployed()
 
-    owner = await ethers.getSigner(0)
     notifier = await ethers.getSigner(1)
     bidder = await ethers.getSigner(2)
 
@@ -147,6 +158,8 @@ describe("RiskManagerV1", () => {
       await testToken.mint(bidder.address, auctionLotSize)
       await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
       await mockIDeposit.mock.withdrawFunds.returns()
+      await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
+      await mockISignerBondsProcessor.mock.processSignerBonds.returns()
 
       await notifyLiquidation(mockIDeposit.address)
       auctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(

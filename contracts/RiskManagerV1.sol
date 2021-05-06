@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface IDeposit {
+    function withdrawableAmount() external view returns (uint256);
+
     function withdrawFunds() external;
 
     function purchaseSignerBondsAtAuction() external;
@@ -18,6 +20,10 @@ interface IDeposit {
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
+}
+
+interface ISignerBondsProcessor {
+    function processSignerBonds() external payable;
 }
 
 /// @title RiskManagerV1 for tBTCv1
@@ -29,6 +35,9 @@ contract RiskManagerV1 is Auctioneer {
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
     IERC20 public tbtcToken;
 
+    // TODO: should be possible to change by the governance.
+    ISignerBondsProcessor public signerBondsProcessor;
+
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public auctionsByDepositsInLiquidation;
     // opened coverage pool auction => deposit in liquidation
@@ -37,8 +46,9 @@ contract RiskManagerV1 is Auctioneer {
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
 
-    constructor(IERC20 _token) {
+    constructor(IERC20 _token, ISignerBondsProcessor _signerBondsProcessor) {
         tbtcToken = _token;
+        signerBondsProcessor = _signerBondsProcessor;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -115,8 +125,10 @@ contract RiskManagerV1 is Auctioneer {
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
 
-        // TODO: Once ETH is received, funds need to be processes further, so
-        //       they won't be locked in this contract.
+        uint256 withdrawableAmount = deposit.withdrawableAmount();
         deposit.withdrawFunds();
+
+        // slither-disable-next-line arbitrary-send
+        signerBondsProcessor.processSignerBonds{value: withdrawableAmount}();
     }
 }
