@@ -98,8 +98,13 @@ contract RiskManagerV1 is Auctioneer {
         delete depositsInLiquidationByAuctions[address(auction)];
     }
 
-    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
-    ///      for the coverage pool auction should be transferred to this contract.
+    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
+    /// @dev    This function is invoked when Auctioneer determines that an auction
+    ///         is eligible to be closed. It cannot be called on-demand outside
+    ///         the Auctioneer contract.
+    ///         By the time this function is called, all the TBTC tokens for the
+    ///         coverage pool auction should be transferred to this contract in
+    ///         order to buy signer bonds.
     /// @param auction Coverage pool auction.
     function actBeforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =
