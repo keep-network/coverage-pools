@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @dev Contract is not meant to be deployed directly. It implements
 ///      a specific part of the functionality of the RewardPool and should be
 ///      used only as a RewardPool parent contract.
-contract RewardTokenMinting {
+abstract contract RewardTokenMinting {
     using SafeMath for uint256;
 
     // Reward rate per Asset Pool address.
@@ -28,7 +28,7 @@ contract RewardTokenMinting {
     mapping(address => uint256) internal poolTokenPerRateUnitPaid;
     mapping(address => uint256) internal poolTokens;
 
-    // TODO: should be private and used by governance function with a delay
+    // TODO: should be internal and used by governance function with a delay
     function setRewardRate(address assetPool, uint256 rewardRate) external {
         updateReward(assetPool);
         rewardRates[assetPool] = rewardRate;
@@ -60,4 +60,19 @@ contract RewardTokenMinting {
     }
 }
 
-contract RewardPool is RewardTokenMinting {}
+/// @title RewardsPool
+/// @notice Rewards Pool is a contract that accepts arbitrary assets and mints
+///         a single reward token. Recipients of the reward token can at any
+///         time turn it in for a portion of the rewards in the pool.
+///         A rewards pool maintains a governable list of recipients and
+///         relative reward rates. For example, a rewards pool might have two
+///         recipients — a WETH Asset Pool, and a WBTC asset pool, with
+///         respective reward rates of 1 and 2. Rewards tokens are minted
+///         constantly over time and distributed according to the relative
+///         reward rates. Reward rates allows establishing a way for Governance
+///         to incentivize different assets to target a particular Collateral
+///         Pool composition.
+contract RewardPool is RewardTokenMinting {
+    // TODO: Add function to update reward rate with a governance delay.
+    // TODO: Allow to withdraw rewards based on the amount of reward tokens.
+}
