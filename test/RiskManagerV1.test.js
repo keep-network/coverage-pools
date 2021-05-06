@@ -10,6 +10,7 @@ const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
 const auctionLotSize = to1e18(1)
+const collateralizationThreshold = 101
 
 describe("RiskManagerV1", () => {
   let testToken
@@ -70,28 +71,48 @@ describe("RiskManagerV1", () => {
       })
     })
 
-    context("when deposit is in liquidation state", () => {
-      let notifyLiquidationTx
-
-      beforeEach(async () => {
-        notifyLiquidationTx = await notifyLiquidation()
-      })
-
-      it("should emit NotifiedLiquidation event", async () => {
-        await expect(notifyLiquidationTx)
-          .to.emit(riskManagerV1, "NotifiedLiquidation")
-          .withArgs(mockIDeposit.address, notifier.address)
-      })
-
-      it("should create an auction and populate auction's map", async () => {
-        const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
-          mockIDeposit.address
+    context("when deposit is above collateralization threshold level", () => {
+      it("should revert", async () => {
+        await mockIDeposit.mock.currentState.returns(
+          depositLiquidationInProgressState
+        )
+        await mockIDeposit.mock.collateralizationPercentage.returns(
+          collateralizationThreshold + 1
         )
 
-        expect(createdAuctionAddress).to.be.properAddress
-        expect(createdAuctionAddress).to.not.equal(ZERO_ADDRESS)
+        await expect(
+          riskManagerV1.notifyLiquidation(mockIDeposit.address)
+        ).to.be.revertedWith(
+          "Deposit collateralization is above the threshold level"
+        )
       })
     })
+
+    context(
+      "when deposit is in liquidation state and not above collateralization threshold",
+      () => {
+        let notifyLiquidationTx
+
+        beforeEach(async () => {
+          notifyLiquidationTx = await notifyLiquidation()
+        })
+
+        it("should emit NotifiedLiquidation event", async () => {
+          await expect(notifyLiquidationTx)
+            .to.emit(riskManagerV1, "NotifiedLiquidation")
+            .withArgs(mockIDeposit.address, notifier.address)
+        })
+
+        it("should create an auction and populate auction's map", async () => {
+          const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+            mockIDeposit.address
+          )
+
+          expect(createdAuctionAddress).to.be.properAddress
+          expect(createdAuctionAddress).to.not.equal(ZERO_ADDRESS)
+        })
+      }
+    )
   })
 
   describe("notifyLiquidated", () => {
@@ -198,11 +219,33 @@ describe("RiskManagerV1", () => {
     })
   })
 
+  describe("updateCollateralizationThreshold", () => {
+    context("when collateralization percent is updated by a non-owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1.connect(bidder).updateCollateralizationThreshold(102)
+        ).to.be.revertedWith("caller is not the owner")
+      })
+    })
+
+    context("when collateralization percent is updated by an owner", () => {
+      it("should update collateralization threshold", async () => {
+        await riskManagerV1.connect(owner).updateCollateralizationThreshold(102)
+        expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
+          102
+        )
+      })
+    })
+  })
+
   async function notifyLiquidation() {
     await mockIDeposit.mock.currentState.returns(
       depositLiquidationInProgressState
     )
     await mockIDeposit.mock.lotSizeTbtc.returns(auctionLotSize)
+    await mockIDeposit.mock.collateralizationPercentage.returns(
+      collateralizationThreshold
+    )
     const tx = await riskManagerV1
       .connect(notifier)
       .notifyLiquidation(mockIDeposit.address)

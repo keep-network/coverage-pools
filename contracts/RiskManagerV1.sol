@@ -9,6 +9,7 @@ import "./CoveragePoolConstants.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IDeposit {
     function withdrawFunds() external;
@@ -18,15 +19,23 @@ interface IDeposit {
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
+
+    function collateralizationPercentage() external view returns (uint256);
 }
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 is Auctioneer {
+contract RiskManagerV1 is Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+    // Auction will not be opened if the deposit collateralization level does not
+    // fall below this collateralization threshold.
+    // Risk manager should open a coverage pool auction for only those deposits
+    // that nobody else is willing to purchase. The default value can be updated
+    // by the governance at any moment.
+    uint256 public collateralizationThreshold = 101; // percent
     IERC20 public tbtcToken;
 
     // deposit in liquidation => opened coverage pool auction
@@ -55,9 +64,10 @@ contract RiskManagerV1 is Auctioneer {
             "Deposit is not in liquidation state"
         );
 
-        // TODO: check the deposit collateralization
-        //       Risk manager will create an auction only for deposits that nobody
-        //       else is willing to take.
+        require(
+            deposit.collateralizationPercentage() <= collateralizationThreshold,
+            "Deposit collateralization is above the threshold level"
+        );
 
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
@@ -96,6 +106,15 @@ contract RiskManagerV1 is Auctioneer {
         delete auctionsByDepositsInLiquidation[depositAddress];
         //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
         delete depositsInLiquidationByAuctions[address(auction)];
+    }
+
+    /// @notice Updates collateralization threshold level.
+    /// @dev Can be called by the owner only.
+    /// @param _collateralizationThreshold New collateralization threshold level in percent.
+    function updateCollateralizationThreshold(
+        uint256 _collateralizationThreshold
+    ) external onlyOwner {
+        collateralizationThreshold = _collateralizationThreshold;
     }
 
     /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
