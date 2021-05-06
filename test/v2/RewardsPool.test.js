@@ -3,7 +3,7 @@ const {
   to1e18,
   to1ePrecision,
   increaseTime,
-} = require("./helpers/contract-test-helpers")
+} = require("../helpers/contract-test-helpers")
 
 describe("RewardPool", () => {
   const assetPool1 = "0x0000000000000000000000000000000000000001"
