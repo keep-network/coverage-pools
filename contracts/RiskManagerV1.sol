@@ -49,15 +49,12 @@ contract RiskManagerV1 is Ownable {
     /// @notice Reverts if called before the delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
     ///        of the change.
-    /// @param delay Governance delay.
-    modifier onlyAfterGovernanceDelay(
-        uint256 changeInitiatedTimestamp,
-        uint256 delay
-    ) {
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
         require(changeInitiatedTimestamp > 0, "Change not initiated");
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(changeInitiatedTimestamp) >= delay,
+            block.timestamp.sub(changeInitiatedTimestamp) >=
+                GOVERNANCE_TIME_DELAY,
             "Governance delay has not elapsed"
         );
         _;
@@ -154,10 +151,7 @@ contract RiskManagerV1 is Ownable {
     function finalizeAuctionLengthUpdate()
         external
         onlyOwner
-        onlyAfterGovernanceDelay(
-            auctionLengthChangeInitiated,
-            GOVERNANCE_TIME_DELAY
-        )
+        onlyAfterGovernanceDelay(auctionLengthChangeInitiated)
     {
         auctionLength = newAuctionLength;
         emit AuctionLengthUpdated(newAuctionLength);
