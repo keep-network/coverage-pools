@@ -196,7 +196,7 @@ describe("Auction", () => {
       })
     })
 
-    context("when the auction length achieves the profitability point", () => {
+    context("when the auction time achieves the profitability point", () => {
       it(
         "should return a portion of the collateral pool whose value is equal " +
           "to the value of the amount desired by the auction",
