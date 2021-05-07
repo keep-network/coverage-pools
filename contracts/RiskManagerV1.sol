@@ -46,7 +46,7 @@ contract RiskManagerV1 is Ownable {
     event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
     event AuctionLengthUpdated(uint256 auctionLength);
 
-    /// @notice Throws if called before the delay elapses.
+    /// @notice Reverts if called before the delay elapses.
     /// @param changeTimestamp Timestamp indicating the beginning of the change.
     /// @param delay Governance delay.
     modifier onlyAfterGovernanceDelay(uint256 changeTimestamp, uint256 delay) {
