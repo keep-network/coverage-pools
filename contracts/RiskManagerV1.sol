@@ -15,17 +15,12 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 ///         please see:
 ///         https://github.com/keep-network/tbtc/blob/master/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
-    /// @notice Withdraw the ETH balance of the deposit allotted to the caller.
     function withdrawFunds() external;
 
-    /// @notice Closes a tBTC deposit auction and purchases the signer bonds by
-    ///         transferring the lot size in TBTC.
     function purchaseSignerBondsAtAuction() external;
 
-    /// @notice Get the integer representing the current state of deposit.
     function currentState() external view returns (uint256);
 
-    /// @notice Get this deposit's lot size in TBTC.
     function lotSizeTbtc() external view returns (uint256);
 }
 
