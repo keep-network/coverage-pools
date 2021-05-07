@@ -48,7 +48,12 @@ contract RiskManagerV1 is Auctioneer {
 
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+
     IERC20 public tbtcToken;
+    // tBTC surplus collected from early closed auctions.
+    uint256 public tbtcSurplus;
+    // opened coverage pool auction => reserved tBTC surplus amount
+    mapping(address => uint256) public tbtcSurplusReservations;
 
     // TODO: should be possible to change by the governance.
     ISignerBondsProcessor public signerBondsProcessor;
@@ -93,11 +98,25 @@ contract RiskManagerV1 is Auctioneer {
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
+        // TODO: Adjust the auction length according to the used surplus amount
+        //       in order to preserve the same profitability delay.
+        (, uint256 auctionAmountTbtc) = lotSizeTbtc.trySub(tbtcSurplus);
+        uint256 tbtcSurplusReserved = lotSizeTbtc.sub(auctionAmountTbtc);
+        tbtcSurplus = tbtcSurplus.sub(tbtcSurplusReserved);
+
+        // If the surplus can cover the deposit liquidation cost, liquidate
+        // that deposit directly without the auction process.
+        if (auctionAmountTbtc == 0) {
+            liquidateDeposit(deposit);
+            return;
+        }
+
         address auctionAddress =
-            createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+            createAuction(tbtcToken, auctionAmountTbtc, auctionLength);
         //slither-disable-next-line reentrancy-benign
         auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
         depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
+        tbtcSurplusReservations[auctionAddress] = tbtcSurplusReserved;
     }
 
     /// @notice Closes an auction early.
@@ -110,26 +129,31 @@ contract RiskManagerV1 is Auctioneer {
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
 
-        // TODO: In case of an auction early close, we might end up having
-        //       TBTC hanging in this contract. Need to decide what to do with
-        //       these tokens.
-
         Auction auction =
             Auction(auctionsByDepositsInLiquidation[depositAddress]);
+
+        // Add auction's transferred amount to the surplus pool and return
+        // the surplus reservation taken upon auction initialization.
+        tbtcSurplus = tbtcSurplus.add(
+            auction.amountTransferred().add(
+                tbtcSurplusReservations[address(auction)]
+            )
+        );
+
         earlyCloseAuction(auction);
         //slither-disable-next-line reentrancy-no-eth
         delete auctionsByDepositsInLiquidation[depositAddress];
         //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
         delete depositsInLiquidationByAuctions[address(auction)];
+        delete tbtcSurplusReservations[address(auction)];
     }
 
-    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
-    /// @dev    This function is invoked when Auctioneer determines that an auction
-    ///         is eligible to be closed. It cannot be called on-demand outside
-    ///         the Auctioneer contract.
-    ///         By the time this function is called, all the TBTC tokens for the
-    ///         coverage pool auction should be transferred to this contract in
-    ///         order to buy signer bonds.
+    /// @notice Cleans up auction and deposit data and executes deposit liquidation.
+    /// @dev This function is invoked when Auctioneer determines that an auction
+    ///      is eligible to be closed. It cannot be called on-demand outside
+    ///      the Auctioneer contract. By the time this function is called, all
+    ///      the TBTC tokens for the coverage pool auction should be transferred
+    ///      to this contract in order to buy signer bonds.
     /// @param auction Coverage pool auction.
     function actBeforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =
@@ -137,10 +161,21 @@ contract RiskManagerV1 is Auctioneer {
 
         delete auctionsByDepositsInLiquidation[address(deposit)];
         delete depositsInLiquidationByAuctions[address(auction)];
+        delete tbtcSurplusReservations[address(auction)];
 
-        uint256 approvedAmount = deposit.lotSizeTbtc();
-        bool success = tbtcToken.approve(address(deposit), approvedAmount);
-        require(success, "TBTC Token approval failed");
+        liquidateDeposit(deposit);
+    }
+
+    /// @notice Purchases ETH from signer bonds and processes obtained funds
+    ///         using the underlying signer bonds processing strategy.
+    /// @dev By the time this function is called, TBTC token balance for this
+    ///      contract should be enough to buy signer bonds.
+    /// @param deposit TBTC deposit which should be liquidated.
+    function liquidateDeposit(IDeposit deposit) internal {
+        require(
+            tbtcToken.approve(address(deposit), deposit.lotSizeTbtc()),
+            "TBTC Token approval failed"
+        );
 
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();

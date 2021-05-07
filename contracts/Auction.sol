@@ -32,6 +32,7 @@ contract Auction is IAuction {
         Auctioneer auctioneer;
         // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
+        uint256 amountInitial;
         uint256 startTime;
         uint256 startTimeOffset;
         uint256 auctionLength;
@@ -90,6 +91,7 @@ contract Auction is IAuction {
         self.auctioneer = Auctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
+        self.amountInitial = _amountDesired;
         /* solhint-disable-next-line not-rely-on-time */
         self.startTime = block.timestamp;
         self.startTimeOffset = 0;
@@ -137,6 +139,10 @@ contract Auction is IAuction {
 
     function amountOutstanding() external view returns (uint256) {
         return self.amountOutstanding;
+    }
+
+    function amountTransferred() external view returns (uint256) {
+        return self.amountInitial.sub(self.amountOutstanding);
     }
 
     function isOpen() external view returns (bool) {
