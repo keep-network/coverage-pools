@@ -132,7 +132,9 @@ contract RiskManagerV1 is Ownable {
     }
 
     /// @notice Begins the auction length update process.
-    /// @dev Can be called only by the contract owner.
+    /// @dev Can be called only by the contract owner. The auction length should
+    ///      be adjusted very carefully. Total value locked of the coverage pool
+    ///      and minimum possible auction amount needs to be taken into account.
     /// @param _newAuctionLength New auction length in seconds.
     function beginAuctionLengthUpdate(uint256 _newAuctionLength)
         external
