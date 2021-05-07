@@ -10,13 +10,22 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+/// @notice This is an interface with just a few function signatures of a main
+///         contract for tBTC. For more info and function description
+///         please see:
+///         https://github.com/keep-network/tbtc/blob/master/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
+    /// @notice Withdraw the ETH balance of the deposit allotted to the caller.
     function withdrawFunds() external;
 
+    /// @notice Closes a tBTC deposit auction and purchases the signer bonds by
+    ///         transferring the lot size in TBTC.
     function purchaseSignerBondsAtAuction() external;
 
+    /// @notice Get the integer representing the current state of deposit.
     function currentState() external view returns (uint256);
 
+    /// @notice Get this deposit's lot size in TBTC.
     function lotSizeTbtc() external view returns (uint256);
 
     function withdrawableAmount() external view returns (uint256);
@@ -108,8 +117,13 @@ contract RiskManagerV1 is Auctioneer {
         delete depositsInLiquidationByAuctions[address(auction)];
     }
 
-    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
-    ///      for the coverage pool auction should be transferred to this contract.
+    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
+    /// @dev    This function is invoked when Auctioneer determines that an auction
+    ///         is eligible to be closed. It cannot be called on-demand outside
+    ///         the Auctioneer contract.
+    ///         By the time this function is called, all the TBTC tokens for the
+    ///         coverage pool auction should be transferred to this contract in
+    ///         order to buy signer bonds.
     /// @param auction Coverage pool auction.
     function actBeforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =

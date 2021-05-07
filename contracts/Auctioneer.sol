@@ -149,5 +149,9 @@ contract Auctioneer is CloneFactory {
         delete openAuctions[auctionAddress];
     }
 
+    /// @dev This function is implemented in different versions of Risk Managers.
+    ///      Depending on coverage pool approaches this function will act differently
+    ///      and here we just indicate that some action will take place before
+    ///      we close a coverage pool auction.
     function actBeforeAuctionClose(Auction auction) internal virtual {}
 }
