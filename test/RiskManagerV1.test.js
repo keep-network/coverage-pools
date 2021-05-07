@@ -206,15 +206,12 @@ describe("RiskManagerV1", () => {
           .to.emit(signerBondsProcessor, "SignerBondsProcessed")
           .withArgs(ethers.utils.parseEther("10"))
 
-        expect(
-          await (await ethers.getSigner(riskManagerV1.address)).getBalance()
-        ).to.be.equal(0)
+        await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
 
-        expect(
-          await (
-            await ethers.getSigner(signerBondsProcessor.address)
-          ).getBalance()
-        ).to.be.equal(ethers.utils.parseEther("10"))
+        await expect(tx).to.changeEtherBalance(
+          signerBondsProcessor,
+          ethers.utils.parseEther("10")
+        )
       })
     })
 
