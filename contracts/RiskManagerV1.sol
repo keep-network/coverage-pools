@@ -11,8 +11,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface IDeposit {
-    function withdrawableAmount() external view returns (uint256);
-
     function withdrawFunds() external;
 
     function purchaseSignerBondsAtAuction() external;
@@ -20,6 +18,8 @@ interface IDeposit {
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
+
+    function withdrawableAmount() external view returns (uint256);
 }
 
 interface ISignerBondsProcessor {
