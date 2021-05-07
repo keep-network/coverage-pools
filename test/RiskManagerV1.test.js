@@ -158,19 +158,15 @@ describe("RiskManagerV1", () => {
     })
 
     context("when the entire deposit was bought", () => {
-      beforeEach(async () => {
-        // take entire auction
+      it("should delete auction and deposit from respective maps", async () => {
         await auction.connect(bidder).takeOffer(auctionLotSize)
-      })
-      it("should delete auction from the auctions map", async () => {
+
         expect(
           await riskManagerV1.auctionsByDepositsInLiquidation(
             mockIDeposit.address
           )
         ).to.equal(ZERO_ADDRESS)
-      })
 
-      it("should delete deposit from the deposits map", async () => {
         expect(
           await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
         ).to.equal(ZERO_ADDRESS)

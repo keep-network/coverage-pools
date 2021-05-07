@@ -118,8 +118,7 @@ contract RiskManagerV1 is Auctioneer {
         delete depositsInLiquidationByAuctions[address(auction)];
 
         uint256 approvedAmount = deposit.lotSizeTbtc();
-        bool success = tbtcToken.approve(address(deposit), approvedAmount);
-        require(success, "TBTC Token approval failed");
+        tbtcToken.safeApprove(address(deposit), approvedAmount);
 
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
