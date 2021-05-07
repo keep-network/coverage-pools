@@ -21,6 +21,8 @@ const testTokensToMint = to1e18(1)
 const precision = 0.001 // to mitigate evm delays
 const depositLiquidationInProgressState = 10
 
+// TODO: rename remaining "auctioneer" -> "riskManagerV1" where it makes sense
+
 describe("Auction", () => {
   let testToken
   let collateralPool
@@ -29,16 +31,19 @@ describe("Auction", () => {
   let owner
   let bidder1
   let bidder2
-  let auctioneer
+
+  let mockIDeposit
 
   before(async () => {
+    const TestToken = await ethers.getContractFactory("TestToken")
+    testToken = await TestToken.deploy()
+
     const CoveragePoolConstants = await ethers.getContractFactory(
       "CoveragePoolConstants"
     )
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
@@ -50,16 +55,19 @@ describe("Auction", () => {
     bidder1 = await ethers.getSigner(1)
     bidder2 = await ethers.getSigner(2)
 
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
-
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
     collateralPool = await CollateralPool.deploy()
     await collateralPool.deployed()
 
-    await auctioneer.initialize(collateralPool.address, masterAuction.address)
+    const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
+    riskManagerV1 = await RiskManagerV1.deploy(testToken.address)
+    await riskManagerV1.initialize(
+      collateralPool.address,
+      masterAuction.address
+    )
+    await riskManagerV1.deployed()
 
     mockIDeposit = await deployMockContract(owner, IDeposit.abi)
     await mockIDeposit.mock.currentState.returns(
@@ -71,9 +79,14 @@ describe("Auction", () => {
   })
 
   beforeEach(async () => {
-    const TestToken = await ethers.getContractFactory("TestToken")
-    testToken = await TestToken.deploy()
-
+    const balanceBidder1 = await testToken.balanceOf(bidder1.address)
+    const balanceBidder2 = await testToken.balanceOf(bidder2.address)
+    const balanceRiskManagerV1 = await testToken.balanceOf(
+      riskManagerV1.address
+    )
+    await testToken.burn(bidder1.address, balanceBidder1)
+    await testToken.burn(bidder2.address, balanceBidder2)
+    await testToken.burn(riskManagerV1.address, balanceRiskManagerV1)
     await testToken.mint(bidder1.address, testTokensToMint)
     await testToken.mint(bidder2.address, testTokensToMint)
   })
@@ -94,7 +107,7 @@ describe("Auction", () => {
 
         await expect(
           auction.initialize(
-            auctioneer.address,
+            riskManagerV1.address,
             testToken.address,
             auctionAmountDesired,
             auctionLength
@@ -107,7 +120,7 @@ describe("Auction", () => {
       it("should revert", async () => {
         await expect(
           masterAuction.initialize(
-            auctioneer.address,
+            riskManagerV1.address,
             testToken.address,
             auctionAmountDesired,
             auctionLength
@@ -119,12 +132,11 @@ describe("Auction", () => {
     context("when desired amount is zero", () => {
       it("should revert", async () => {
         const auctionAmountDesired = 0
+        await mockIDeposit.mock.lotSizeTbtc.returns(auctionAmountDesired)
+        await riskManagerV1.updateAuctionLength(auctionLength)
+
         await expect(
-          auctioneer.callCreateAuction(
-            testToken.address,
-            auctionAmountDesired,
-            auctionLength
-          )
+          riskManagerV1.notifyLiquidation(mockIDeposit.address)
         ).to.be.revertedWith("Amount desired must be greater than zero")
       })
     })
@@ -234,8 +246,8 @@ describe("Auction", () => {
           .connect(bidder2)
           .takeOfferWithMin(partialOfferAmount, minAmount)
 
-        // auctioneer should receive the auction's desired amount
-        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        // riskManagerV1 should receive the auction's desired amount
+        expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
           auctionAmountDesired
         )
 
@@ -256,8 +268,8 @@ describe("Auction", () => {
         await auction
           .connect(bidder2)
           .takeOfferWithMin(partialOfferAmount, minAmount)
-        // auctioneer should receive the auction's desired amount
-        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        // riskManagerV1 should receive the auction's desired amount
+        expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
           auctionAmountDesired
         )
 
@@ -307,16 +319,16 @@ describe("Auction", () => {
     })
 
     context("when the auction is not over and still open", () => {
-      it("should transfer tokens for the auction to auctioneer", async () => {
-        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(0)
+      it("should transfer tokens for the auction to riskManagerV1", async () => {
+        expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(0)
 
         // Increase time 1h -> 3600sec
         await increaseTime(3600)
 
         await auction.connect(bidder1).takeOffer(auctionAmountDesired)
 
-        // entire amount paid for an auction should be transferred to auctioneer
-        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        // entire amount paid for an auction should be transferred to riskManagerV1
+        expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
           auctionAmountDesired
         )
       })
@@ -342,7 +354,7 @@ describe("Auction", () => {
         // Pay 25% of the desired amount for the auction 0.25
         const partialOfferAmount = auctionAmountDesired.div(BigNumber.from("4"))
         await auction.connect(bidder1).takeOffer(partialOfferAmount)
-        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
           partialOfferAmount
         )
 
@@ -352,8 +364,8 @@ describe("Auction", () => {
         // bidder2 is trying to take more than the outstanding amount 1 * 10^18
         const exceededOfferAmount = to1e18(1)
         await auction.connect(bidder2).takeOffer(exceededOfferAmount)
-        // auctioneer should receive no more than initial auction's desired amount
-        expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+        // riskManagerV1 should receive no more than initial auction's desired amount
+        expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
           auctionAmountDesired
         )
 
@@ -376,7 +388,7 @@ describe("Auction", () => {
           .takeOffer(exceededOfferAmount)
 
         const receipt = await takeOfferTx.wait()
-        const events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
+        const events = pastEvents(receipt, riskManagerV1, "AuctionOfferTaken")
         // Available portion to seize after 1h:
         // 3,600 / 86,400 ~ 0.0416 +/- precision (evm delays)
         const portionToSeize = to1ePrecision(416, 14) // 0.0416 * 1e18 (divisor)
@@ -392,7 +404,9 @@ describe("Auction", () => {
       "when the auction length is not over and filling it partially",
       () => {
         it("should take a partial offer from the same taker", async () => {
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(0)
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
+            0
+          )
 
           // For testing calculation purposes assume the auction start time is 0
           // On blockchain we calculate the time diffs
@@ -406,10 +420,10 @@ describe("Auction", () => {
           expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0416, precision)
           // Pay 50% of the desired amount for the auction 0.5 * 10^18
           let partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
-          const expectedAuctioneerBalance = partialOfferAmount
+          const expectedRiskManagerV1Balance = partialOfferAmount
           await auction.connect(bidder1).takeOffer(partialOfferAmount)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-            expectedAuctioneerBalance
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
+            expectedRiskManagerV1Balance
           )
 
           // Ratio amount paid: 0.5 / 1 = 0.5
@@ -428,10 +442,12 @@ describe("Auction", () => {
           // Pay 20% of the remaining amount for an auction 0.5 * 10^18 / 5 = 0.1 * 10^18
           partialOfferAmount = partialOfferAmount.div(BigNumber.from("5"))
           // Auctioneer balance: (0.5 + 0.1) => 0.6 * 10^18
-          auctioneerBalance = expectedAuctioneerBalance.add(partialOfferAmount)
+          ristkManagerV1Balance = expectedRiskManagerV1Balance.add(
+            partialOfferAmount
+          )
           await auction.connect(bidder1).takeOffer(partialOfferAmount)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
-            auctioneerBalance
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
+            ristkManagerV1Balance
           )
 
           // Ratio amount paid: 0.1 / 0.5 = 0.2
@@ -446,9 +462,9 @@ describe("Auction", () => {
           onOfferObj = await auction.connect(bidder1).onOffer()
           expect(onOfferObj[0] / onOfferObj[1]).to.be.closeTo(0.0573, precision)
           // Buy the rest and close the auction 1 - 0.6 => 0.4 * 10^18
-          partialOfferAmount = auctionAmountDesired.sub(auctioneerBalance)
+          partialOfferAmount = auctionAmountDesired.sub(ristkManagerV1Balance)
           await auction.connect(bidder1).takeOffer(partialOfferAmount)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
             auctionAmountDesired
           )
         })
@@ -468,7 +484,7 @@ describe("Auction", () => {
             BigNumber.from("4")
           )
           await auction.connect(bidder1).takeOffer(partialOfferAmount)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
             partialOfferAmount
           )
 
@@ -494,7 +510,7 @@ describe("Auction", () => {
             auctionAmountDesired.sub(partialOfferAmount)
           )
           await auction.connect(bidder2).takeOffer(amountOutstanding)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
             auctionAmountDesired
           )
         })
@@ -518,7 +534,7 @@ describe("Auction", () => {
           let partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
           const expectedAuctioneerBalance = partialOfferAmount
           await auction.connect(bidder1).takeOffer(partialOfferAmount)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
             expectedAuctioneerBalance
           )
 
@@ -534,7 +550,7 @@ describe("Auction", () => {
           // Auctioneer balance: (0.5 + 0.1) => 0.6 * 10^18
           auctioneerBalance = expectedAuctioneerBalance.add(partialOfferAmount)
           await auction.connect(bidder1).takeOffer(partialOfferAmount)
-          expect(await testToken.balanceOf(auctioneer.address)).to.be.equal(
+          expect(await testToken.balanceOf(riskManagerV1.address)).to.be.equal(
             auctioneerBalance
           )
 
@@ -600,7 +616,7 @@ describe("Auction", () => {
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     beforeEach(async () => {
-      auctioneerSigner = await impersonateContract(auctioneer.address, owner)
+      auctioneerSigner = await impersonateContract(riskManagerV1.address, owner)
 
       auction = await createAuction(auctionAmountDesired, auctionLength)
       await approveTestTokenForAuction(auction.address)
@@ -648,15 +664,13 @@ describe("Auction", () => {
   })
 
   async function createAuction(auctionAmountDesired, auctionLength) {
-    const createAuctionTx = await auctioneer.callCreateAuction(
-      testToken.address,
-      auctionAmountDesired,
-      auctionLength
-    )
+    await mockIDeposit.mock.lotSizeTbtc.returns(auctionAmountDesired)
+    await riskManagerV1.updateAuctionLength(auctionLength)
+    await riskManagerV1.notifyLiquidation(mockIDeposit.address)
 
-    const receipt = await createAuctionTx.wait()
-    const events = pastEvents(receipt, auctioneer, "AuctionCreated")
-    const auctionAddress = events[0].args["auctionAddress"]
+    const auctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+      mockIDeposit.address
+    )
 
     return new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
   }

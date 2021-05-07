@@ -18,4 +18,8 @@ contract TestToken is ERC20 {
     function mint(address _account, uint256 _amount) public {
         _mint(_account, _amount);
     }
+
+    function burn(address account, uint256 amount) public {
+        _burn(account, amount);
+    }
 }

@@ -36,6 +36,7 @@ contract RiskManagerV1 is Auctioneer {
 
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+    uint256 public auctionLength = 86400; // in sec, hardcoded 24h
     IERC20 public tbtcToken;
 
     // deposit in liquidation => opened coverage pool auction
@@ -73,7 +74,6 @@ contract RiskManagerV1 is Auctioneer {
 
         // TODO: Need to read the market conditions of assets from Uniswap / 1inch
         //       Based on this data the auction length should be adjusted
-        uint256 auctionLength = 86400; // in sec, hardcoded 24h
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
@@ -105,6 +105,14 @@ contract RiskManagerV1 is Auctioneer {
         delete auctionsByDepositsInLiquidation[depositAddress];
         //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
         delete depositsInLiquidationByAuctions[address(auction)];
+    }
+
+    // TODO: we already have PR opened for auctions length update:
+    // https://github.com/keep-network/coverage-pools/pull/28
+    // The simplified function below is for testing purposes only and the tests that
+    // use it will need to be adjusted accordingly after #28 lands in main.
+    function updateAuctionLength(uint256 _auctionLength) external {
+        auctionLength = _auctionLength;
     }
 
     /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
