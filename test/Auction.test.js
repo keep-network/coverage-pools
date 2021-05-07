@@ -120,7 +120,7 @@ describe("Auction", () => {
       it("should revert", async () => {
         const auctionAmountDesired = 0
         await expect(
-          auctioneer.callCreateAuction(
+          auctioneer._createAuction(
             testToken.address,
             auctionAmountDesired,
             auctionLength
@@ -648,7 +648,7 @@ describe("Auction", () => {
   })
 
   async function createAuction(auctionAmountDesired, auctionLength) {
-    const createAuctionTx = await auctioneer.callCreateAuction(
+    const createAuctionTx = await auctioneer._createAuction(
       testToken.address,
       auctionAmountDesired,
       auctionLength

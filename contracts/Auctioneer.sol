@@ -90,7 +90,7 @@ contract Auctioneer is CloneFactory {
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
-            actBeforeAuctionClose(auction);
+            _beforeAuctionClose(auction);
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
@@ -153,5 +153,5 @@ contract Auctioneer is CloneFactory {
     ///      Depending on coverage pool approaches this function will act differently
     ///      and here we just indicate that some action will take place before
     ///      we close a coverage pool auction.
-    function actBeforeAuctionClose(Auction auction) internal virtual {}
+    function _beforeAuctionClose(Auction auction) internal virtual {}
 }

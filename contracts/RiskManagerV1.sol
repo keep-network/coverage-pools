@@ -115,7 +115,7 @@ contract RiskManagerV1 is Auctioneer {
     ///         coverage pool auction should be transferred to this contract in
     ///         order to buy signer bonds.
     /// @param auction Coverage pool auction.
-    function actBeforeAuctionClose(Auction auction) internal override {
+    function _beforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =
             IDeposit(depositsInLiquidationByAuctions[address(auction)]);
 

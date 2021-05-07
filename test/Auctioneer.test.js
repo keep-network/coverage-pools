@@ -288,21 +288,21 @@ describe("Auctioneer", () => {
 
     context("when the auction is still open", () => {
       it("should close the auction", async () => {
-        await auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+        await auctioneer.connect(bidder)._earlyCloseAuction(auctionAddress)
 
         expect(await auction.isOpen()).to.be.false
       })
 
       it("should emit the auction closed event", async () => {
         await expect(
-          auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+          auctioneer.connect(bidder)._earlyCloseAuction(auctionAddress)
         )
           .to.emit(auctioneer, "AuctionClosed")
           .withArgs(auctionAddress)
       })
 
       it("should no longer track the auction", async () => {
-        await auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+        await auctioneer.connect(bidder)._earlyCloseAuction(auctionAddress)
 
         expect(await auctioneer.openAuctions(auctionAddress)).to.be.false
       })
@@ -313,7 +313,7 @@ describe("Auctioneer", () => {
         await auction.connect(bidder).takeOffer(auctionAmountDesired)
 
         await expect(
-          auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+          auctioneer.connect(bidder)._earlyCloseAuction(auctionAddress)
         ).to.be.revertedWith("Address is not an open auction")
       })
     })
@@ -323,7 +323,7 @@ describe("Auctioneer", () => {
         await expect(
           auctioneer
             .connect(bidder)
-            .callEarlyCloseAuction(await bidder.getAddress())
+            ._earlyCloseAuction(await bidder.getAddress())
         ).to.be.revertedWith("Address is not an open auction")
       })
     })
@@ -332,7 +332,7 @@ describe("Auctioneer", () => {
   async function createAuction() {
     const createAuctionTx = await auctioneer
       .connect(owner)
-      .callCreateAuction(testToken.address, auctionAmountDesired, auctionLength)
+      ._createAuction(testToken.address, auctionAmountDesired, auctionLength)
 
     return await createAuctionTx.wait()
   }

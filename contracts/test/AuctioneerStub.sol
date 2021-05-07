@@ -9,7 +9,7 @@ contract AuctioneerStub is Auctioneer {
     ///      test helper function.
     fallback() external payable {}
 
-    function callCreateAuction(
+    function _createAuction(
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
@@ -17,7 +17,7 @@ contract AuctioneerStub is Auctioneer {
         createAuction(tokenAccepted, amountDesired, auctionLength);
     }
 
-    function callEarlyCloseAuction(Auction auction) public {
+    function _earlyCloseAuction(Auction auction) public {
         earlyCloseAuction(auction);
     }
 }
