@@ -139,7 +139,7 @@ describe("RiskManagerV1", () => {
       })
 
       it("should not update the auction length", async () => {
-        expect(await riskManagerV1.getAuctionLength()).to.be.equal(
+        expect(await riskManagerV1.auctionLength()).to.be.equal(
           currentAuctionLength
         )
       })
@@ -188,7 +188,7 @@ describe("RiskManagerV1", () => {
         })
 
         it("should update the auction length", async () => {
-          expect(await riskManagerV1.getAuctionLength()).to.be.equal(
+          expect(await riskManagerV1.auctionLength()).to.be.equal(
             newAuctionLength
           )
         })
