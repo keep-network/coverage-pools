@@ -29,9 +29,9 @@ contract RiskManagerV1 is Ownable {
     IERC20 public tbtcToken;
     Auctioneer public auctioneer;
 
-    uint256 private auctionLength;
-    uint256 private newAuctionLength;
-    uint256 private auctionLengthChangeInitiated;
+    uint256 public auctionLength;
+    uint256 public newAuctionLength;
+    uint256 public auctionLengthChangeInitiated;
 
     uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
@@ -163,12 +163,6 @@ contract RiskManagerV1 is Ownable {
         emit AuctionLengthUpdated(newAuctionLength);
         newAuctionLength = 0;
         auctionLengthChangeInitiated = 0;
-    }
-
-    /// @notice Get the current value of the auction length parameter.
-    /// @return Auction length in seconds.
-    function getAuctionLength() external view returns (uint256) {
-        return auctionLength;
     }
 
     /// @notice Get the time remaining until the auction length parameter
