@@ -5,9 +5,17 @@ pragma solidity <0.9.0;
 import "./RiskManagerV1.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title SignerBondsEscrow
+/// @notice Process incoming signer bonds by putting them into escrow the
+///         governance can withdraw from.
 contract SignerBondsEscrow is ISignerBondsProcessor, Ownable {
+    /// @notice Processes the signer bonds.
+    /// @dev Adds incoming bonds to the overall contract balance.
     function processSignerBonds() external payable override {}
 
+    /// @notice Withdraws collected bonds to the given target address.
+    /// @dev Can be called by the governance only.
+    /// @param target Arbitrary target address chosen by the governance.
     function withdraw(address payable target) external onlyOwner {
         require(target != address(0), "Invalid target address");
         /* solhint-disable avoid-low-level-calls */

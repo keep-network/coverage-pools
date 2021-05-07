@@ -28,10 +28,16 @@ interface IDeposit {
     /// @notice Get this deposit's lot size in TBTC.
     function lotSizeTbtc() external view returns (uint256);
 
+    /// @notice Get this deposit's withdrawable amount in WEIs.
     function withdrawableAmount() external view returns (uint256);
 }
 
+/// @title ISignerBondsProcessor
+/// @notice Represents a signer bonds processor.
+/// @dev This interface is meant to abstract the underlying signer bonds
+///      processing strategy and make it interchangeable for the governance.
 interface ISignerBondsProcessor {
+    /// @notice Processes the signer bonds.
     function processSignerBonds() external payable;
 }
 
