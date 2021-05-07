@@ -29,8 +29,6 @@ contract RiskManagerV1 is Ownable {
     IERC20 public tbtcToken;
     Auctioneer public auctioneer;
 
-    // TODO: Need to read the market conditions of assets from Uniswap / 1inch
-    //       Based on this data the auction length should be adjusted.
     uint256 private auctionLength;
     uint256 private newAuctionLength;
     uint256 private auctionLengthChangeInitiated;
