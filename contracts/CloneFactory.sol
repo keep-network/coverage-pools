@@ -49,6 +49,7 @@ contract CloneFactory {
         }
     }
 
+    // slither-disable-next-line dead-code
     function isClone(address target, address query)
         internal
         view
