@@ -106,7 +106,7 @@ contract Auctioneer is CloneFactory, Ownable {
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
-    ) external onlyOwner {
+    ) external onlyOwner returns (address) {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
@@ -125,6 +125,8 @@ contract Auctioneer is CloneFactory, Ownable {
             amountDesired,
             cloneAddress
         );
+
+        return cloneAddress;
     }
 
     /// @notice Tears down an open auction with given address immediately.

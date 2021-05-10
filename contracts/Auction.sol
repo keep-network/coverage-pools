@@ -50,6 +50,7 @@ contract Auction is IAuction {
     }
 
     AuctionStorage public self;
+    bool public isMasterContract;
 
     /// @notice Throws if called by any account other than the auctioneer.
     modifier onlyAuctioneer() {
@@ -62,12 +63,8 @@ contract Auction is IAuction {
         _;
     }
 
-    function amountOutstanding() external view returns (uint256) {
-        return self.amountOutstanding;
-    }
-
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
+    constructor() {
+        isMasterContract = true;
     }
 
     /// @notice Initializes auction
@@ -86,6 +83,7 @@ contract Auction is IAuction {
         uint256 _amountDesired,
         uint256 _auctionLength
     ) external {
+        require(!isMasterContract, "Can not initialize master contract");
         //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
@@ -99,6 +97,50 @@ contract Auction is IAuction {
         self.velocityPoolDepletingRate =
             1 *
             CoveragePoolConstants.getFloatingPointDivisor();
+    }
+
+    /// @notice Takes an offer from an auction buyer with a minimum required tokens
+    ///         to buy in case another transaction was faster with an offer that
+    ///         left outstanding amount in a state which cannot meet 'amount' value
+    ///         in this transaction.
+    /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction.
+    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
+    /// @param amount the amount the taker is paying, denominated in tokenAccepted
+    /// @param minAmount minimum amount of tokens to buy
+    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
+        require(
+            self.amountOutstanding >= minAmount,
+            "Can't fulfill minimum offer"
+        );
+        takeOffer(amount);
+    }
+
+    /// @notice Tears down the auction manually, before its entire amount
+    ///         is bought by takers.
+    /// @dev Can be called only by the auctioneer which may decide to early
+    //       close the auction in case it is no longer needed.
+    function earlyClose() external onlyAuctioneer {
+        require(self.amountOutstanding > 0, "Auction must be open");
+
+        harikari();
+    }
+
+    /// @notice How much of the collateral pool can currently be purchased at
+    ///         auction, across all assets.
+    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
+    ///      collateral pool. Ex. if 35% available of the collateral pool,
+    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
+    /// @return the ratio of the collateral pool currently on offer
+    function onOffer() external view override returns (uint256, uint256) {
+        return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
+    }
+
+    function amountOutstanding() external view returns (uint256) {
+        return self.amountOutstanding;
+    }
+
+    function isOpen() external view returns (bool) {
+        return self.amountOutstanding > 0;
     }
 
     /// @notice Takes an offer from an auction buyer.
@@ -174,45 +216,10 @@ contract Auction is IAuction {
         }
     }
 
-    /// @notice Takes an offer from an auction buyer with a minimum required tokens
-    ///         to buy in case another transaction was faster with an offer that
-    ///         left outstanding amount in a state which cannot meet 'amount' value
-    ///         in this transaction.
-    /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction.
-    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
-    /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    /// @param minAmount minimum amount of tokens to buy
-    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
-        require(
-            self.amountOutstanding >= minAmount,
-            "Can't fulfill minimum offer"
-        );
-        takeOffer(amount);
-    }
-
-    /// @notice Tears down the auction manually, before its entire amount
-    ///         is bought by takers.
-    /// @dev Can be called only by the auctioneer which may decide to early
-    //       close the auction in case it is no longer needed.
-    function earlyClose() external onlyAuctioneer {
-        require(self.amountOutstanding > 0, "Auction must be open");
-
-        harikari();
-    }
-
-    /// @notice How much of the collateral pool can currently be purchased at
-    ///         auction, across all assets.
-    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
-    ///      collateral pool. Ex. if 35% available of the collateral pool,
-    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
-    /// @return the ratio of the collateral pool currently on offer
-    function onOffer() external view override returns (uint256, uint256) {
-        return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
-    }
-
     /// @dev Delete all storage and destroy the contract. Should only be called
     ///      after an auction has closed.
     function harikari() internal {
+        require(!isMasterContract, "Master contract can not harikari");
         address payable addr = address(uint160(address(self.auctioneer)));
         delete self;
         selfdestruct(addr);

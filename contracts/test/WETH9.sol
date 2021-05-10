@@ -1,5 +1,13 @@
-pragma solidity >=0.4.22 <0.6.0;
+// SPDX-License-Identifier: MIT
 
+/* This is a copy of the WETH contract deployed at
+0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2, but with fallback function replaced
+with receive() function, so that the contract can compile with newer versions of
+Solidity and a few linter adjustments */
+
+pragma solidity 0.7.6;
+
+/* solhint-disable reason-string */
 contract WETH9 {
     string public name = "Wrapped Ether";
     string public symbol = "WETH";
@@ -13,7 +21,7 @@ contract WETH9 {
     event Deposit(address indexed dst, uint256 wad);
     event Withdrawal(address indexed src, uint256 wad);
 
-    function() external payable {
+    receive() external payable {
         deposit();
     }
 
@@ -23,7 +31,7 @@ contract WETH9 {
     }
 
     function withdraw(uint256 wad) public {
-        require(balanceOf[msg.sender] >= wad, "Not enough WETH tokens");
+        require(balanceOf[msg.sender] >= wad);
         balanceOf[msg.sender] -= wad;
         msg.sender.transfer(wad);
         emit Withdrawal(msg.sender, wad);
@@ -44,13 +52,10 @@ contract WETH9 {
         address dst,
         uint256 wad
     ) public returns (bool) {
-        require(balanceOf[src] >= wad, "Not enough WETH tokens");
+        require(balanceOf[src] >= wad);
 
         if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
-            require(
-                allowance[src][msg.sender] >= wad,
-                "Not enough WETH tokens approved"
-            );
+            require(allowance[src][msg.sender] >= wad);
             allowance[src][msg.sender] -= wad;
         }
 

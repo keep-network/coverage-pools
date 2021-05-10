@@ -20,11 +20,13 @@ const precision = 0.001 // to mitigate evm delays
 
 describe("Auction", () => {
   let testToken
+  let collateralPool
+  let masterAuction
+
   let owner
   let bidder1
   let bidder2
   let auctioneer
-  let collateralPool
 
   before(async () => {
     const CoveragePoolConstants = await ethers.getContractFactory(
@@ -48,7 +50,7 @@ describe("Auction", () => {
     auctioneer = await Auctioneer.deploy()
     await auctioneer.deployed()
 
-    const masterAuction = await Auction.deploy()
+    masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
     collateralPool = await CollateralPool.deploy()
@@ -87,6 +89,19 @@ describe("Auction", () => {
             auctionLength
           )
         ).to.be.revertedWith("Auction already initialized")
+      })
+    })
+
+    context("when called on the master contract", () => {
+      it("should revert", async () => {
+        await expect(
+          masterAuction.initialize(
+            auctioneer.address,
+            testToken.address,
+            auctionAmountDesired,
+            auctionLength
+          )
+        ).to.be.revertedWith("Can not initialize master contract")
       })
     })
 
