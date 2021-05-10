@@ -142,6 +142,10 @@ contract Auction is IAuction {
     }
 
     function amountTransferred() external view returns (uint256) {
+        // Need to check whether the auction is open as harikari is done
+        // upon auction close so there is no possibility to determine
+        // the transferred amount on a closed auction.
+        require(self.amountOutstanding > 0, "Auction must be open");
         return self.amountInitial.sub(self.amountOutstanding);
     }
 
