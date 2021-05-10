@@ -72,7 +72,7 @@ abstract contract RewardTokenMinting {
 ///         reward rates. Reward rates allows establishing a way for Governance
 ///         to incentivize different assets to target a particular Collateral
 ///         Pool composition.
-contract RewardPool is RewardTokenMinting {
+contract RewardPoolV2 is RewardTokenMinting {
     // TODO: Add function to update reward rate with a governance delay.
     // TODO: Allow to withdraw rewards based on the amount of reward tokens.
 }
