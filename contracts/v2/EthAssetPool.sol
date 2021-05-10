@@ -2,8 +2,8 @@
 
 pragma solidity <0.9.0;
 
-import "./AssetPool.sol";
-import "./UnderwriterToken.sol";
+import "../AssetPool.sol";
+import "../UnderwriterToken.sol";
 
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
