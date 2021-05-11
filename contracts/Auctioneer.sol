@@ -8,8 +8,6 @@ import "./CollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-// TODO auctioneer should be able to speed up auctions based on exit market activity
-
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
 /// @dev  We avoid redeployment of auction contracts by using the clone factory.
