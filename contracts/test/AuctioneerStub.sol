@@ -7,9 +7,9 @@ import "../Auctioneer.sol";
 contract AuctioneerStub is Auctioneer {
     /// @dev This fallback function is needed by the `impersonateContract`
     ///      test helper function.
-    fallback() external payable {}
+    receive() external payable {}
 
-    function _createAuction(
+    function publicCreateAuction(
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
@@ -17,7 +17,7 @@ contract AuctioneerStub is Auctioneer {
         createAuction(tokenAccepted, amountDesired, auctionLength);
     }
 
-    function _earlyCloseAuction(Auction auction) public {
+    function publicEarlyCloseAuction(Auction auction) public {
         earlyCloseAuction(auction);
     }
 }
