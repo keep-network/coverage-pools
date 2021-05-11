@@ -9,9 +9,7 @@ const {
   impersonateContract,
 } = require("./helpers/contract-test-helpers")
 
-const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
-const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
 const { BigNumber } = ethers
 
 // amount of test tokens that an auction (aka spender) is allowed
@@ -19,7 +17,6 @@ const { BigNumber } = ethers
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 const precision = 0.001 // to mitigate evm delays
-const depositLiquidationInProgressState = 10
 
 describe("Auction", () => {
   let testToken
@@ -60,14 +57,6 @@ describe("Auction", () => {
     await collateralPool.deployed()
 
     await auctioneer.initialize(collateralPool.address, masterAuction.address)
-
-    mockIDeposit = await deployMockContract(owner, IDeposit.abi)
-    await mockIDeposit.mock.currentState.returns(
-      depositLiquidationInProgressState
-    )
-
-    await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-    await mockIDeposit.mock.withdrawFunds.returns()
   })
 
   beforeEach(async () => {
