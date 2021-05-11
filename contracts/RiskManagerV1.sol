@@ -75,7 +75,6 @@ contract RiskManagerV1 is Auctioneer {
 
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
-        //slither-disable-next-line reentrancy-benign
         depositToAuction[depositAddress] = auctionAddress;
         auctionToDeposit[auctionAddress] = depositAddress;
     }
@@ -96,11 +95,10 @@ contract RiskManagerV1 is Auctioneer {
 
         Auction auction =
             Auction(depositToAuction[depositAddress]);
-        earlyCloseAuction(auction);
-        //slither-disable-next-line reentrancy-no-eth
+
         delete depositToAuction[depositAddress];
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
         delete auctionToDeposit[address(auction)];
+        earlyCloseAuction(auction);
     }
 
     /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
