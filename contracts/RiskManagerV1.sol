@@ -10,10 +10,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-/// @notice This is an interface with just a few function signatures of a main
+/// @notice tBTC v1 Deposit contract interface.
+/// @dev This is an interface with just a few function signatures of a main
 ///         contract for tBTC. For more info and function description
 ///         please see:
-///         https://github.com/keep-network/tbtc/blob/master/solidity/contracts/deposit/Deposit.sol
+///         https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
     function withdrawFunds() external;
 
