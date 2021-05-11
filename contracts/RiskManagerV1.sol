@@ -37,7 +37,7 @@ contract RiskManagerV1 is Auctioneer {
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
     // opened coverage pool auction => deposit in liquidation
-    mapping(address => address) public depositsInLiquidationByAuctions;
+    mapping(address => address) public auctionToDeposit;
 
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
@@ -77,7 +77,7 @@ contract RiskManagerV1 is Auctioneer {
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         //slither-disable-next-line reentrancy-benign
         depositToAuction[depositAddress] = auctionAddress;
-        depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
+        auctionToDeposit[auctionAddress] = depositAddress;
     }
 
     /// @notice Closes an auction early.
@@ -100,7 +100,7 @@ contract RiskManagerV1 is Auctioneer {
         //slither-disable-next-line reentrancy-no-eth
         delete depositToAuction[depositAddress];
         //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
-        delete depositsInLiquidationByAuctions[address(auction)];
+        delete auctionToDeposit[address(auction)];
     }
 
     /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
@@ -113,10 +113,10 @@ contract RiskManagerV1 is Auctioneer {
     /// @param auction Coverage pool auction.
     function onBeforeAuctionClose(Auction auction) internal override {
         IDeposit deposit =
-            IDeposit(depositsInLiquidationByAuctions[address(auction)]);
+            IDeposit(auctionToDeposit[address(auction)]);
 
         delete depositToAuction[address(deposit)];
-        delete depositsInLiquidationByAuctions[address(auction)];
+        delete auctionToDeposit[address(auction)];
 
         uint256 approvedAmount = deposit.lotSizeTbtc();
         tbtcToken.safeApprove(address(deposit), approvedAmount);

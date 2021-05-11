@@ -168,7 +168,7 @@ describe("RiskManagerV1", () => {
         ).to.equal(ZERO_ADDRESS)
 
         expect(
-          await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
+          await riskManagerV1.auctionToDeposit(auctionAddress)
         ).to.equal(ZERO_ADDRESS)
       })
     })
@@ -188,7 +188,7 @@ describe("RiskManagerV1", () => {
 
       it("should keep deposit in the deposits map", async () => {
         expect(
-          await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
+          await riskManagerV1.auctionToDeposit(auctionAddress)
         ).to.equal(mockIDeposit.address)
       })
     })
