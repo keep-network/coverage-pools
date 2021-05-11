@@ -84,7 +84,7 @@ describe("RiskManagerV1", () => {
       })
 
       it("should create an auction and populate auction's map", async () => {
-        const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+        const createdAuctionAddress = await riskManagerV1.depositToAuction(
           mockIDeposit.address
         )
 
@@ -120,7 +120,7 @@ describe("RiskManagerV1", () => {
       })
 
       it("should early close an auction", async () => {
-        const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+        const createdAuctionAddress = await riskManagerV1.depositToAuction(
           mockIDeposit.address
         )
 
@@ -129,7 +129,7 @@ describe("RiskManagerV1", () => {
           .notifyLiquidated(mockIDeposit.address)
 
         expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
+          await riskManagerV1.depositToAuction(
             createdAuctionAddress
           )
         ).to.equal(ZERO_ADDRESS)
@@ -149,7 +149,7 @@ describe("RiskManagerV1", () => {
       await mockIDeposit.mock.withdrawFunds.returns()
 
       await notifyLiquidation(mockIDeposit.address)
-      auctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+      auctionAddress = await riskManagerV1.depositToAuction(
         mockIDeposit.address
       )
       await testToken.connect(bidder).approve(auctionAddress, auctionLotSize)
@@ -162,7 +162,7 @@ describe("RiskManagerV1", () => {
         await auction.connect(bidder).takeOffer(auctionLotSize)
 
         expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
+          await riskManagerV1.depositToAuction(
             mockIDeposit.address
           )
         ).to.equal(ZERO_ADDRESS)
@@ -180,7 +180,7 @@ describe("RiskManagerV1", () => {
       })
       it("should keep auction in the auction map", async () => {
         expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
+          await riskManagerV1.depositToAuction(
             mockIDeposit.address
           )
         ).to.equal(auctionAddress)

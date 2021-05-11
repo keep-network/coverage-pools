@@ -35,7 +35,7 @@ contract RiskManagerV1 is Auctioneer {
     IERC20 public tbtcToken;
 
     // deposit in liquidation => opened coverage pool auction
-    mapping(address => address) public auctionsByDepositsInLiquidation;
+    mapping(address => address) public depositToAuction;
     // opened coverage pool auction => deposit in liquidation
     mapping(address => address) public depositsInLiquidationByAuctions;
 
@@ -76,7 +76,7 @@ contract RiskManagerV1 is Auctioneer {
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         //slither-disable-next-line reentrancy-benign
-        auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
+        depositToAuction[depositAddress] = auctionAddress;
         depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
     }
 
@@ -95,10 +95,10 @@ contract RiskManagerV1 is Auctioneer {
         //       these tokens.
 
         Auction auction =
-            Auction(auctionsByDepositsInLiquidation[depositAddress]);
+            Auction(depositToAuction[depositAddress]);
         earlyCloseAuction(auction);
         //slither-disable-next-line reentrancy-no-eth
-        delete auctionsByDepositsInLiquidation[depositAddress];
+        delete depositToAuction[depositAddress];
         //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
         delete depositsInLiquidationByAuctions[address(auction)];
     }
@@ -115,7 +115,7 @@ contract RiskManagerV1 is Auctioneer {
         IDeposit deposit =
             IDeposit(depositsInLiquidationByAuctions[address(auction)]);
 
-        delete auctionsByDepositsInLiquidation[address(deposit)];
+        delete depositToAuction[address(deposit)];
         delete depositsInLiquidationByAuctions[address(auction)];
 
         uint256 approvedAmount = deposit.lotSizeTbtc();
