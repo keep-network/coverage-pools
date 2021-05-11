@@ -86,7 +86,7 @@ contract Auctioneer is CloneFactory {
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
-            onBeforeAuctionClose(auction);
+            onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
@@ -145,9 +145,10 @@ contract Auctioneer is CloneFactory {
         delete openAuctions[auctionAddress];
     }
 
-    /// @dev This function is implemented in different versions of Risk Managers.
-    ///      Depending on coverage pool approaches this function will act differently
-    ///      and here we just indicate that some action will take place before
-    ///      we close a coverage pool auction.
-    function onBeforeAuctionClose(Auction auction) internal virtual {}
+    /// @notice Auction lifecycle hook allowing to act on auction closed
+    ///         as fully filled. This function is not executed when an auction
+    ///         was partially filled. When this function is executed auction is
+    ///         already closed and funds from the coverage pool are seized.
+    /// @dev Override this function to act on auction closed as fully filled.
+    function onAuctionFullyFilled(Auction auction) internal virtual {}
 }

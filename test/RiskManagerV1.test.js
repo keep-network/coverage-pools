@@ -129,9 +129,7 @@ describe("RiskManagerV1", () => {
           .notifyLiquidated(mockIDeposit.address)
 
         expect(
-          await riskManagerV1.depositToAuction(
-            createdAuctionAddress
-          )
+          await riskManagerV1.depositToAuction(createdAuctionAddress)
         ).to.equal(ZERO_ADDRESS)
         expect(await riskManagerV1.openAuctions(createdAuctionAddress)).to.be
           .false
@@ -139,7 +137,7 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("actBeforeAuctionClose", () => {
+  describe("onAuctionFullyFilled", () => {
     let auctionAddress
     let auction
 
@@ -162,14 +160,12 @@ describe("RiskManagerV1", () => {
         await auction.connect(bidder).takeOffer(auctionLotSize)
 
         expect(
-          await riskManagerV1.depositToAuction(
-            mockIDeposit.address
-          )
+          await riskManagerV1.depositToAuction(mockIDeposit.address)
         ).to.equal(ZERO_ADDRESS)
 
-        expect(
-          await riskManagerV1.auctionToDeposit(auctionAddress)
-        ).to.equal(ZERO_ADDRESS)
+        expect(await riskManagerV1.auctionToDeposit(auctionAddress)).to.equal(
+          ZERO_ADDRESS
+        )
       })
     })
 
@@ -180,16 +176,14 @@ describe("RiskManagerV1", () => {
       })
       it("should keep auction in the auction map", async () => {
         expect(
-          await riskManagerV1.depositToAuction(
-            mockIDeposit.address
-          )
+          await riskManagerV1.depositToAuction(mockIDeposit.address)
         ).to.equal(auctionAddress)
       })
 
       it("should keep deposit in the deposits map", async () => {
-        expect(
-          await riskManagerV1.auctionToDeposit(auctionAddress)
-        ).to.equal(mockIDeposit.address)
+        expect(await riskManagerV1.auctionToDeposit(auctionAddress)).to.equal(
+          mockIDeposit.address
+        )
       })
     })
   })

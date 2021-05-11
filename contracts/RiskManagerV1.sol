@@ -93,8 +93,7 @@ contract RiskManagerV1 is Auctioneer {
         //       TBTC hanging in this contract. Need to decide what to do with
         //       these tokens.
 
-        Auction auction =
-            Auction(depositToAuction[depositAddress]);
+        Auction auction = Auction(depositToAuction[depositAddress]);
 
         delete depositToAuction[depositAddress];
         delete auctionToDeposit[address(auction)];
@@ -109,9 +108,8 @@ contract RiskManagerV1 is Auctioneer {
     ///         coverage pool auction should be transferred to this contract in
     ///         order to buy signer bonds.
     /// @param auction Coverage pool auction.
-    function onBeforeAuctionClose(Auction auction) internal override {
-        IDeposit deposit =
-            IDeposit(auctionToDeposit[address(auction)]);
+    function onAuctionFullyFilled(Auction auction) internal override {
+        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
 
         delete depositToAuction[address(deposit)];
         delete auctionToDeposit[address(auction)];
