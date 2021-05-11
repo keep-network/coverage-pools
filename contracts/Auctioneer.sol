@@ -6,7 +6,6 @@ import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
@@ -15,7 +14,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory {
-    using SafeERC20 for IERC20;
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
