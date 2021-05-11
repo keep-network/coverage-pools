@@ -1,5 +1,5 @@
 const { expect } = require("chai")
-const { to1e18 } = require("./helpers/contract-test-helpers")
+const { to1e18 } = require("../helpers/contract-test-helpers")
 
 describe("EthAssetPool", () => {
   let ethAssetPool

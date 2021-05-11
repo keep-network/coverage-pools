@@ -9,6 +9,7 @@ import "./CoveragePoolConstants.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -26,12 +27,19 @@ interface IDeposit {
 }
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 is Auctioneer {
+contract RiskManagerV1 is Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
+    uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
+
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+
+    uint256 public auctionLength;
+    uint256 public newAuctionLength;
+    uint256 public auctionLengthChangeInitiated;
+
     IERC20 public tbtcToken;
 
     // deposit in liquidation => opened coverage pool auction
@@ -42,8 +50,26 @@ contract RiskManagerV1 is Auctioneer {
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
 
-    constructor(IERC20 _token) {
+    event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
+    event AuctionLengthUpdated(uint256 auctionLength);
+
+    /// @notice Reverts if called before the delay elapses.
+    /// @param changeInitiatedTimestamp Timestamp indicating the beginning
+    ///        of the change.
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp.sub(changeInitiatedTimestamp) >=
+                GOVERNANCE_TIME_DELAY,
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
+
+    constructor(IERC20 _token, uint256 _auctionLength) {
         tbtcToken = _token;
+        auctionLength = _auctionLength;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -66,10 +92,6 @@ contract RiskManagerV1 is Auctioneer {
 
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
-
-        // TODO: Need to read the market conditions of assets from Uniswap / 1inch
-        //       Based on this data the auction length should be adjusted
-        uint256 auctionLength = 86400; // in sec, hardcoded 24h
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
@@ -123,5 +145,70 @@ contract RiskManagerV1 is Auctioneer {
         // TODO: Once ETH is received, funds need to be processed further, so
         //       they won't be locked in this contract.
         deposit.withdrawFunds();
+    }
+
+    /// @notice Begins the auction length update process.
+    /// @dev Can be called only by the contract owner. The auction length should
+    ///      be adjusted very carefully. Total value locked of the coverage pool
+    ///      and minimum possible auction amount needs to be taken into account.
+    /// @param _newAuctionLength New auction length in seconds.
+    function beginAuctionLengthUpdate(uint256 _newAuctionLength)
+        external
+        onlyOwner
+    {
+        newAuctionLength = _newAuctionLength;
+        /* solhint-disable-next-line not-rely-on-time */
+        auctionLengthChangeInitiated = block.timestamp;
+        /* solhint-disable-next-line not-rely-on-time */
+        emit AuctionLengthUpdateStarted(_newAuctionLength, block.timestamp);
+    }
+
+    /// @notice Finalizes the auction length update process.
+    /// @dev Can be called only by the contract owner, after the the
+    ///      governance delay elapses.
+    function finalizeAuctionLengthUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(auctionLengthChangeInitiated)
+    {
+        auctionLength = newAuctionLength;
+        emit AuctionLengthUpdated(newAuctionLength);
+        newAuctionLength = 0;
+        auctionLengthChangeInitiated = 0;
+    }
+
+    /// @notice Get the time remaining until the auction length parameter
+    ///         can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingAuctionLengthUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                auctionLengthChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the function parameter timer
+    ///         value can be updated.
+    /// @param changeTimestamp Timestamp indicating the beginning of the change.
+    /// @param delay Governance delay.
+    /// @return Remaining time in seconds.
+    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+        returns (uint256)
+    {
+        require(changeTimestamp > 0, "Update not initiated");
+        /* solhint-disable-next-line not-rely-on-time */
+        uint256 elapsed = block.timestamp.sub(changeTimestamp);
+        if (elapsed >= delay) {
+            return 0;
+        } else {
+            return delay.sub(elapsed);
+        }
     }
 }
