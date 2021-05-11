@@ -50,10 +50,11 @@ describe("RiskManagerV1", () => {
     await masterAuction.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
-    riskManagerV1 = await RiskManagerV1.deploy(testToken.address, auctionLength)
-    await riskManagerV1.initialize(
+    riskManagerV1 = await RiskManagerV1.deploy(
+      testToken.address,
       collateralPoolStub.address,
-      masterAuction.address
+      masterAuction.address,
+      auctionLength
     )
     await riskManagerV1.deployed()
 

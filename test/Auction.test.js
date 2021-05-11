@@ -35,7 +35,7 @@ describe("Auction", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
+    const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
@@ -47,16 +47,17 @@ describe("Auction", () => {
     bidder1 = await ethers.getSigner(1)
     bidder2 = await ethers.getSigner(2)
 
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
+    collateralPool = await CollateralPool.deploy()
+    await collateralPool.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    collateralPool = await CollateralPool.deploy()
-    await collateralPool.deployed()
-
-    await auctioneer.initialize(collateralPool.address, masterAuction.address)
+    auctioneer = await AuctioneerStub.deploy(
+      collateralPool.address,
+      masterAuction.address
+    )
+    await auctioneer.deployed()
   })
 
   beforeEach(async () => {

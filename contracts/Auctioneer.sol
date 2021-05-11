@@ -35,12 +35,7 @@ contract Auctioneer is CloneFactory {
     );
     event AuctionClosed(address indexed auction);
 
-    /// @dev Initialize the auctioneer
-    /// @param _collateralPool The address of the master deposit contract.
-    /// @param _masterAuction  The address of the master auction contract.
-    function initialize(CollateralPool _collateralPool, address _masterAuction)
-        external
-    {
+    constructor(CollateralPool _collateralPool, address _masterAuction) {
         require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;

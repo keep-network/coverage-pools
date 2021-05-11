@@ -31,7 +31,7 @@ describe("Auctioneer", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
+    const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
@@ -42,19 +42,17 @@ describe("Auctioneer", () => {
       "CollateralPoolStub"
     )
 
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
+    collateralPoolStub = await CollateralPoolStub.deploy()
+    await collateralPoolStub.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    collateralPoolStub = await CollateralPoolStub.deploy()
-    await collateralPoolStub.deployed()
-
-    await auctioneer.initialize(
+    auctioneer = await AuctioneerStub.deploy(
       collateralPoolStub.address,
       masterAuction.address
     )
+    await auctioneer.deployed()
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
@@ -62,19 +60,6 @@ describe("Auctioneer", () => {
 
   beforeEach(async () => {
     await testToken.mint(bidder.address, testTokensToMint)
-  })
-
-  describe("initialize", () => {
-    context("when the auctioneer has been already initialized", () => {
-      it("should not be initialized again", async () => {
-        await expect(
-          auctioneer.initialize(
-            collateralPoolStub.address,
-            masterAuction.address
-          )
-        ).to.be.revertedWith("Auctioneer already initialized")
-      })
-    })
   })
 
   describe("createAuction", () => {
