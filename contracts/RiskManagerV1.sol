@@ -122,31 +122,6 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         earlyCloseAuction(auction);
     }
 
-    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
-    /// @dev    This function is invoked when Auctioneer determines that an auction
-    ///         is eligible to be closed. It cannot be called on-demand outside
-    ///         the Auctioneer contract.
-    ///         By the time this function is called, all the TBTC tokens for the
-    ///         coverage pool auction should be transferred to this contract in
-    ///         order to buy signer bonds.
-    /// @param auction Coverage pool auction.
-    function onAuctionFullyFilled(Auction auction) internal override {
-        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
-
-        delete depositToAuction[address(deposit)];
-        delete auctionToDeposit[address(auction)];
-
-        uint256 approvedAmount = deposit.lotSizeTbtc();
-        tbtcToken.safeApprove(address(deposit), approvedAmount);
-
-        // Purchase signers bonds ETH with TBTC acquired from the auction
-        deposit.purchaseSignerBondsAtAuction();
-
-        // TODO: Once ETH is received, funds need to be processed further, so
-        //       they won't be locked in this contract.
-        deposit.withdrawFunds();
-    }
-
     /// @notice Begins the auction length update process.
     /// @dev Can be called only by the contract owner. The auction length should
     ///      be adjusted very carefully. Total value locked of the coverage pool
@@ -190,6 +165,31 @@ contract RiskManagerV1 is Auctioneer, Ownable {
                 auctionLengthChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
+    }
+
+    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
+    /// @dev    This function is invoked when Auctioneer determines that an auction
+    ///         is eligible to be closed. It cannot be called on-demand outside
+    ///         the Auctioneer contract.
+    ///         By the time this function is called, all the TBTC tokens for the
+    ///         coverage pool auction should be transferred to this contract in
+    ///         order to buy signer bonds.
+    /// @param auction Coverage pool auction.
+    function onAuctionFullyFilled(Auction auction) internal override {
+        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+
+        delete depositToAuction[address(deposit)];
+        delete auctionToDeposit[address(auction)];
+
+        uint256 approvedAmount = deposit.lotSizeTbtc();
+        tbtcToken.safeApprove(address(deposit), approvedAmount);
+
+        // Purchase signers bonds ETH with TBTC acquired from the auction
+        deposit.purchaseSignerBondsAtAuction();
+
+        // TODO: Once ETH is received, funds need to be processed further, so
+        //       they won't be locked in this contract.
+        deposit.withdrawFunds();
     }
 
     /// @notice Get the time remaining until the function parameter timer
