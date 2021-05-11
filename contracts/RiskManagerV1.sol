@@ -2,7 +2,6 @@
 
 pragma solidity <0.9.0;
 
-import "./CollateralPool.sol";
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
