@@ -9,7 +9,6 @@ const {
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
-const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
@@ -20,7 +19,6 @@ describe("RiskManagerV1", () => {
   let testToken
   let owner
   let notifier
-  let bidder
   let riskManagerV1
   let mockIDeposit
 
@@ -60,7 +58,6 @@ describe("RiskManagerV1", () => {
 
     owner = await ethers.getSigner(0)
     notifier = await ethers.getSigner(1)
-    bidder = await ethers.getSigner(2)
 
     mockIDeposit = await deployMockContract(owner, IDeposit.abi)
   })
@@ -139,57 +136,6 @@ describe("RiskManagerV1", () => {
         ).to.equal(ZERO_ADDRESS)
         expect(await riskManagerV1.openAuctions(createdAuctionAddress)).to.be
           .false
-      })
-    })
-  })
-
-  describe("onAuctionFullyFilled", () => {
-    let auctionAddress
-    let auction
-
-    beforeEach(async () => {
-      await testToken.mint(bidder.address, auctionLotSize)
-      await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-      await mockIDeposit.mock.withdrawFunds.returns()
-
-      await notifyLiquidation(mockIDeposit.address)
-      auctionAddress = await riskManagerV1.depositToAuction(
-        mockIDeposit.address
-      )
-      await testToken.connect(bidder).approve(auctionAddress, auctionLotSize)
-
-      auction = new ethers.Contract(auctionAddress, Auction.abi, owner)
-    })
-
-    context("when the entire deposit was bought", () => {
-      it("should delete auction and deposit from respective maps", async () => {
-        await auction.connect(bidder).takeOffer(auctionLotSize)
-
-        expect(
-          await riskManagerV1.depositToAuction(mockIDeposit.address)
-        ).to.equal(ZERO_ADDRESS)
-
-        expect(await riskManagerV1.auctionToDeposit(auctionAddress)).to.equal(
-          ZERO_ADDRESS
-        )
-      })
-    })
-
-    context("when the deposit was bought partially", () => {
-      beforeEach(async () => {
-        // take partial auction
-        await auction.connect(bidder).takeOffer(auctionLotSize.sub(1))
-      })
-      it("should keep auction in the auction map", async () => {
-        expect(
-          await riskManagerV1.depositToAuction(mockIDeposit.address)
-        ).to.equal(auctionAddress)
-      })
-
-      it("should keep deposit in the deposits map", async () => {
-        expect(await riskManagerV1.auctionToDeposit(auctionAddress)).to.equal(
-          mockIDeposit.address
-        )
       })
     })
   })
