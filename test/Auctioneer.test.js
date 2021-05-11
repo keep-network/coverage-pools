@@ -18,7 +18,6 @@ describe("Auctioneer", () => {
   let bidder
   let auctioneer
   let masterAuction
-  let collateralPoolStub
   let testToken
 
   before(async () => {
@@ -38,18 +37,16 @@ describe("Auctioneer", () => {
         CoveragePoolConstants: coveragePoolConstants.address,
       },
     })
-    const CollateralPoolStub = await ethers.getContractFactory(
-      "CollateralPoolStub"
-    )
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
 
-    collateralPoolStub = await CollateralPoolStub.deploy()
-    await collateralPoolStub.deployed()
+    coveragePoolStub = await CoveragePoolStub.deploy()
+    await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
     auctioneer = await AuctioneerStub.deploy(
-      collateralPoolStub.address,
+      coveragePoolStub.address,
       masterAuction.address
     )
     await auctioneer.deployed()
@@ -171,10 +168,10 @@ describe("Auctioneer", () => {
           )
         })
 
-        it("should seize funds from collateral pool", async () => {
+        it("should seize funds from coverage pool", async () => {
           // assert SeizeFunds emitted with the right values
           // check whether seizeFunds was executed with the right params
-          events = pastEvents(receipt1, collateralPoolStub, "FundsSeized")
+          events = pastEvents(receipt1, coveragePoolStub, "FundsSeized")
           expect(events.length).to.equal(1)
           expect(events[0].args["recipient"]).to.equal(bidder.address)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -231,9 +228,9 @@ describe("Auctioneer", () => {
         )
       })
 
-      it("should seize funds from collateral pool", async () => {
+      it("should seize funds from coverage pool", async () => {
         // assert SeizeFunds emitted with the right values
-        events = pastEvents(receipt, collateralPoolStub, "FundsSeized")
+        events = pastEvents(receipt, coveragePoolStub, "FundsSeized")
         expect(events.length).to.equal(1)
         expect(events[0].args["recipient"]).to.equal(bidder.address)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
