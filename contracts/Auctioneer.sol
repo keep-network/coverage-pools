@@ -6,9 +6,6 @@ import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
-// TODO auctioneer should be able to speed up auctions based on exit market activity
 
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
@@ -17,7 +14,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory {
-    using SafeERC20 for IERC20;
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
@@ -39,12 +35,7 @@ contract Auctioneer is CloneFactory {
     );
     event AuctionClosed(address indexed auction);
 
-    /// @dev Initialize the auctioneer
-    /// @param _collateralPool The address of the master deposit contract.
-    /// @param _masterAuction  The address of the master auction contract.
-    function initialize(CollateralPool _collateralPool, address _masterAuction)
-        external
-    {
+    constructor(CollateralPool _collateralPool, address _masterAuction) {
         require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;
@@ -90,7 +81,7 @@ contract Auctioneer is CloneFactory {
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
-            actBeforeAuctionClose(auction);
+            onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
@@ -149,9 +140,10 @@ contract Auctioneer is CloneFactory {
         delete openAuctions[auctionAddress];
     }
 
-    /// @dev This function is implemented in different versions of Risk Managers.
-    ///      Depending on coverage pool approaches this function will act differently
-    ///      and here we just indicate that some action will take place before
-    ///      we close a coverage pool auction.
-    function actBeforeAuctionClose(Auction auction) internal virtual {}
+    /// @notice Auction lifecycle hook allowing to act on auction closed
+    ///         as fully filled. This function is not executed when an auction
+    ///         was partially filled. When this function is executed auction is
+    ///         already closed and funds from the coverage pool are seized.
+    /// @dev Override this function to act on auction closed as fully filled.
+    function onAuctionFullyFilled(Auction auction) internal virtual {}
 }
