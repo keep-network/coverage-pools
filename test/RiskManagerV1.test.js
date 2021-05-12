@@ -9,7 +9,6 @@ const {
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
-const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
@@ -18,8 +17,8 @@ const auctionLength = 86400 // 24h
 
 describe("RiskManagerV1", () => {
   let testToken
-  let owner
   let signerBondsProcessor
+  let owner
   let notifier
   let riskManagerV1
   let mockIDeposit
@@ -28,6 +27,12 @@ describe("RiskManagerV1", () => {
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
     await testToken.deployed()
+
+    const SignerBondsProcessorStub = await ethers.getContractFactory(
+      "SignerBondsProcessorStub"
+    )
+    signerBondsProcessor = await SignerBondsProcessorStub.deploy()
+    await signerBondsProcessor.deployed()
 
     const CoveragePoolConstants = await ethers.getContractFactory(
       "CoveragePoolConstants"
@@ -52,6 +57,7 @@ describe("RiskManagerV1", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
+      signerBondsProcessor.address,
       collateralPoolStub.address,
       masterAuction.address,
       auctionLength

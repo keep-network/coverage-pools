@@ -25,7 +25,6 @@ interface IDeposit {
 
     function lotSizeTbtc() external view returns (uint256);
 
-    /// @notice Get this deposit's withdrawable amount in WEIs.
     function withdrawableAmount() external view returns (uint256);
 }
 
@@ -84,7 +83,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     constructor(
         IERC20 _tbtcToken,
-        ISignerBondsProcessor _signerBondsProcessor
+        ISignerBondsProcessor _signerBondsProcessor,
         CollateralPool _collateralPool,
         address _masterAuction,
         uint256 _auctionLength

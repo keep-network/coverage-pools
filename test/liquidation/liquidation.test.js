@@ -8,6 +8,7 @@ describe("Integration -- liquidation happy path", () => {
   const bondedAmount = to1e18(150)
 
   let tbtcToken
+  let signerBondsProcessor
   let collateralPool
   let riskManagerV1
   let tbtcDeposit
@@ -18,6 +19,12 @@ describe("Integration -- liquidation happy path", () => {
     const TestToken = await ethers.getContractFactory("TestToken")
     tbtcToken = await TestToken.deploy()
     await tbtcToken.deployed()
+
+    const SignerBondsProcessorStub = await ethers.getContractFactory(
+      "SignerBondsProcessorStub"
+    )
+    signerBondsProcessor = await SignerBondsProcessorStub.deploy()
+    await signerBondsProcessor.deployed()
 
     const CoveragePoolConstants = await ethers.getContractFactory(
       "CoveragePoolConstants"
@@ -44,6 +51,7 @@ describe("Integration -- liquidation happy path", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
+      signerBondsProcessor.address,
       collateralPool.address,
       masterAuction.address,
       auctionLength
@@ -86,12 +94,18 @@ describe("Integration -- liquidation happy path", () => {
     })
 
     it("should purchase and withdraw signer bonds from deposit", async () => {
-      // Risk Manager has all ETH bonds at their disposal
-      await expect(tx).to.changeEtherBalance(riskManagerV1, bondedAmount)
       // Auction bidder has spend their TBTC
       expect(await tbtcToken.balanceOf(bidder.address)).to.equal(0)
       // Deposit has been liquidated
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
+    })
+
+    it("should trigger signer bonds processing", async () => {
+      await expect(tx)
+        .to.emit(signerBondsProcessor, "SignerBondsProcessed")
+        .withArgs(bondedAmount)
+      await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
+      await expect(tx).to.changeEtherBalance(signerBondsProcessor, bondedAmount)
     })
   })
 })
