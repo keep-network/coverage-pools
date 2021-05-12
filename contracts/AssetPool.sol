@@ -70,11 +70,6 @@ contract AssetPool is Ownable {
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     function withdraw(uint256 covAmount) external {
-        // TODO: Implement exit market. All withdrawals from the pool that
-        // accept a fixed delay can do so without a fee. Any underwriter who
-        // wants to withdraw more quickly will forfeit part of their collateral
-        // to the pool, with a fee rate based on their percent ownership of the
-        // pool.
         uint256 covBalance = underwriterToken.balanceOf(msg.sender);
         require(
             covAmount <= covBalance,
