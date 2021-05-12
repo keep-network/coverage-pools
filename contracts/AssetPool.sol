@@ -2,18 +2,19 @@
 
 pragma solidity <0.9.0;
 
-import "./UnderwriterToken.sol";
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./RewardsPool.sol";
+import "./UnderwriterToken.sol";
+
 /// @title AssetPool
-/// @notice Asset pool is a component of a Coverage Pool. Each Asset Pool
+/// @notice Asset pool is a component of a Coverage Pool. Asset Pool
 ///         accepts a single ERC20 token as collateral, and returns an
 ///         underwriter token. For example, an asset pool might accept deposits
-///         in WETH in return for covETH underwriter tokens. Underwriter tokens
+///         in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
 ///         represent an ownership share in the underlying collateral of the
 ///         Asset Pool.
 contract AssetPool is Ownable {
@@ -24,9 +25,18 @@ contract AssetPool is Ownable {
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
 
-    constructor(IERC20 _collateralToken, UnderwriterToken _underwriterToken) {
+    RewardsPool public rewardsPool;
+
+    constructor(
+        IERC20 _collateralToken,
+        UnderwriterToken _underwriterToken,
+        address rewardManager
+    ) {
         collateralToken = _collateralToken;
         underwriterToken = _underwriterToken;
+
+        rewardsPool = new RewardsPool(_collateralToken, this);
+        rewardsPool.transferOwnership(rewardManager);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and

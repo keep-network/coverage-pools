@@ -15,11 +15,14 @@ describe("AssetPool", () => {
   let underwriter5
   let underwriter6
 
+  let rewardManager
+
   const assertionPrecision = ethers.BigNumber.from("1000000000000") // 0.000001
   const collateralTokenInitialBalance = to1e18(100000)
 
   beforeEach(async () => {
-    coveragePool = await ethers.getSigner(7)
+    coveragePool = await ethers.getSigner(1)
+    rewardManager = await ethers.getSigner(2)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     collateralToken = await TestToken.deploy()
@@ -32,7 +35,8 @@ describe("AssetPool", () => {
     const AssetPool = await ethers.getContractFactory("AssetPool")
     assetPool = await AssetPool.deploy(
       collateralToken.address,
-      underwriterToken.address
+      underwriterToken.address,
+      rewardManager.address
     )
     await assetPool.deployed()
     await assetPool.transferOwnership(coveragePool.address)
@@ -50,12 +54,12 @@ describe("AssetPool", () => {
       return underwriter
     }
 
-    underwriter1 = await createUnderwriterWithTokens(1)
-    underwriter2 = await createUnderwriterWithTokens(2)
-    underwriter3 = await createUnderwriterWithTokens(3)
-    underwriter4 = await createUnderwriterWithTokens(4)
-    underwriter5 = await createUnderwriterWithTokens(5)
-    underwriter6 = await createUnderwriterWithTokens(6)
+    underwriter1 = await createUnderwriterWithTokens(3)
+    underwriter2 = await createUnderwriterWithTokens(4)
+    underwriter3 = await createUnderwriterWithTokens(5)
+    underwriter4 = await createUnderwriterWithTokens(6)
+    underwriter5 = await createUnderwriterWithTokens(7)
+    underwriter6 = await createUnderwriterWithTokens(8)
   })
 
   describe("deposit", () => {
