@@ -11,34 +11,41 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @notice tBTC v1 Deposit contract interface.
+/// @dev This is an interface with just a few function signatures of a main
+///         contract for tBTC. For more info and function description
+///         please see:
+///         https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
     function withdrawFunds() external;
+
+    function purchaseSignerBondsAtAuction() external;
 
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
-
-    function purchaseSignerBondsAtAuction() external view;
 }
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 is Ownable {
+contract RiskManagerV1 is Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    IERC20 public tbtcToken;
-    Auctioneer public auctioneer;
+    uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
+
+    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
+    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
 
     uint256 public auctionLength;
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
 
-    uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
-    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
-    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+    IERC20 public tbtcToken;
 
-    // deposit in liquidation address => coverage pool auction address
-    mapping(address => address) public auctionsByDepositsInLiquidation;
+    // deposit in liquidation => opened coverage pool auction
+    mapping(address => address) public depositToAuction;
+    // opened coverage pool auction => deposit in liquidation
+    mapping(address => address) public auctionToDeposit;
 
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
@@ -61,12 +68,12 @@ contract RiskManagerV1 is Ownable {
     }
 
     constructor(
-        IERC20 _token,
-        address _auctioneer,
+        IERC20 _tbtcToken,
+        CollateralPool _collateralPool,
+        address _masterAuction,
         uint256 _auctionLength
-    ) {
-        tbtcToken = _token;
-        auctioneer = Auctioneer(_auctioneer);
+    ) Auctioneer(_collateralPool, _masterAuction) {
+        tbtcToken = _tbtcToken;
         auctionLength = _auctionLength;
     }
 
@@ -94,9 +101,9 @@ contract RiskManagerV1 is Ownable {
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         address auctionAddress =
-            auctioneer.createAuction(tbtcToken, lotSizeTbtc, auctionLength);
-        //slither-disable-next-line reentrancy-benign
-        auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
+            createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+        depositToAuction[depositAddress] = auctionAddress;
+        auctionToDeposit[auctionAddress] = depositAddress;
     }
 
     /// @notice Closes an auction early.
@@ -113,22 +120,11 @@ contract RiskManagerV1 is Ownable {
         //       TBTC hanging in this contract. Need to decide what to do with
         //       these tokens.
 
-        Auction auction =
-            Auction(auctionsByDepositsInLiquidation[depositAddress]);
-        auctioneer.earlyCloseAuction(auction);
-        //slither-disable-next-line reentrancy-no-eth
-        delete auctionsByDepositsInLiquidation[depositAddress];
-    }
+        Auction auction = Auction(depositToAuction[depositAddress]);
 
-    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
-    ///      for the coverage pool auction should be transferred to auctioneer.
-    /// @param  deposit tBTC Deposit
-    function collectTbtcSignerBonds(IDeposit deposit) external {
-        deposit.purchaseSignerBondsAtAuction();
-
-        // TODO: Once receiving ETH, funds need to be processes further, so
-        //       they won't be locked in this contract.
-        deposit.withdrawFunds();
+        delete depositToAuction[depositAddress];
+        delete auctionToDeposit[address(auction)];
+        earlyCloseAuction(auction);
     }
 
     /// @notice Begins the auction length update process.
@@ -174,6 +170,31 @@ contract RiskManagerV1 is Ownable {
                 auctionLengthChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
+    }
+
+    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
+    /// @dev    This function is invoked when Auctioneer determines that an auction
+    ///         is eligible to be closed. It cannot be called on-demand outside
+    ///         the Auctioneer contract.
+    ///         By the time this function is called, all the TBTC tokens for the
+    ///         coverage pool auction should be transferred to this contract in
+    ///         order to buy signer bonds.
+    /// @param auction Coverage pool auction.
+    function onAuctionFullyFilled(Auction auction) internal override {
+        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+
+        delete depositToAuction[address(deposit)];
+        delete auctionToDeposit[address(auction)];
+
+        uint256 approvedAmount = deposit.lotSizeTbtc();
+        tbtcToken.safeApprove(address(deposit), approvedAmount);
+
+        // Purchase signers bonds ETH with TBTC acquired from the auction
+        deposit.purchaseSignerBondsAtAuction();
+
+        // TODO: Once ETH is received, funds need to be processed further, so
+        //       they won't be locked in this contract.
+        deposit.withdrawFunds();
     }
 
     /// @notice Get the time remaining until the function parameter timer

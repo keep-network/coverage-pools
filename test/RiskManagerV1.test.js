@@ -12,13 +12,13 @@ const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
+const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
 
 describe("RiskManagerV1", () => {
   let testToken
   let owner
   let notifier
-  let auctioneer
   let riskManagerV1
   let mockIDeposit
 
@@ -27,19 +27,34 @@ describe("RiskManagerV1", () => {
     testToken = await TestToken.deploy()
     await testToken.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("Auctioneer")
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
+    const CoveragePoolConstants = await ethers.getContractFactory(
+      "CoveragePoolConstants"
+    )
+    const coveragePoolConstants = await CoveragePoolConstants.deploy()
+    await coveragePoolConstants.deployed()
+
+    const Auction = await ethers.getContractFactory("Auction", {
+      libraries: {
+        CoveragePoolConstants: coveragePoolConstants.address,
+      },
+    })
+    const CollateralPoolStub = await ethers.getContractFactory(
+      "CollateralPoolStub"
+    )
+    collateralPoolStub = await CollateralPoolStub.deploy()
+    await collateralPoolStub.deployed()
+
+    masterAuction = await Auction.deploy()
+    await masterAuction.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
-      auctioneer.address,
+      collateralPoolStub.address,
+      masterAuction.address,
       auctionLength
     )
     await riskManagerV1.deployed()
-
-    await auctioneer.transferOwnership(riskManagerV1.address)
 
     owner = await ethers.getSigner(0)
     notifier = await ethers.getSigner(1)
@@ -72,7 +87,7 @@ describe("RiskManagerV1", () => {
       })
 
       it("should create an auction and populate auction's map", async () => {
-        const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+        const createdAuctionAddress = await riskManagerV1.depositToAuction(
           mockIDeposit.address
         )
 
@@ -108,7 +123,7 @@ describe("RiskManagerV1", () => {
       })
 
       it("should early close an auction", async () => {
-        const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+        const createdAuctionAddress = await riskManagerV1.depositToAuction(
           mockIDeposit.address
         )
 
@@ -117,11 +132,10 @@ describe("RiskManagerV1", () => {
           .notifyLiquidated(mockIDeposit.address)
 
         expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
-            createdAuctionAddress
-          )
+          await riskManagerV1.depositToAuction(createdAuctionAddress)
         ).to.equal(ZERO_ADDRESS)
-        expect(await auctioneer.openAuctions(createdAuctionAddress)).to.be.false
+        expect(await riskManagerV1.openAuctions(createdAuctionAddress)).to.be
+          .false
       })
     })
   })
@@ -242,7 +256,7 @@ describe("RiskManagerV1", () => {
     await mockIDeposit.mock.currentState.returns(
       depositLiquidationInProgressState
     )
-    await mockIDeposit.mock.lotSizeTbtc.returns(to1e18(1))
+    await mockIDeposit.mock.lotSizeTbtc.returns(auctionLotSize)
     const tx = await riskManagerV1
       .connect(notifier)
       .notifyLiquidation(mockIDeposit.address)

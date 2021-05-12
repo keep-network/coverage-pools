@@ -6,9 +6,6 @@ import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CollateralPool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-// TODO auctioneer should be able to speed up auctions based on exit market activity
 
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
@@ -16,7 +13,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///       Proxy delegates calls to Auction and therefore does not affect auction state.
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
-contract Auctioneer is CloneFactory, Ownable {
+contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
@@ -38,12 +35,7 @@ contract Auctioneer is CloneFactory, Ownable {
     );
     event AuctionClosed(address indexed auction);
 
-    /// @dev Initialize the auctioneer
-    /// @param _collateralPool The address of the master deposit contract.
-    /// @param _masterAuction  The address of the master auction contract.
-    function initialize(CollateralPool _collateralPool, address _masterAuction)
-        external
-    {
+    constructor(CollateralPool _collateralPool, address _masterAuction) {
         require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
         collateralPool = _collateralPool;
@@ -89,6 +81,8 @@ contract Auctioneer is CloneFactory, Ownable {
         collateralPool.seizeFunds(portionToSeize, auctionTaker);
 
         if (!auction.isOpen()) {
+            onAuctionFullyFilled(auction);
+
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
         }
@@ -106,7 +100,7 @@ contract Auctioneer is CloneFactory, Ownable {
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
-    ) external onlyOwner returns (address) {
+    ) internal returns (address) {
         address cloneAddress = createClone(masterAuction);
 
         Auction auction = Auction(address(uint160(cloneAddress)));
@@ -132,7 +126,7 @@ contract Auctioneer is CloneFactory, Ownable {
     /// @notice Tears down an open auction with given address immediately.
     /// @dev Can be called by contract owner to early close an auction if it
     ///      is no longer needed.
-    function earlyCloseAuction(Auction auction) external onlyOwner {
+    function earlyCloseAuction(Auction auction) internal {
         address auctionAddress = address(auction);
 
         require(openAuctions[auctionAddress], "Address is not an open auction");
@@ -145,4 +139,11 @@ contract Auctioneer is CloneFactory, Ownable {
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
     }
+
+    /// @notice Auction lifecycle hook allowing to act on auction closed
+    ///         as fully filled. This function is not executed when an auction
+    ///         was partially filled. When this function is executed auction is
+    ///         already closed and funds from the coverage pool are seized.
+    /// @dev Override this function to act on auction closed as fully filled.
+    function onAuctionFullyFilled(Auction auction) internal virtual {}
 }
