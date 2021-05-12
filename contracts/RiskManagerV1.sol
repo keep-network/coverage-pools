@@ -100,7 +100,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
     //
     //slither-disable-next-line locked-ether
-    //receive() external payable {}
+    receive() external payable {}
 
     /// @notice Creates an auction for tbtc deposit in liquidation state.
     /// @param  depositAddress tBTC Deposit address

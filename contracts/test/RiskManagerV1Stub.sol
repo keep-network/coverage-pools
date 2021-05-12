@@ -8,8 +8,20 @@ contract RiskManagerV1Stub is RiskManagerV1 {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    constructor(IERC20 _token, ISignerBondsProcessor _signerBondsProcessor)
-        RiskManagerV1(_token, _signerBondsProcessor)
+    constructor(
+        IERC20 _tbtcToken,
+        ISignerBondsProcessor _signerBondsProcessor,
+        CollateralPool _collateralPool,
+        address _masterAuction,
+        uint256 _auctionLength
+    )
+        RiskManagerV1(
+            _tbtcToken,
+            _signerBondsProcessor,
+            _collateralPool,
+            _masterAuction,
+            _auctionLength
+        )
     {}
 
     function fundTbtcSurplus(uint256 amount) external {
