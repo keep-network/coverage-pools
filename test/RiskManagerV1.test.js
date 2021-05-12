@@ -39,7 +39,7 @@ describe("RiskManagerV1", () => {
       },
     })
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
-    coveragePoolStub = await CoveragePoolStub.deploy()
+    const coveragePoolStub = await CoveragePoolStub.deploy()
     await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()

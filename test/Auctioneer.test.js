@@ -18,6 +18,7 @@ describe("Auctioneer", () => {
   let bidder
   let auctioneer
   let masterAuction
+  let coveragePoolStub
   let testToken
 
   before(async () => {
