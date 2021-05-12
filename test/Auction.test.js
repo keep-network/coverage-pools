@@ -46,9 +46,6 @@ describe("Auction", () => {
     bidder1 = await ethers.getSigner(1)
     bidder2 = await ethers.getSigner(2)
 
-    collateralPool = await CollateralPool.deploy()
-    await collateralPool.deployed()
-
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 

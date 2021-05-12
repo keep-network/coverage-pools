@@ -68,10 +68,10 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     constructor(
         IERC20 _tbtcToken,
-        CollateralPool _collateralPool,
+        CoveragePool _coveragePool,
         address _masterAuction,
         uint256 _auctionLength
-    ) Auctioneer(_collateralPool, _masterAuction) {
+    ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
         auctionLength = _auctionLength;
     }

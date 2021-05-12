@@ -38,11 +38,9 @@ describe("RiskManagerV1", () => {
         CoveragePoolConstants: coveragePoolConstants.address,
       },
     })
-    const CollateralPoolStub = await ethers.getContractFactory(
-      "CollateralPoolStub"
-    )
-    collateralPoolStub = await CollateralPoolStub.deploy()
-    await collateralPoolStub.deployed()
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
+    coveragePoolStub = await CoveragePoolStub.deploy()
+    await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
@@ -50,7 +48,7 @@ describe("RiskManagerV1", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
-      collateralPoolStub.address,
+      coveragePoolStub.address,
       masterAuction.address,
       auctionLength
     )
