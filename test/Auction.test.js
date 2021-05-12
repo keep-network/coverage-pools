@@ -9,9 +9,7 @@ const {
   impersonateContract,
 } = require("./helpers/contract-test-helpers")
 
-const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
-const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
 const { BigNumber } = ethers
 
 // amount of test tokens that an auction (aka spender) is allowed
@@ -19,7 +17,6 @@ const { BigNumber } = ethers
 const defaultAuctionTokenAllowance = to1e18(1)
 const testTokensToMint = to1e18(1)
 const precision = 0.001 // to mitigate evm delays
-const depositLiquidationInProgressState = 10
 
 describe("Auction", () => {
   let testToken
@@ -38,7 +35,7 @@ describe("Auction", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
+    const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
@@ -50,24 +47,17 @@ describe("Auction", () => {
     bidder1 = await ethers.getSigner(1)
     bidder2 = await ethers.getSigner(2)
 
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
+    collateralPool = await CollateralPool.deploy()
+    await collateralPool.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    collateralPool = await CollateralPool.deploy()
-    await collateralPool.deployed()
-
-    await auctioneer.initialize(collateralPool.address, masterAuction.address)
-
-    mockIDeposit = await deployMockContract(owner, IDeposit.abi)
-    await mockIDeposit.mock.currentState.returns(
-      depositLiquidationInProgressState
+    auctioneer = await AuctioneerStub.deploy(
+      collateralPool.address,
+      masterAuction.address
     )
-
-    await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-    await mockIDeposit.mock.withdrawFunds.returns()
+    await auctioneer.deployed()
   })
 
   beforeEach(async () => {
@@ -120,7 +110,7 @@ describe("Auction", () => {
       it("should revert", async () => {
         const auctionAmountDesired = 0
         await expect(
-          auctioneer.callCreateAuction(
+          auctioneer.publicCreateAuction(
             testToken.address,
             auctionAmountDesired,
             auctionLength
@@ -205,6 +195,61 @@ describe("Auction", () => {
         // 50000 sec passed, which means 50% of a collateral pool is on offer
         expect(onOffer[0] / onOffer[1]).to.be.closeTo(0.5, precision)
       })
+    })
+
+    context("when the auction time achieves the profitability point", () => {
+      it(
+        "should return a portion of the collateral pool whose value is equal " +
+          "to the value of the amount desired by the auction",
+        async () => {
+          const minLotSize = to1ePrecision(1, 16) // we assume 0.01 TBTC
+          const BTCETHPrice = 20 // we assume 1 (T)BTC costs 20 ETH
+          const totalValueLocked = to1e18(100000) // we assume 100k ETH
+          const profitabilityDelay = 7200 // sec -> 2 hours
+
+          // Once the profitability delay elapses, we expect the value of portion
+          // on offer is equal to the value of minimum lot size:
+          //
+          // `portionOnOffer * totalValueLocked = minLotSize * BTCETHPrice`
+          //
+          // We also know the portionOnOffer after the profitability delay elapses
+          // is equal to the quotient of the profitabilityDelay and auctionLength:
+          //
+          // `portionOnOffer = profitabilityDelay / auctionLength`
+          //
+          // Having the above equations, we can obtain the formula for an optimal
+          // auction length:
+          //
+          // `auctionLength = profitabilityDelay * (totalValueLocked / (minLotSize * BTCETHPrice))`
+          //
+          // With the input variables listed above, we can obtain the exact
+          // auction length:
+          //
+          // `auctionLength = 7200 * (100000 / (0.01 * 20)) = 3600000000`
+          const auctionLength = 3600000000 // sec -> ~114 years
+
+          auction = await createAuction(minLotSize, auctionLength)
+
+          // Jump forward to the profitability point.
+          await increaseTime(profitabilityDelay)
+
+          const onOffer = await auction.onOffer()
+
+          // Auction length is 3600000000 sec and 7200 sec passed, which means
+          // 0.0002% of a collateral pool is on offer.
+          const actualPortionOnOffer = onOffer[0]
+          const divisor = onOffer[1]
+
+          expect(actualPortionOnOffer / divisor).to.be.closeTo(
+            0.000002,
+            precision
+          )
+
+          expect(
+            (actualPortionOnOffer * totalValueLocked) / divisor
+          ).to.be.closeTo(minLotSize * BTCETHPrice, precision)
+        }
+      )
     })
   })
 
@@ -686,7 +731,7 @@ describe("Auction", () => {
   })
 
   async function createAuction(auctionAmountDesired, auctionLength) {
-    const createAuctionTx = await auctioneer.callCreateAuction(
+    const createAuctionTx = await auctioneer.publicCreateAuction(
       testToken.address,
       auctionAmountDesired,
       auctionLength
