@@ -15,9 +15,11 @@ contract CoveragePool is Ownable {
     AssetPool public assetPool;
     IERC20 public collateralToken;
 
+    mapping(address => bool) private approvedManagers;
+
     /// @notice Throws if called by a Risk Manager that has not been approved
     modifier onlyApprovedRiskManager() {
-        //TODO: implement check for approved Risk Managers
+        require(approvedManagers[msg.sender], "Risk manager not approved");
         _;
     }
 
@@ -26,8 +28,11 @@ contract CoveragePool is Ownable {
         collateralToken = _assetPool.collateralToken();
     }
 
-    function approveRiskManager() external onlyOwner {
-        //TODO: implement
+    /// @notice Approves the given risk manager so that it can withdraw funds
+    /// from theassetPool
+    /// @param riskManager Address of a risk manager to be approved
+    function approveRiskManager(address riskManager) external onlyOwner {
+        approvedManagers[riskManager] = true;
     }
 
     /// @notice Seize funds from the coverage pool and put them aside for the

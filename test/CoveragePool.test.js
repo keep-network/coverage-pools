@@ -7,7 +7,7 @@ describe("CoveragePool", () => {
   let governance
   let underwriter
   let recipient
-  let approvedRiskManager
+  let riskManager
 
   beforeEach(async () => {
     // Governance that owns Coverage Pool
@@ -16,8 +16,8 @@ describe("CoveragePool", () => {
     underwriter = await ethers.getSigner(2)
     // Recipient that will recive seized funds
     recipient = await ethers.getSigner(3)
-    // Risk Manager that will be approved
-    approvedRiskManager = await ethers.getSigner(4)
+    // Risk Manager that will seize funds
+    riskManager = await ethers.getSigner(4)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
@@ -61,20 +61,40 @@ describe("CoveragePool", () => {
     await assetPool.connect(underwriter).deposit(to1e18(400))
   })
 
-  describe("seizeFunds", () => {
-    // TODO: Add a testcase where the caller is not an approved Risk Manager
+  describe("approveRiskManager", () => {
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        const notOwner = await ethers.getSigner(5)
+        await expect(
+          coveragePool.connect(notOwner).approveRiskManager(riskManager.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
 
-    context("when caller is the approved Risk Manager", () => {
-      // TODO: When the check for approved Risk Manager is implemented,
-      // call approve on the Risk Manager
+  describe("seizeFunds", () => {
+    context("when caller is not an approved Risk Manager", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool.connect(riskManager).seizeFunds(recipient.address, 123)
+        ).to.be.revertedWith("Risk manager not approved")
+      })
+    })
+
+    context("when caller is an approved Risk Manager", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(owner)
+          .approveRiskManager(riskManager.address)
+      })
 
       // Portion to seize is 0.345987 (multiplied by 10^18 to save precision)
       const portionToSeize = to1ePrecision(345987, 12)
       // Expected amount is 400 * 0.345987 = 138.3948 (multiplied by 10^18)
       const amountSeized = to1ePrecision(1383948, 14)
-      it("transfers seized funds to recipient account", async () => {
+      it("the approved Risk Manager can move funds to any account", async () => {
         await coveragePool
-          .connect(approvedRiskManager)
+          .connect(riskManager)
           .seizeFunds(recipient.address, portionToSeize)
         expect(await testToken.balanceOf(recipient.address)).to.be.equal(
           amountSeized
