@@ -12,14 +12,27 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract CoveragePool is Ownable {
     using SafeMath for uint256;
 
+    uint256 public constant RISK_MANAGER_APPROVAL_TIME_DELAY = 2 weeks;
+
     AssetPool public assetPool;
     IERC20 public collateralToken;
 
-    mapping(address => bool) private approvedManagers;
+    // Maps risk managers to the timestamp they are considered approved
+    mapping(address => uint256) public riskManagerApprovalTimestamps;
 
-    /// @notice Throws if called by a Risk Manager that has not been approved
+    /// @notice Throws if called by a risk manager that has not been approved
+    /// or approval time delay has not elapsed
+    /// @dev Risk manager approval delay is already added to approval timestamps
     modifier onlyApprovedRiskManager() {
-        require(approvedManagers[msg.sender], "Risk manager not approved");
+        require(
+            riskManagerApprovalTimestamps[msg.sender] > 0,
+            "Risk manager not approved"
+        );
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp >= riskManagerApprovalTimestamps[msg.sender],
+            "Approval delay has not elapsed"
+        );
         _;
     }
 
@@ -29,10 +42,13 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Approves the given risk manager so that it can withdraw funds
-    /// from theassetPool
+    /// from the asset pool (after approval delay has elapsed)
     /// @param riskManager Address of a risk manager to be approved
     function approveRiskManager(address riskManager) external onlyOwner {
-        approvedManagers[riskManager] = true;
+        riskManagerApprovalTimestamps[riskManager] =
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp +
+            RISK_MANAGER_APPROVAL_TIME_DELAY;
     }
 
     /// @notice Seize funds from the coverage pool and put them aside for the
