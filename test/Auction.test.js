@@ -20,7 +20,6 @@ const precision = 0.001 // to mitigate evm delays
 
 describe("Auction", () => {
   let testToken
-  let collateralPool
   let masterAuction
 
   let owner
@@ -41,20 +40,20 @@ describe("Auction", () => {
         CoveragePoolConstants: coveragePoolConstants.address,
       },
     })
-    const CollateralPool = await ethers.getContractFactory("CollateralPool")
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
 
     owner = await ethers.getSigner(0)
     bidder1 = await ethers.getSigner(1)
     bidder2 = await ethers.getSigner(2)
 
-    collateralPool = await CollateralPool.deploy()
-    await collateralPool.deployed()
-
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
+    const coveragePoolStub = await CoveragePoolStub.deploy()
+    await coveragePoolStub.deployed()
+
     auctioneer = await AuctioneerStub.deploy(
-      collateralPool.address,
+      coveragePoolStub.address,
       masterAuction.address
     )
     await auctioneer.deployed()

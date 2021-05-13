@@ -8,7 +8,7 @@ describe("Integration -- liquidation happy path", () => {
   const bondedAmount = to1e18(150)
 
   let tbtcToken
-  let collateralPool
+  let coveragePool
   let riskManagerV1
   let tbtcDeposit
 
@@ -34,17 +34,14 @@ describe("Integration -- liquidation happy path", () => {
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    // TODO: Replace with real CoveragePool contract
-    const CollateralPoolStub = await ethers.getContractFactory(
-      "CollateralPoolStub"
-    )
-    collateralPool = await CollateralPoolStub.deploy()
-    await collateralPool.deployed()
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
+    coveragePool = await CoveragePoolStub.deploy()
+    await coveragePool.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
-      collateralPool.address,
+      coveragePool.address,
       masterAuction.address,
       auctionLength
     )
