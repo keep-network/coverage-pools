@@ -4,14 +4,14 @@ const { to1e18, to1ePrecision } = require("./helpers/contract-test-helpers")
 describe("CoveragePool", () => {
   let coveragePool
   let testToken
-  let owner
+  let governance
   let underwriter
   let recipient
   let approvedRiskManager
 
   beforeEach(async () => {
-    // Owner of Coverage Pool
-    owner = await ethers.getSigner(1)
+    // Governance that owns Coverage Pool
+    governance = await ethers.getSigner(1)
     // Underwriter that will deposit some amount of tokens to Asset Pool
     underwriter = await ethers.getSigner(2)
     // Recipient that will recive seized funds
@@ -51,7 +51,7 @@ describe("CoveragePool", () => {
     coveragePool = await CoveragePool.deploy(assetPool.address)
     await coveragePool.deployed()
 
-    await coveragePool.transferOwnership(owner.address)
+    await coveragePool.transferOwnership(governance.address)
     await assetPool.transferOwnership(coveragePool.address)
     await underwriterToken.transferOwnership(assetPool.address)
 

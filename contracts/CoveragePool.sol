@@ -16,7 +16,7 @@ contract CoveragePool is Ownable {
     IERC20 public collateralToken;
 
     /// @notice Throws if called by a Risk Manager that has not been approved
-    modifier onlyApprovedManager() {
+    modifier onlyApprovedRiskManager() {
         //TODO: implement check for approved Risk Managers
         _;
     }
@@ -40,7 +40,7 @@ contract CoveragePool is Ownable {
     ///        multiplied by FLOATING_POINT_DIVISOR
     function seizeFunds(address recipient, uint256 portionToSeize)
         external
-        onlyApprovedManager
+        onlyApprovedRiskManager
     {
         uint256 FLOATING_POINT_DIVISOR =
             CoveragePoolConstants.getFloatingPointDivisor();
