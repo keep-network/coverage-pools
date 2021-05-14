@@ -75,6 +75,13 @@ contract AssetPool is Ownable {
             covAmount <= covBalance,
             "Underwriter token amount exceeds balance"
         );
+        require(
+            covAmount > 0,
+            "Underwriter token amount must be greater than 0"
+        );
+
+        rewardsPool.withdraw();
+
         uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
@@ -89,10 +96,13 @@ contract AssetPool is Ownable {
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
     function claim(address recipient, uint256 amount) external onlyOwner {
+        rewardsPool.withdraw();
         collateralToken.safeTransfer(recipient, amount);
     }
 
     function _deposit(address depositor, uint256 amount) internal {
+        rewardsPool.withdraw();
+
         uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
