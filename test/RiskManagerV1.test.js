@@ -1,26 +1,29 @@
 const chai = require("chai")
 
 const expect = chai.expect
-const { to1e18, ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
+const {
+  to1e18,
+  ZERO_ADDRESS,
+  increaseTime,
+} = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
-const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
 const auctionLotSize = to1e18(1)
+const auctionLength = 86400 // 24h
 const collateralizationThreshold = 101
 
 describe("RiskManagerV1", () => {
   let testToken
   let owner
   let notifier
-  let bidder
   let riskManagerV1
   let mockIDeposit
 
-  before(async () => {
+  beforeEach(async () => {
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
     await testToken.deployed()
@@ -36,26 +39,24 @@ describe("RiskManagerV1", () => {
         CoveragePoolConstants: coveragePoolConstants.address,
       },
     })
-    const CollateralPoolStub = await ethers.getContractFactory(
-      "CollateralPoolStub"
-    )
-    collateralPoolStub = await CollateralPoolStub.deploy()
-    await collateralPoolStub.deployed()
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
+    const coveragePoolStub = await CoveragePoolStub.deploy()
+    await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
-    riskManagerV1 = await RiskManagerV1.deploy(testToken.address)
-    await riskManagerV1.initialize(
-      collateralPoolStub.address,
-      masterAuction.address
+    riskManagerV1 = await RiskManagerV1.deploy(
+      testToken.address,
+      coveragePoolStub.address,
+      masterAuction.address,
+      auctionLength
     )
     await riskManagerV1.deployed()
 
     owner = await ethers.getSigner(0)
     notifier = await ethers.getSigner(1)
-    bidder = await ethers.getSigner(2)
 
     mockIDeposit = await deployMockContract(owner, IDeposit.abi)
   })
@@ -79,7 +80,6 @@ describe("RiskManagerV1", () => {
         await mockIDeposit.mock.collateralizationPercentage.returns(
           collateralizationThreshold + 1
         )
-
         await expect(
           riskManagerV1.notifyLiquidation(mockIDeposit.address)
         ).to.be.revertedWith(
@@ -104,7 +104,7 @@ describe("RiskManagerV1", () => {
         })
 
         it("should create an auction and populate auction's map", async () => {
-          const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+          const createdAuctionAddress = await riskManagerV1.depositToAuction(
             mockIDeposit.address
           )
 
@@ -141,7 +141,7 @@ describe("RiskManagerV1", () => {
       })
 
       it("should early close an auction", async () => {
-        const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+        const createdAuctionAddress = await riskManagerV1.depositToAuction(
           mockIDeposit.address
         )
 
@@ -150,9 +150,7 @@ describe("RiskManagerV1", () => {
           .notifyLiquidated(mockIDeposit.address)
 
         expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
-            createdAuctionAddress
-          )
+          await riskManagerV1.depositToAuction(createdAuctionAddress)
         ).to.equal(ZERO_ADDRESS)
         expect(await riskManagerV1.openAuctions(createdAuctionAddress)).to.be
           .false
@@ -160,61 +158,114 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("actBeforeAuctionClose", () => {
-    let auctionAddress
-    let auction
+  describe("beginAuctionLengthUpdate", () => {
+    context("when the caller is the owner", () => {
+      const currentAuctionLength = auctionLength
+      const newAuctionLength = 172800 // 48h
+      let tx
 
-    beforeEach(async () => {
-      await testToken.mint(bidder.address, auctionLotSize)
-      await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-      await mockIDeposit.mock.withdrawFunds.returns()
-
-      await notifyLiquidation(mockIDeposit.address)
-      auctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
-        mockIDeposit.address
-      )
-      await testToken.connect(bidder).approve(auctionAddress, auctionLotSize)
-
-      auction = new ethers.Contract(auctionAddress, Auction.abi, owner)
-    })
-
-    context("when the entire deposit was bought", () => {
       beforeEach(async () => {
-        // take entire auction
-        await auction.connect(bidder).takeOffer(auctionLotSize)
-      })
-      it("should delete auction from the auctions map", async () => {
-        expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
-            mockIDeposit.address
-          )
-        ).to.equal(ZERO_ADDRESS)
+        tx = await riskManagerV1
+          .connect(owner)
+          .beginAuctionLengthUpdate(newAuctionLength)
       })
 
-      it("should delete deposit from the deposits map", async () => {
+      it("should not update the auction length", async () => {
+        expect(await riskManagerV1.auctionLength()).to.be.equal(
+          currentAuctionLength
+        )
+      })
+
+      it("should start the governance delay timer", async () => {
         expect(
-          await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
-        ).to.equal(ZERO_ADDRESS)
+          await riskManagerV1.getRemainingAuctionLengthUpdateTime()
+        ).to.be.equal(43200) // 12h contract governance delay
+      })
+
+      it("should emit the AuctionLengthUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(riskManagerV1, "AuctionLengthUpdateStarted")
+          .withArgs(newAuctionLength, blockTimestamp)
       })
     })
 
-    context("when the deposit was bought partially", () => {
-      beforeEach(async () => {
-        // take partial auction
-        await auction.connect(bidder).takeOffer(auctionLotSize.sub(1))
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1.connect(notifier).beginAuctionLengthUpdate(172800)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
-      it("should keep auction in the auction map", async () => {
-        expect(
-          await riskManagerV1.auctionsByDepositsInLiquidation(
-            mockIDeposit.address
-          )
-        ).to.equal(auctionAddress)
-      })
+    })
+  })
 
-      it("should keep deposit in the deposits map", async () => {
-        expect(
-          await riskManagerV1.depositsInLiquidationByAuctions(auctionAddress)
-        ).to.equal(mockIDeposit.address)
+  describe("finalizeAuctionLengthUpdate", () => {
+    const newAuctionLength = 172800 // 48h
+
+    context(
+      "when the update process is initialized, governance delay passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await riskManagerV1
+            .connect(owner)
+            .beginAuctionLengthUpdate(newAuctionLength)
+
+          await increaseTime(43200) // +12h contract governance delay
+
+          tx = await riskManagerV1.connect(owner).finalizeAuctionLengthUpdate()
+        })
+
+        it("should update the auction length", async () => {
+          expect(await riskManagerV1.auctionLength()).to.be.equal(
+            newAuctionLength
+          )
+        })
+
+        it("should emit AuctionLengthUpdated event", async () => {
+          await expect(tx)
+            .to.emit(riskManagerV1, "AuctionLengthUpdated")
+            .withArgs(newAuctionLength)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            riskManagerV1.getRemainingAuctionLengthUpdateTime()
+          ).to.be.revertedWith("Update not initiated")
+        })
+      }
+    )
+
+    context("when the governance delay is not passed", () => {
+      it("should revert", async () => {
+        await riskManagerV1
+          .connect(owner)
+          .beginAuctionLengthUpdate(newAuctionLength)
+
+        await increaseTime(39600) // +11h
+
+        await expect(
+          riskManagerV1.connect(owner).finalizeAuctionLengthUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1.connect(notifier).finalizeAuctionLengthUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1.connect(owner).finalizeAuctionLengthUpdate()
+        ).to.be.revertedWith("Change not initiated")
       })
     })
   })
@@ -222,8 +273,9 @@ describe("RiskManagerV1", () => {
   describe("updateCollateralizationThreshold", () => {
     context("when collateralization percent is updated by a non-owner", () => {
       it("should revert", async () => {
+        const notOwner = await ethers.getSigner(2)
         await expect(
-          riskManagerV1.connect(bidder).updateCollateralizationThreshold(102)
+          riskManagerV1.connect(notOwner).updateCollateralizationThreshold(102)
         ).to.be.revertedWith("caller is not the owner")
       })
     })

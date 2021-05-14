@@ -2,7 +2,6 @@
 
 pragma solidity <0.9.0;
 
-import "./CollateralPool.sol";
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
@@ -11,6 +10,11 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @notice tBTC v1 Deposit contract interface.
+/// @dev This is an interface with just a few function signatures of a main
+///         contract for tBTC. For more info and function description
+///         please see:
+///         https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
     function withdrawFunds() external;
 
@@ -28,6 +32,8 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
+    uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
+
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
     // Auction will not be opened if the deposit collateralization level does not
@@ -36,18 +42,46 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     // that nobody else is willing to purchase. The default value can be updated
     // by the governance at any moment.
     uint256 public collateralizationThreshold = 101; // percent
+
+    uint256 public auctionLength;
+    uint256 public newAuctionLength;
+    uint256 public auctionLengthChangeInitiated;
+
     IERC20 public tbtcToken;
 
     // deposit in liquidation => opened coverage pool auction
-    mapping(address => address) public auctionsByDepositsInLiquidation;
+    mapping(address => address) public depositToAuction;
     // opened coverage pool auction => deposit in liquidation
-    mapping(address => address) public depositsInLiquidationByAuctions;
+    mapping(address => address) public auctionToDeposit;
 
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
 
-    constructor(IERC20 _token) {
-        tbtcToken = _token;
+    event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
+    event AuctionLengthUpdated(uint256 auctionLength);
+
+    /// @notice Reverts if called before the delay elapses.
+    /// @param changeInitiatedTimestamp Timestamp indicating the beginning
+    ///        of the change.
+    modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp.sub(changeInitiatedTimestamp) >=
+                GOVERNANCE_TIME_DELAY,
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
+
+    constructor(
+        IERC20 _tbtcToken,
+        CoveragePool _coveragePool,
+        address _masterAuction,
+        uint256 _auctionLength
+    ) Auctioneer(_coveragePool, _masterAuction) {
+        tbtcToken = _tbtcToken;
+        auctionLength = _auctionLength;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -72,17 +106,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
 
-        // TODO: Need to read the market conditions of assets from Uniswap / 1inch
-        //       Based on this data the auction length should be adjusted
-        uint256 auctionLength = 86400; // in sec, hardcoded 24h
-
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
-        //slither-disable-next-line reentrancy-benign
-        auctionsByDepositsInLiquidation[depositAddress] = auctionAddress;
-        depositsInLiquidationByAuctions[auctionAddress] = depositAddress;
+        depositToAuction[depositAddress] = auctionAddress;
+        auctionToDeposit[auctionAddress] = depositAddress;
     }
 
     /// @notice Closes an auction early.
@@ -99,13 +128,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         //       TBTC hanging in this contract. Need to decide what to do with
         //       these tokens.
 
-        Auction auction =
-            Auction(auctionsByDepositsInLiquidation[depositAddress]);
+        Auction auction = Auction(depositToAuction[depositAddress]);
+
+        delete depositToAuction[depositAddress];
+        delete auctionToDeposit[address(auction)];
         earlyCloseAuction(auction);
-        //slither-disable-next-line reentrancy-no-eth
-        delete auctionsByDepositsInLiquidation[depositAddress];
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-benign
-        delete depositsInLiquidationByAuctions[address(auction)];
     }
 
     /// @notice Updates collateralization threshold level.
@@ -117,25 +144,93 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         collateralizationThreshold = _collateralizationThreshold;
     }
 
-    /// @dev Call upon Coverage Pool auction end. At this point all the TBTC tokens
-    ///      for the coverage pool auction should be transferred to this contract.
-    /// @param auction Coverage pool auction.
-    function actBeforeAuctionClose(Auction auction) internal override {
-        IDeposit deposit =
-            IDeposit(depositsInLiquidationByAuctions[address(auction)]);
+    /// @notice Begins the auction length update process.
+    /// @dev Can be called only by the contract owner. The auction length should
+    ///      be adjusted very carefully. Total value locked of the coverage pool
+    ///      and minimum possible auction amount needs to be taken into account.
+    /// @param _newAuctionLength New auction length in seconds.
+    function beginAuctionLengthUpdate(uint256 _newAuctionLength)
+        external
+        onlyOwner
+    {
+        newAuctionLength = _newAuctionLength;
+        /* solhint-disable-next-line not-rely-on-time */
+        auctionLengthChangeInitiated = block.timestamp;
+        /* solhint-disable-next-line not-rely-on-time */
+        emit AuctionLengthUpdateStarted(_newAuctionLength, block.timestamp);
+    }
 
-        delete auctionsByDepositsInLiquidation[address(deposit)];
-        delete depositsInLiquidationByAuctions[address(auction)];
+    /// @notice Finalizes the auction length update process.
+    /// @dev Can be called only by the contract owner, after the the
+    ///      governance delay elapses.
+    function finalizeAuctionLengthUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(auctionLengthChangeInitiated)
+    {
+        auctionLength = newAuctionLength;
+        emit AuctionLengthUpdated(newAuctionLength);
+        newAuctionLength = 0;
+        auctionLengthChangeInitiated = 0;
+    }
+
+    /// @notice Get the time remaining until the auction length parameter
+    ///         can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingAuctionLengthUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                auctionLengthChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
+    /// @dev    This function is invoked when Auctioneer determines that an auction
+    ///         is eligible to be closed. It cannot be called on-demand outside
+    ///         the Auctioneer contract.
+    ///         By the time this function is called, all the TBTC tokens for the
+    ///         coverage pool auction should be transferred to this contract in
+    ///         order to buy signer bonds.
+    /// @param auction Coverage pool auction.
+    function onAuctionFullyFilled(Auction auction) internal override {
+        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+
+        delete depositToAuction[address(deposit)];
+        delete auctionToDeposit[address(auction)];
 
         uint256 approvedAmount = deposit.lotSizeTbtc();
-        bool success = tbtcToken.approve(address(deposit), approvedAmount);
-        require(success, "TBTC Token approval failed");
+        tbtcToken.safeApprove(address(deposit), approvedAmount);
 
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
 
-        // TODO: Once ETH is received, funds need to be processes further, so
+        // TODO: Once ETH is received, funds need to be processed further, so
         //       they won't be locked in this contract.
         deposit.withdrawFunds();
+    }
+
+    /// @notice Get the time remaining until the function parameter timer
+    ///         value can be updated.
+    /// @param changeTimestamp Timestamp indicating the beginning of the change.
+    /// @param delay Governance delay.
+    /// @return Remaining time in seconds.
+    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+        returns (uint256)
+    {
+        require(changeTimestamp > 0, "Update not initiated");
+        /* solhint-disable-next-line not-rely-on-time */
+        uint256 elapsed = block.timestamp.sub(changeTimestamp);
+        if (elapsed >= delay) {
+            return 0;
+        } else {
+            return delay.sub(elapsed);
+        }
     }
 }
