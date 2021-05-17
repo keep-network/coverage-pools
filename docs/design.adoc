@@ -1,0 +1,65 @@
+= Components
+
+== Asset pool
+
+Asset pool accepts a single ERC-20 token as collateral, and returns an
+underwriter token. For example, an asset-specific pool might accept
+deposits in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
+represent an ownership share in the underlying collateral of the asset-specific
+pool, including ownership in rewards accrued by the asset pool.
+
+Underwriter tokens natively support meta transactions. This means owners can
+authorize a transfer of their underwriter tokens with a signature rather than
+an on-chain transaction from their address. The signed message conforms EIP-712
+standard, the same one used by Uniswap pool share tokens or MakerDAO DAI tokens.
+Anyone can submit the signature on the owner's behalf by calling the EIP-2612
+permit function, paying gas fees and possibly performing other actions in the
+same transaction.
+
+== Rewards pool
+
+Rewards pool accepts a single ERC-20 token as a reward and releases it to the
+asset pool over time in one-week reward intervals. The owner of the rewards pool
+is the reward manager address funding the pool with rewards. The token released
+by the reward pool is the same ERC-20 token as the one accepted by the asset
+pool as collateral.
+
+== Coverage pool
+
+Coverage pool is an owner of the asset pool with the right to demand coverage
+from the pool. The coverage pool keeps a governable list of approved risk
+managers allowed to claim the coverage.
+
+== Risk manager
+
+Risk manager is a smart contract with the exclusive right to claim coverage
+from the coverage pool.
+
+Demanding coverage is akin to filing a claim in traditional insurance and
+processing your own claim. The risk manager holds an incredibly privileged
+position, because the ability to claim coverage of an arbitrarily large
+position could bankrupt the coverage pool.
+
+Because of the nature of the role, the risk manager is a critical component of
+the coverage pool. Depending on the implementation, a risk manager can determine
+whether to put assets at capped or uncapped risk; how quickly auctions should
+put collateral up on offer; whether to end an auction early; and whether to
+remunerate existing underwriters in the case of "extra" assets on hand from an
+auction.
+
+Coverage is always paid out in the pool's covered asset.
+
+== Auctions
+
+When the risk manager claims coverage, it specifies an amount denominated in
+the asset the pool covers. An auction is opened, increasing the portion of the
+pool on offer over time. Eventually, if no offer was taken, the entire coverage
+pool is on offer.
+
+For an auction to be filled, a participant pays the asking price, and in return
+receives a portion of the asset from the asset pool. An auction can be filled
+partially, allowing multiple participants to take the offer.
+
+In addition to claiming coverage and opening an auction, the risk manager
+determines the length of the auction, determining its velocity. Risk manager 
+might decide to end an auction early if coverage is no longer needed.
