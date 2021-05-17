@@ -1,6 +1,19 @@
-= Components
+= Coverage pool
 
-== Asset pool
+== Overview
+
+A coverage pool is a flexible new money lego that can be used as a back-stop or
+"buyer of last resort" in on-chain financial systems. It is a governable,
+fee-earning pool to cover low-likelihood on-chain events.
+
+This document describes v1, single-asset version of a coverage pool.
+
+v2 of a coverage pool includes a multi-asset coverage and rewards, and is
+covered in v2 documentation.
+
+== Components
+
+=== Asset pool
 
 Asset pool accepts a single ERC-20 token as collateral, and returns an
 underwriter token. For example, an asset-specific pool might accept
@@ -16,7 +29,7 @@ Anyone can submit the signature on the owner's behalf by calling the EIP-2612
 permit function, paying gas fees and possibly performing other actions in the
 same transaction.
 
-== Rewards pool
+=== Rewards pool
 
 Rewards pool accepts a single ERC-20 token as a reward and releases it to the
 asset pool over time in one-week reward intervals. The owner of the rewards pool
@@ -24,13 +37,13 @@ is the reward manager address funding the pool with rewards. The token released
 by the reward pool is the same ERC-20 token as the one accepted by the asset
 pool as collateral.
 
-== Coverage pool
+=== Coverage pool
 
 Coverage pool is an owner of the asset pool with the right to demand coverage
 from the pool. The coverage pool keeps a governable list of approved risk
 managers allowed to claim the coverage.
 
-== Risk manager
+=== Risk manager
 
 Risk manager is a smart contract with the exclusive right to claim coverage
 from the coverage pool.
@@ -49,7 +62,7 @@ auction.
 
 Coverage is always paid out in the pool's covered asset.
 
-== Auctions
+=== Auctions
 
 When the risk manager claims coverage, it specifies an amount denominated in
 the asset the pool covers. An auction is opened, increasing the portion of the
