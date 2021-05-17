@@ -47,11 +47,7 @@ describe("CoveragePool", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const CoveragePool = await ethers.getContractFactory("CoveragePool", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
+    const CoveragePool = await ethers.getContractFactory("CoveragePool")
     coveragePool = await CoveragePool.deploy(assetPool.address)
     await coveragePool.deployed()
 
@@ -110,7 +106,7 @@ describe("CoveragePool", () => {
       context("when approval delay has not elapsed", () => {
         beforeEach(async () => {
           // Wait for less than delay approval time
-          await increaseTime(13 * 24 * 3600)
+          await increaseTime(29 * 24 * 3600)
         })
 
         it("should revert", async () => {
@@ -123,7 +119,7 @@ describe("CoveragePool", () => {
       context("when approval delay has elapsed", () => {
         beforeEach(async () => {
           // Wait for delay approval time
-          await increaseTime(14 * 24 * 3600)
+          await increaseTime(30 * 24 * 3600)
         })
 
         it("transfers seized funds to recipient account", async () => {

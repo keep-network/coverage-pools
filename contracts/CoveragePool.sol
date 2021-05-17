@@ -12,8 +12,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract CoveragePool is Ownable {
     using SafeMath for uint256;
 
-    uint256 public constant RISK_MANAGER_APPROVAL_TIME_DELAY = 2 weeks;
-
     AssetPool public assetPool;
     IERC20 public collateralToken;
 
@@ -48,7 +46,7 @@ contract CoveragePool is Ownable {
         riskManagerApprovalTimestamps[riskManager] =
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp +
-            RISK_MANAGER_APPROVAL_TIME_DELAY;
+            CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY;
     }
 
     /// @notice Seize funds from the coverage pool and put them aside for the
@@ -63,14 +61,11 @@ contract CoveragePool is Ownable {
         external
         onlyApprovedRiskManager
     {
-        uint256 FLOATING_POINT_DIVISOR =
-            CoveragePoolConstants.getFloatingPointDivisor();
-
         uint256 amountToSeize =
             collateralToken
                 .balanceOf(address(assetPool))
                 .mul(portionToSeize)
-                .div(FLOATING_POINT_DIVISOR);
+                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
 
         assetPool.claim(recipient, amountToSeize);
     }
