@@ -9,7 +9,7 @@ contract AuctioneerStub is Auctioneer {
         Auctioneer(_coveragePool, _masterAuction)
     {}
 
-    /// @dev This fallback function is needed by the `impersonateContract`
+    /// @dev This fallback function is needed by the `impersonateAccount`
     ///      test helper function.
     receive() external payable {}
 

@@ -37,23 +37,39 @@ async function increaseTime(time) {
   await ethers.provider.send("evm_mine")
 }
 
-async function impersonateContract(contractAddress, purseSigner) {
+async function impersonateAccount(accountAddress, purseSigner) {
   // Make the required call against Hardhat Runtime Environment.
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [contractAddress],
+    params: [accountAddress],
   })
 
-  // Fund contract account using a purse account in order to make transactions
-  // using contract's account. Keep in mind the contract must have a receive
-  // or fallback method to be funded successfully.
-  await purseSigner.sendTransaction({
-    to: contractAddress,
-    value: ethers.utils.parseEther("1"),
-  })
+  if (purseSigner) {
+    // Fund the account using a purse account in order to make transactions.
+    // In case the account represents a contract, keep in mind the contract must
+    // have a receive or fallback method to be funded successfully.
+    await purseSigner.sendTransaction({
+      to: accountAddress,
+      value: ethers.utils.parseEther("1"),
+    })
+  }
 
-  // Return the contract account's signer.
-  return await ethers.getSigner(contractAddress)
+  // Return the account's signer.
+  return await ethers.getSigner(accountAddress)
+}
+
+async function resetFork(blockNumber) {
+  await hre.network.provider.request({
+    method: "hardhat_reset",
+    params: [
+      {
+        forking: {
+          jsonRpcUrl: process.env.FORKING_URL,
+          blockNumber: blockNumber,
+        },
+      },
+    ],
+  })
 }
 
 module.exports.to1ePrecision = to1ePrecision
@@ -61,6 +77,7 @@ module.exports.to1e18 = to1e18
 module.exports.pastEvents = pastEvents
 module.exports.lastBlockTime = lastBlockTime
 module.exports.increaseTime = increaseTime
-module.exports.impersonateContract = impersonateContract
+module.exports.impersonateAccount = impersonateAccount
+module.exports.resetFork = resetFork
 
 module.exports.ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"

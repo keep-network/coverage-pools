@@ -29,6 +29,11 @@ jobs:
       - name: Run tests
         run: yarn test
 
+      - name: Run system tests
+        env:
+          FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
+        run: yarn test:system
+
   contracts-lint:
     runs-on: ubuntu-latest
     steps:
