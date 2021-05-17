@@ -186,7 +186,7 @@ In total, underwriters earn:
 This scenario is an extension of Scenario 2 with an additional claim for
 50k KEEP tokens from the coverage pool at the end.
 
-There is 430k KEEP in the pool (deposited + rewards).
+There is 430k KEEP in the pool (deposited + rewards):
 
 * underwriter 1 has 150 / 375.84 = 0.399 of the pool (= (150k + 21 610) / 430k))
 * underwriter 2 has 46.87 / 375.84 = 0.124 of the pool (= (50k + 3 627) / 430k))
@@ -214,3 +214,28 @@ In total, underwriters earn/lose:
 * underwriter 1: 21610 - 19955  = 1655 KEEP
 * underwriter 2: 3627 - 6235 = -2608 KEEP
 * underwriter 3: 4761 - 23809 = -19048 KEEP
+
+== tBTC v1 risk manager
+
+tBTC v1 risk manager will be the first implementation of a risk manager approved
+by the coverage pool. The coverage pool will contribute to potentially lowering
+collateral ratios and scaling tBTC’s TVL. The coverage pool serves as a buyer
+of last resort. It purchases enough TBTC on auction to make the depositor whole
+in the event of liquidation if the stakers' collateral is not sufficient.
+
+In case of liquidation of a tBTC deposit below a certain collateralization
+threshold, the risk manager opens an auction to acquire TBTC to purchase signer
+bonds. Collateralization threshold and auction length are governable parameters. 
+
+ETH purchased by the risk manager from tBTC signer bonds is swapped and
+transferred to the asset pool and there are two strategies for doing that:
+
+* ETH is automatically swapped to asset pool underlying token on Uniswap,
+* ETH is deposited in the escrow contract allowing the governance to do the swap 
+  manually and deposit the underlying token to the asset pool.
+
+Which strategy is used is a governable parameter.
+
+In case signer bonds were purchased by a third party before the auction was
+fully filled, TBTC acquired by the risk manager from potential partial auction
+takes will be used in the future, reducing the amount of a next auction.
