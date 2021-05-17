@@ -246,3 +246,37 @@ All coverage pool contracts are non-upgradeable and there are few governable
 parameters listed in the next section. Underwriters can migrate to a new version
 of coverage pool by moving their collateral to a new asset pool approved by the
 governance.
+
+== Governance
+
+The governance included in the system design follows two principles:
+
+* All governance should abide by a time delay, giving users time to respond
+  to changes in the system.
+* The governance role should be assignable to a credibly neutral third party or 
+  eventual decentralization, such as the community multisig.
+
+.Governable parameters
+|===
+|Parameter |Time delay|Description
+
+|Approved risk managers
+|30 days
+|Governance can approve and unapprove a risk manager.
+
+|Auction length
+|12 hours
+|Governance can adjust auction length based on coverage pool TVL and the minimum 
+possible auctioned value.
+
+|tBTC deposit collateralization
+|12 hours
+|Governance can set the maximum collateralization level of tBTC deposit under
+the liquidation the tBTC v1 risk manager is going to open an auction for. The
+risk manager is a buyer of the last resort and should not work with tBTC
+liquidating deposits still attractive for arbitraging bots.
+
+|The strategy for depositing purchased tBTC signer bonds
+|12 hours
+|Governance can chose which strategy should be used by tBTC v1 risk manager for
+depositing ETH signer bonds purchased from tBTC to the asset pool.
