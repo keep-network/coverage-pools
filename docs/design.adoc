@@ -239,3 +239,10 @@ Which strategy is used is a governable parameter.
 In case signer bonds were purchased by a third party before the auction was
 fully filled, TBTC acquired by the risk manager from potential partial auction
 takes will be used in the future, reducing the amount of a next auction.
+
+== Upgradeability
+
+All coverage pool contracts are non-upgradeable and there are few governable
+parameters listed in the next section. Underwriters can migrate to a new version
+of coverage pool by moving their collateral to a new asset pool approved by the
+governance.
