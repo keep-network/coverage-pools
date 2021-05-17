@@ -6,7 +6,7 @@ A coverage pool is a flexible new money lego that can be used as a back-stop or
 "buyer of last resort" in on-chain financial systems. It is a governable,
 fee-earning pool to cover low-likelihood on-chain events.
 
-This document describes v1, single-asset version of a coverage pool.
+This document describes the v1, single-asset version of a coverage pool.
 
 v2 of a coverage pool includes a multi-asset coverage and rewards, and is
 covered in v2 documentation.
@@ -76,3 +76,141 @@ partially, allowing multiple participants to take the offer.
 In addition to claiming coverage and opening an auction, the risk manager
 determines the length of the auction, determining its velocity. Risk manager 
 might decide to end an auction early if coverage is no longer needed.
+
+== Depositing and withdrawing from the pool
+
+Underwriters can deposit into the pool at any time and they can top up their
+positions at any time with no initialization period. 
+
+There is a fixed, non-governable, two-week withdrawal period for underwriters.
+During this period, underwriters are earning rewards but their positions are
+also a subject of potential claims of the risk manager.
+
+Before asset pool balance sheet changes during deposit, withdrawal, or claim
+operations, asset pool withdraws unlocked rewards from the rewards pool.
+This way, asset pool can adjust the number of underwriter (COV) tokens minted so  
+that new underwriters are not participating in rewards accrued by the pool
+before they joined. Also, rewards unlocked by the rewards pool are
+"auto-compounding" for the asset pool underwriters:
+
+```
+COV_toMint / COV_totalSupply = collateral_toDeposit / collateral_totalDeposited
+COV_toMint = collateral_toDeposit * COV_totalSupply / collateral_totalDeposited
+```
+
+The three scenarios below illustrate how deposit and withdrawal works, and how 
+coverage claim affects the asset pool. For simplicity, a two-week withdrawal 
+period has been omitted.
+
+=== Scenario 1
+
+==== Description
+70k KEEP allocated as a weekly reward.
+
+Three underwriters depositing roughly at the same time:
+
+* underwriter 1 depositing 150k KEEP
+* underwriter 2 depositing 50k KEEP
+* underwriter 3 depositing 200k KEEP
+
+After four days, 40k KEEP rewards unlocked and all three underwriters are
+withdrawing from the pool.
+
+==== Earnings
+* underwriter 1: 15k KEEP
+* underwriter 2: 5k KEEP
+* underwriter 3: 20k KEEP
+
+==== Explanation
+* underwriter 1 has 150/400 share of the pool (150k out of 400k COV tokens), +
+  they can claim 150/400 rewards unlocked: 150 / 400 * 40k = 15k
+* underwriter 2 has 50/400 share of the pool. (50k out of 400k COV tokens), +
+  they can claim 50/400 rewards unlocked: 50 / 400 * 40k = 5k
+* underwriter 3 has 200/400 share of the pool. (200k out of 400k COV tokens), +
+  they can claim 200/400 rewards unlocked: 200/400 * 40k = 20k
+
+=== Scenario 2
+
+70k KEEP allocated as a weekly reward.
+
+Three underwriters depositing:
+
+* underwriter 1 depositing 150k KEEP
+* underwriter 2 depositing 50k KEEP after 24 hours
+* underwriter 3 depositing 200k KEEP after 24 hours
+
+24 hours passes, all three underwriters are withdrawing from the pool.
+
+==== Earnings
+* underwriter 1: ~21610 KEEP
+* underwriter 2: ~3627 KEEP
+* underwriter 3: ~4761 KEEP
+
+==== Explanation
+Underwriter 1 is depositing. They receive 150k COV tokens. + 
+For the first 24 hours, underwriter 1 is the only one in the pool.
+They earn 70k / 7 = 10k KEEP.
+
+Underwriter 2 is depositing. There is 150k + 10k KEEP is in the pool at that 
+time (deposited and rewarded). The pool needs too adjust the amount of COV
+tokens minted for underwriter 2 so that they do not take a share of rewards
+accrued by the pool so far: COV_minted = 50k * 150k / 160k = 46.87k.
+
+For the next 24 hours. there are two underwriters in the pool and they earn
+rewards proportionally to their share in the pool:
+
+* underwriter 1: 150 / 196.87 * 10k = 7619.24 KEEP
+* underwriter 2: 46.87 / 196.87 * 10k = 2380.75 KEEP
+
+Underwriter 3 is depositing. 150k + 10k + 50k + 10k is in the pool at that time
+(deposited and rewarded). The pool needs to adjust the amount of COV tokens
+minted for underwriter 3 so that they do not take a share of rewards accrued by 
+the pool so far: COV_minted = 200k * 196.87k / 220k = 178.97k.
+
+For the next 24 hours, there are three underwriters in the pool and they earn
+rewards proportionally to their share:
+
+- underwriter 1: 150 / 375.84 * 10k = 3991.06 KEEP
+- underwriter 2: 46.87 / 375.84 * 10k = 1247.07 KEEP
+- underwriter 3: 178.97 / 375.84 * 10k = 4761.86 KEEP
+
+In total, underwriters earn:
+
+- underwriter 1: 10k + 7619.24 + 3991.06 = 21610.3 KEEP
+- underwriter 2: 2380.75 + 1247.07 = 3627.82 KEEP
+- underwriter 3: 4761.86 KEEP
+
+
+=== Scenario 3
+
+This scenario is an extension of Scenario 2 with an additional claim for
+50k KEEP tokens from the coverage pool at the end.
+
+There is 430k KEEP in the pool (deposited + rewards).
+
+* underwriter 1 has 150 / 375.84 = 0.399 of the pool (= (150k + 21 610) / 430k))
+* underwriter 2 has 46.87 / 375.84 = 0.124 of the pool (= (50k + 3 627) / 430k))
+* underwriter 3 has 178.97 / 375.84 = 0.476 of the pool (= (200k + 4 761) / 430k))
+
+The coverage pool claims 50k KEEP and all underwriters withdraw their funds
+right after. 
+
+==== Earnings
+- underwriter 1: 1655 KEEP
+- underwriter 2: -2608 KEEP
+- underwriter 3: -19048 KEEP
+
+==== Explanation
+
+Coverage pool loses 50k KEEP. Underwriters are expected to take a hit
+proportionally to their share of the pool:
+
+* underwriter 1: -50k * 150 / 375.84 = -19955 KEEP
+* underwriter 2: -50k * 46.87 / 375.84 = -50k * 0.124 = -6235 KEEP
+* underwriter 3: -50k * 178.97 / 375.84 = -50k * 0.476 = -23809 KEEP
+
+In total, underwriters earn/lose:
+
+* underwriter 1: 21610 - 19955  = 1655 KEEP
+* underwriter 2: 3627 - 6235 = -2608 KEEP
+* underwriter 3: 4761 - 23809 = -19048 KEEP
