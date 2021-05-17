@@ -30,13 +30,13 @@ contract AssetPool is Ownable {
     constructor(
         IERC20 _collateralToken,
         UnderwriterToken _underwriterToken,
-        address rewardManager
+        address rewardsManager
     ) {
         collateralToken = _collateralToken;
         underwriterToken = _underwriterToken;
 
         rewardsPool = new RewardsPool(_collateralToken, this);
-        rewardsPool.transferOwnership(rewardManager);
+        rewardsPool.transferOwnership(rewardsManager);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and

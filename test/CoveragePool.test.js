@@ -18,6 +18,8 @@ describe("CoveragePool", () => {
     recipient = await ethers.getSigner(3)
     // Risk Manager that will be approved
     approvedRiskManager = await ethers.getSigner(4)
+    // Account funding Asset Pool with rewards
+    const rewardsManager = await ethers.getSigner(5)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
@@ -33,7 +35,8 @@ describe("CoveragePool", () => {
     const AssetPool = await ethers.getContractFactory("AssetPool")
     const assetPool = await AssetPool.deploy(
       testToken.address,
-      underwriterToken.address
+      underwriterToken.address,
+      rewardsManager.address
     )
     await assetPool.deployed()
 
