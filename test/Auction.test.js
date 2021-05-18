@@ -28,18 +28,8 @@ describe("Auction", () => {
   let auctioneer
 
   before(async () => {
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
-    )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
-
     const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
-    const Auction = await ethers.getContractFactory("Auction", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
+    const Auction = await ethers.getContractFactory("Auction")
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
 
     owner = await ethers.getSigner(0)

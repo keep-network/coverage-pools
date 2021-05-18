@@ -19,17 +19,7 @@ describe("Integration -- liquidation happy path", () => {
     tbtcToken = await TestToken.deploy()
     await tbtcToken.deployed()
 
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
-    )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
-
-    const Auction = await ethers.getContractFactory("Auction", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
+    const Auction = await ethers.getContractFactory("Auction")
 
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
