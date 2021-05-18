@@ -61,14 +61,14 @@ describe("CoveragePool", () => {
     await assetPool.connect(underwriter).deposit(to1e18(400))
   })
 
-  describe("approveRiskManager", () => {
+  describe("beginRiskManagerApproval", () => {
     context("when caller is not the governance", () => {
       it("should revert", async () => {
         const notGovernance = await ethers.getSigner(5)
         await expect(
           coveragePool
             .connect(notGovernance)
-            .approveRiskManager(riskManager.address)
+            .beginRiskManagerApproval(riskManager.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -77,12 +77,226 @@ describe("CoveragePool", () => {
       beforeEach(async () => {
         await coveragePool
           .connect(governance)
-          .approveRiskManager(riskManager.address)
+          .beginRiskManagerApproval(riskManager.address)
       })
-      it("timestamp of risk manager approval should be stored", async () => {
+
+      it("should not approve risk manager", async () => {
+        expect(await coveragePool.approvedRiskManagers(riskManager.address)).to
+          .be.false
+      })
+
+      it("should store risk manager approval timestamp", async () => {
         expect(
           await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
         ).to.be.above(0)
+      })
+    })
+  })
+
+  describe("finalizeRiskManagerApproval", () => {
+    context("when caller is not the governance", () => {
+      it("should revert", async () => {
+        const notGovernance = await ethers.getSigner(5)
+        await expect(
+          coveragePool
+            .connect(notGovernance)
+            .finalizeRiskManagerApproval(riskManager.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when approval was not initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .finalizeRiskManagerApproval(riskManager.address)
+        ).to.be.revertedWith("Risk manager approval not initiated")
+      })
+    })
+
+    context("when approval was initiated", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .beginRiskManagerApproval(riskManager.address)
+      })
+
+      context("when approval delay has not elapsed", () => {
+        beforeEach(async () => {
+          // wait for less than the risk manager governance delay
+          await increaseTime(29 * 24 * 3600)
+        })
+
+        it("should revert", async () => {
+          await expect(
+            coveragePool
+              .connect(governance)
+              .finalizeRiskManagerApproval(riskManager.address)
+          ).to.be.revertedWith("Risk manager governance delay has not elapsed")
+        })
+      })
+
+      context("when approval delay has passed", () => {
+        beforeEach(async () => {
+          // wait for the risk manager governance delay
+          await increaseTime(30 * 24 * 3600)
+
+          await coveragePool
+            .connect(governance)
+            .finalizeRiskManagerApproval(riskManager.address)
+        })
+
+        it("should remove risk manager timestamp", async () => {
+          expect(
+            await coveragePool.riskManagerApprovalTimestamps(
+              riskManager.address
+            )
+          ).to.be.equal(0)
+        })
+
+        it("should approve risk manager", async () => {
+          expect(await coveragePool.approvedRiskManagers(riskManager.address))
+            .to.be.true
+        })
+      })
+    })
+  })
+
+  describe("beginRiskManagerUnapproval", () => {
+    context("when risk manager is not approved", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .beginRiskManagerUnapproval(riskManager.address)
+        ).to.be.revertedWith("Risk manager not approved")
+      })
+    })
+
+    context("when risk manager is approved", () => {
+      beforeEach(async () => {
+        // aprove risk manager
+        await coveragePool
+          .connect(governance)
+          .beginRiskManagerApproval(riskManager.address)
+        await increaseTime(30 * 24 * 3600)
+        await coveragePool
+          .connect(governance)
+          .finalizeRiskManagerApproval(riskManager.address)
+      })
+
+      context("when caller is not the governance", () => {
+        it("should revert", async () => {
+          const notGovernance = await ethers.getSigner(5)
+          await expect(
+            coveragePool
+              .connect(notGovernance)
+              .beginRiskManagerUnapproval(riskManager.address)
+          ).to.be.revertedWith("Ownable: caller is not the owner")
+        })
+      })
+
+      context("when caller is the governance", () => {
+        beforeEach(async () => {
+          await coveragePool
+            .connect(governance)
+            .beginRiskManagerUnapproval(riskManager.address)
+        })
+
+        it("should not unapprove risk manager", async () => {
+          expect(await coveragePool.approvedRiskManagers(riskManager.address))
+            .to.be.true
+        })
+
+        it("should store risk manager unapproval timestamp", async () => {
+          expect(
+            await coveragePool.riskManagerUnapprovalTimestamps(
+              riskManager.address
+            )
+          ).to.be.above(0)
+        })
+      })
+    })
+  })
+
+  describe("finalizeRiskManagerUnapproval", () => {
+    beforeEach(async () => {
+      // aprove risk manager
+      await coveragePool
+        .connect(governance)
+        .beginRiskManagerApproval(riskManager.address)
+      await increaseTime(30 * 24 * 3600)
+      await coveragePool
+        .connect(governance)
+        .finalizeRiskManagerApproval(riskManager.address)
+    })
+
+    context("when caller is not the governance", () => {
+      it("should revert", async () => {
+        const notGovernance = await ethers.getSigner(5)
+        await expect(
+          coveragePool
+            .connect(notGovernance)
+            .finalizeRiskManagerUnapproval(riskManager.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when unapproval was not initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .finalizeRiskManagerUnapproval(riskManager.address)
+        ).to.be.revertedWith("Risk manager unapproval not initiated")
+      })
+    })
+
+    context("when approval was initiated", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .beginRiskManagerUnapproval(riskManager.address)
+      })
+
+      context("when governance delay has not elapsed", () => {
+        beforeEach(async () => {
+          // wait for less than the risk manager governance delay
+          await increaseTime(29 * 24 * 3600)
+        })
+
+        it("should revert", async () => {
+          await expect(
+            coveragePool
+              .connect(governance)
+              .finalizeRiskManagerUnapproval(riskManager.address)
+          ).to.be.revertedWith("Risk manager governance delay has not elapsed")
+        })
+      })
+
+      context("when approval delay has passed", () => {
+        beforeEach(async () => {
+          // wait for the risk manager governance delay
+          await increaseTime(30 * 24 * 3600)
+
+          await coveragePool
+            .connect(governance)
+            .finalizeRiskManagerUnapproval(riskManager.address)
+        })
+
+        it("should remove risk manager timestamp", async () => {
+          expect(
+            await coveragePool.riskManagerUnapprovalTimestamps(
+              riskManager.address
+            )
+          ).to.be.equal(0)
+        })
+
+        it("should unapprove risk manager", async () => {
+          expect(await coveragePool.approvedRiskManagers(riskManager.address))
+            .to.be.false
+        })
       })
     })
   })
@@ -98,43 +312,28 @@ describe("CoveragePool", () => {
 
     context("when caller is an approved Risk Manager", () => {
       beforeEach(async () => {
+        // approve risk manager
         await coveragePool
           .connect(governance)
-          .approveRiskManager(riskManager.address)
+          .beginRiskManagerApproval(riskManager.address)
+        await increaseTime(30 * 24 * 3600)
+        await coveragePool
+          .connect(governance)
+          .finalizeRiskManagerApproval(riskManager.address)
       })
 
-      context("when approval delay has not elapsed", () => {
-        beforeEach(async () => {
-          // Wait for less than delay approval time
-          await increaseTime(29 * 24 * 3600)
-        })
+      it("transfers seized funds to recipient account", async () => {
+        // Portion to seize is 0.345987 (multiplied by 10^18 to save precision)
+        const portionToSeize = to1ePrecision(345987, 12)
+        // Expected amount is 400 * 0.345987 = 138.3948 (multiplied by 10^18)
+        const amountSeized = to1ePrecision(1383948, 14)
 
-        it("should revert", async () => {
-          await expect(
-            coveragePool.connect(riskManager).seizeFunds(recipient.address, 123)
-          ).to.be.revertedWith("Approval delay has not elapsed")
-        })
-      })
-
-      context("when approval delay has elapsed", () => {
-        beforeEach(async () => {
-          // Wait for delay approval time
-          await increaseTime(30 * 24 * 3600)
-        })
-
-        it("transfers seized funds to recipient account", async () => {
-          // Portion to seize is 0.345987 (multiplied by 10^18 to save precision)
-          const portionToSeize = to1ePrecision(345987, 12)
-          // Expected amount is 400 * 0.345987 = 138.3948 (multiplied by 10^18)
-          const amountSeized = to1ePrecision(1383948, 14)
-
-          await coveragePool
-            .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
-          expect(await testToken.balanceOf(recipient.address)).to.be.equal(
-            amountSeized
-          )
-        })
+        await coveragePool
+          .connect(riskManager)
+          .seizeFunds(recipient.address, portionToSeize)
+        expect(await testToken.balanceOf(recipient.address)).to.be.equal(
+          amountSeized
+        )
       })
     })
   })
