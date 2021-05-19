@@ -34,22 +34,10 @@ describe("RiskManagerV1", () => {
     signerBondsProcessor = await SignerBondsProcessorStub.deploy()
     await signerBondsProcessor.deployed()
 
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
-    )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
-
-    const Auction = await ethers.getContractFactory("Auction", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
-    const CollateralPoolStub = await ethers.getContractFactory(
-      "CollateralPoolStub"
-    )
-    collateralPoolStub = await CollateralPoolStub.deploy()
-    await collateralPoolStub.deployed()
+    const Auction = await ethers.getContractFactory("Auction")
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
+    const coveragePoolStub = await CoveragePoolStub.deploy()
+    await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
@@ -58,7 +46,7 @@ describe("RiskManagerV1", () => {
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
       signerBondsProcessor.address,
-      collateralPoolStub.address,
+      coveragePoolStub.address,
       masterAuction.address,
       auctionLength
     )

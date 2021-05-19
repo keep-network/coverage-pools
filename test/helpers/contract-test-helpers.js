@@ -27,8 +27,12 @@ function pastEvents(receipt, contract, eventName) {
   return events
 }
 
+async function lastBlockTime() {
+  return (await ethers.provider.getBlock("latest")).timestamp
+}
+
 async function increaseTime(time) {
-  const now = (await ethers.provider.getBlock("latest")).timestamp
+  const now = await lastBlockTime()
   await ethers.provider.send("evm_setNextBlockTimestamp", [now + time])
   await ethers.provider.send("evm_mine")
 }
@@ -55,6 +59,7 @@ async function impersonateContract(contractAddress, purseSigner) {
 module.exports.to1ePrecision = to1ePrecision
 module.exports.to1e18 = to1e18
 module.exports.pastEvents = pastEvents
+module.exports.lastBlockTime = lastBlockTime
 module.exports.increaseTime = increaseTime
 module.exports.impersonateContract = impersonateContract
 

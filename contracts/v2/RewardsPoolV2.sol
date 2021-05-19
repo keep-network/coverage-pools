@@ -43,20 +43,20 @@ abstract contract RewardTokenMinting {
                 .add(poolTokens[assetPool]);
     }
 
-    function tokenPerRateUnit() internal view returns (uint256) {
-        return
-            tokenPerRateUnitAccumulated.add(
-                /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp.sub(lastUpdateTime)
-            );
-    }
-
     function updateReward(address assetPool) internal {
         tokenPerRateUnitAccumulated = tokenPerRateUnit();
         /* solhint-disable-next-line not-rely-on-time */
         lastUpdateTime = block.timestamp;
         poolTokens[assetPool] = earned(assetPool);
         poolTokenPerRateUnitPaid[assetPool] = tokenPerRateUnitAccumulated;
+    }
+
+    function tokenPerRateUnit() internal view returns (uint256) {
+        return
+            tokenPerRateUnitAccumulated.add(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp.sub(lastUpdateTime)
+            );
     }
 }
 

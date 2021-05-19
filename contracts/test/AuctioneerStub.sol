@@ -5,8 +5,8 @@ pragma solidity <0.9.0;
 import "../Auctioneer.sol";
 
 contract AuctioneerStub is Auctioneer {
-    constructor(CollateralPool _collateralPool, address _masterAuction)
-        Auctioneer(_collateralPool, _masterAuction)
+    constructor(CoveragePool _coveragePool, address _masterAuction)
+        Auctioneer(_coveragePool, _masterAuction)
     {}
 
     /// @dev This fallback function is needed by the `impersonateContract`
