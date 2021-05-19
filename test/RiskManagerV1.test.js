@@ -13,8 +13,8 @@ const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json
 const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
 const auctionLotSize = to1e18(1)
-const collateralizationThreshold = 101
 const auctionLength = 86400 // 24h
+const collateralizationThreshold = 101
 
 describe("RiskManagerV1", () => {
   let testToken
@@ -80,7 +80,6 @@ describe("RiskManagerV1", () => {
         await mockIDeposit.mock.collateralizationPercentage.returns(
           collateralizationThreshold + 1
         )
-
         await expect(
           riskManagerV1.notifyLiquidation(mockIDeposit.address)
         ).to.be.revertedWith(
@@ -105,7 +104,7 @@ describe("RiskManagerV1", () => {
         })
 
         it("should create an auction and populate auction's map", async () => {
-          const createdAuctionAddress = await riskManagerV1.auctionsByDepositsInLiquidation(
+          const createdAuctionAddress = await riskManagerV1.depositToAuction(
             mockIDeposit.address
           )
 
@@ -274,8 +273,9 @@ describe("RiskManagerV1", () => {
   describe("updateCollateralizationThreshold", () => {
     context("when collateralization percent is updated by a non-owner", () => {
       it("should revert", async () => {
+        const notOwner = await ethers.getSigner(2)
         await expect(
-          riskManagerV1.connect(bidder).updateCollateralizationThreshold(102)
+          riskManagerV1.connect(notOwner).updateCollateralizationThreshold(102)
         ).to.be.revertedWith("caller is not the owner")
       })
     })
