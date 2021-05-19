@@ -22,7 +22,9 @@ contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
 
     /// @notice Withdraws collected bonds to the given target address.
     /// @dev Can be called by the governance only.
-    /// @param target Arbitrary target address chosen by the governance.
+    /// @param target Arbitrary target address chosen by the governance that
+    ///        will be responsible for swapping ETH and depositing collateral
+    ///        to the coverage pool.
     function withdraw(address payable target) external onlyOwner {
         require(target != address(0), "Invalid target address");
         /* solhint-disable avoid-low-level-calls */
