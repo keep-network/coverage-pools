@@ -238,7 +238,16 @@ Which strategy is used is a governable parameter.
 
 In case signer bonds were purchased by a third party before the auction was
 fully filled, TBTC acquired by the risk manager from potential partial auction
-takes will be used in the future, reducing the amount of a next auction.
+takes will be used in the future, to purchase signer bonds once the accumulated
+surplus value allows for it. For example:
+
+* Liquidation of 1 TBTC deposit, auction opened for 1 TBTC and early closed
+  after being filled for 0.3 TBTC total. 0.3 TBTC goes to the risk manager.
+* Liquidation of 1 TBTC deposit, auction opened for 1 TBTC and early closed
+  after being filled for 0.8 TBTC total. 0.8 TBTC goes to the risk manager.
+* Liquidation of 1 TBTC deposit, there is 1.1 TBTC in the surplus, instead of
+  opening an auction, risk manager purchases signer bonds reducing the surplus
+  to 0.1 TBTC.
 
 == Upgradeability
 
