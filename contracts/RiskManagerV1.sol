@@ -23,6 +23,17 @@ interface IDeposit {
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
+
+    function withdrawableAmount() external view returns (uint256);
+}
+
+/// @title ISignerBondsSwapStrategy
+/// @notice Represents a signer bonds swap strategy.
+/// @dev This interface is meant to abstract the underlying signer bonds
+///      swap strategy and make it interchangeable for the governance.
+interface ISignerBondsSwapStrategy {
+    /// @notice Swaps signer bonds.
+    function swapSignerBonds() external payable;
 }
 
 /// @title RiskManagerV1 for tBTCv1
@@ -40,6 +51,9 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     uint256 public auctionLengthChangeInitiated;
 
     IERC20 public tbtcToken;
+
+    // TODO: should be possible to change by the governance.
+    ISignerBondsSwapStrategy public signerBondsSwapStrategy;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -69,10 +83,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     constructor(
         IERC20 _tbtcToken,
         CoveragePool _coveragePool,
+        ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
+        signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
     }
 
@@ -191,9 +207,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         // Purchase signers bonds ETH with TBTC acquired from the auction
         deposit.purchaseSignerBondsAtAuction();
 
-        // TODO: Once ETH is received, funds need to be processed further, so
-        //       they won't be locked in this contract.
+        uint256 withdrawableAmount = deposit.withdrawableAmount();
         deposit.withdrawFunds();
+
+        // slither-disable-next-line arbitrary-send
+        signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
     }
 
     /// @notice Get the time remaining until the function parameter timer
