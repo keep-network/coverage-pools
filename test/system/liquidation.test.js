@@ -33,8 +33,8 @@ describeFn("System -- liquidation happy path", () => {
   const bondedAmountPercentage = BigNumber.from("66")
 
   let tbtcToken
-  let signerBondsProcessor
-  let collateralPool
+  let signerBondsSwapStrategy
+  let coveragePool
   let riskManagerV1
   let tbtcDeposit
 
@@ -45,36 +45,26 @@ describeFn("System -- liquidation happy path", () => {
 
     tbtcToken = await ethers.getContractAt("IERC20", tbtcTokenAddress)
 
-    const SignerBondsProcessor = await ethers.getContractFactory(
+    const SignerBondsSwapStrategy = await ethers.getContractFactory(
       "SignerBondsEscrow"
     )
-    signerBondsProcessor = await SignerBondsProcessor.deploy()
-    await signerBondsProcessor.deployed()
+    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+    await signerBondsSwapStrategy.deployed()
 
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
-    )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
-
-    const Auction = await ethers.getContractFactory("Auction", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
+    const Auction = await ethers.getContractFactory("Auction")
 
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    const CollateralPool = await ethers.getContractFactory("CollateralPool")
-    collateralPool = await CollateralPool.deploy()
-    await collateralPool.deployed()
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
+    coveragePool = await CoveragePoolStub.deploy()
+    await coveragePool.deployed()
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
-      signerBondsProcessor.address,
-      collateralPool.address,
+      coveragePool.address,
+      signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength
     )
@@ -107,7 +97,7 @@ describeFn("System -- liquidation happy path", () => {
       expect(await auction.isOpen()).to.be.false
     })
 
-    it("should purchase and withdraw signer bonds from deposit", async () => {
+    it("should liquidate the deposit", async () => {
       // Auction bidder has spend their TBTC.
       const bidderCurrentBalance = await tbtcToken.balanceOf(bidder.address)
       expect(bidderInitialBalance.sub(bidderCurrentBalance)).to.equal(lotSize)
@@ -116,13 +106,13 @@ describeFn("System -- liquidation happy path", () => {
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
     })
 
-    it("should trigger signer bonds processing", async () => {
+    it("should swap signer bonds", async () => {
       // No funds should last on the risk manager contract.
       await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
 
       // All funds should be moved to the signer bonds processor contract.
       await expect(tx).to.changeEtherBalance(
-        signerBondsProcessor,
+        signerBondsSwapStrategy,
         bondedAmount.mul(bondedAmountPercentage).div(100)
       )
     })
