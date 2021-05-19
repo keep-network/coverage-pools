@@ -2,171 +2,100 @@
 
 pragma solidity <0.9.0;
 
-import "./AssetPool.sol";
-import "./CloneFactory.sol";
-import "./CoveragePoolConstants.sol";
-import "./UnderwriterToken.sol";
-
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract RewardsPool is CloneFactory, Ownable {
-    // Holds the address of the RewardsPoolStaking contract which will be used
-    // as a master contract for cloning.
-    address public masterRewardsPoolStaking;
+import "./AssetPool.sol";
 
-    // Maps AssetPool address to RewardsPoolStaking address created for this
-    // AssetPool.
-    mapping(address => address) public stakingPools;
-
-    event RewardRateUpdated(
-        address indexed assetPool,
-        address indexed rewardsPoolStaking,
-        uint256 newRate
-    );
-
-    constructor(address _masterRewardsPoolStaking) {
-        require(
-            _masterRewardsPoolStaking != address(0),
-            "Invalid master RewardsPoolStaking addres"
-        );
-        masterRewardsPoolStaking = _masterRewardsPoolStaking;
-    }
-
-    function setRewardRate(AssetPool assetPool, uint256 rate)
-        external
-        onlyOwner
-    {
-        address assetPoolAddress = address(assetPool);
-        address stakingPoolAddress = stakingPools[assetPoolAddress];
-        if (stakingPoolAddress == address(0)) {
-            stakingPoolAddress = createClone(masterRewardsPoolStaking);
-            stakingPools[assetPoolAddress] = stakingPoolAddress;
-            RewardsPoolStaking(stakingPoolAddress).initialize(
-                this,
-                assetPool.underwriterToken()
-            );
-        }
-
-        RewardsPoolStaking(stakingPoolAddress).setRewardRate(rate);
-        // slither-disable-next-line reentrancy-events
-        emit RewardRateUpdated(assetPoolAddress, stakingPoolAddress, rate);
-    }
-}
-
-/// @title RewardsPoolStaking
-/// @notice Staking pool for the given underwriter token responsible for minting
-///         virtual reward tokens based on underwriter's staked tokens balances.
-///         RewardsPool contract references multiple RewardsPoolStaking contracts,
-///         one per each stakeable underwriter token with non-zero reward weight.
-/// @dev    Contract is not meant to be deloyed directly and is instead cloned
-///         by RewardsPool.
-contract RewardsPoolStaking {
+/// @title RewardsPool
+/// @notice RewardsPool accepts a single reward token and releases it to the
+///         AssetPool over time in one week reward intervals. The owner of this
+///         contract is the reward distribution address funding it with reward
+///         tokens.
+contract RewardsPool is Ownable {
+    using SafeERC20 for IERC20;
     using SafeMath for uint256;
-    using SafeERC20 for UnderwriterToken;
 
-    // One virtual reward token minted per second.
-    uint256 public constant MINTING_RATE = 1e18;
+    uint256 public constant DURATION = 7 days;
 
-    RewardsPool public rewardsPool;
+    IERC20 public rewardToken;
+    address public assetPool;
 
-    // The stakeable underwriter token.
-    UnderwriterToken public underwriterToken;
+    // timestamp of the current reward interval end or the timestamp of the
+    // last interval end in case a new reward interval has not been allocated
+    uint256 public intervalFinish = 0;
+    // rate per second with which reward tokens are unlocked
+    uint256 public rewardRate = 0;
+    // amount of rewards accumulated and not yet withdrawn from the previous
+    // reward interval(s)
+    uint256 public rewardAccumulated = 0;
+    // the last time information in this contract was updated
+    uint256 public lastUpdateTime = 0;
 
-    // Reward rate for the Asset Pool this staking pool was created for.
-    // Each asset pool in the collateral pool is assigned a relative rate
-    // in the rewards pool, establishing a way for governance to incentivize
-    // different assets to target a particular collateral pool composition.
-    uint256 public rewardRate;
+    event RewardToppedUp(uint256 amount);
+    event RewardWithdrawn(uint256 amount);
 
-    // Staked underwriter token balances per staker address.
-    mapping(address => uint256) public balanceOf;
-    // The total amount of staked underwriter tokens.
-    uint256 public totalStaked;
-
-    uint256 internal rewardPerTokenAccumulated;
-    mapping(address => uint256) internal userRewardPerTokenPaid;
-    mapping(address => uint256) internal rewards;
-    uint256 internal lastUpdateTime;
-
-    event Staked(address indexed account, uint256 amount);
-    event Unstaked(address indexed account, uint256 amount);
-    event RewardRateUpdated(uint256 newRate);
-
-    modifier onlyRewardsPool() {
-        require(
-            msg.sender == address(rewardsPool),
-            "Caller is not the RewardsPool"
-        );
-        _;
+    constructor(IERC20 _rewardToken, AssetPool _assetPool) {
+        rewardToken = _rewardToken;
+        assetPool = address(_assetPool);
     }
 
-    function initialize(
-        RewardsPool _rewardsPool,
-        UnderwriterToken _underwriterToken
-    ) external {
-        require(
-            address(underwriterToken) == address(0),
-            "RewardsPoolStaking already initialized"
-        );
+    /// @notice Transfers the provided reward amount into RewardsPool and
+    ///         creates a new, one-week reward interval starting from now.
+    ///         Reward tokens from the previous reward interval that unlocked
+    ///         over the time will be available for withdrawal immediatelly.
+    ///         Reward tokens from the previous interval that has not been yet
+    ///         unlocked, are added to the new interval being created.
+    /// @dev This function can be called only by the owner given that it creates
+    ///      a new interval with one week length, starting from now.
+    function topUpReward(uint256 reward) external onlyOwner {
+        rewardAccumulated = earned();
 
-        rewardsPool = _rewardsPool;
-        underwriterToken = _underwriterToken;
-    }
-
-    function setRewardRate(uint256 _rewardRate) external onlyRewardsPool {
-        updateReward(address(0));
-        rewardRate = _rewardRate;
-        emit RewardRateUpdated(rewardRate);
-    }
-
-    function stake(uint256 amount) external {
-        updateReward(msg.sender);
-        totalStaked = totalStaked.add(amount);
-        balanceOf[msg.sender] = balanceOf[msg.sender].add(amount);
-        emit Staked(msg.sender, amount);
-        underwriterToken.safeTransferFrom(msg.sender, address(this), amount);
-    }
-
-    function unstake(uint256 amount) external {
-        updateReward(msg.sender);
-        totalStaked = totalStaked.sub(amount);
-        balanceOf[msg.sender] = balanceOf[msg.sender].sub(amount);
-        emit Unstaked(msg.sender, amount);
-        underwriterToken.safeTransfer(msg.sender, amount);
-    }
-
-    function earned(address account) public view returns (uint256) {
-        return
-            balanceOf[account]
-                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
-                .div(CoveragePoolConstants.getFloatingPointDivisor())
-                .add(rewards[account]);
-    }
-
-    function updateReward(address account) internal {
-        rewardPerTokenAccumulated = rewardPerToken();
-        /* solhint-disable-next-line not-rely-on-time */
+        /* solhint-disable not-rely-on-time */
+        if (block.timestamp >= intervalFinish) {
+            // see https://github.com/crytic/slither/issues/844
+            // slither-disable-next-line divide-before-multiply
+            rewardRate = reward.div(DURATION);
+        } else {
+            uint256 remaining = intervalFinish.sub(block.timestamp);
+            uint256 leftover = remaining.mul(rewardRate);
+            rewardRate = reward.add(leftover).div(DURATION);
+        }
+        intervalFinish = block.timestamp.add(DURATION);
         lastUpdateTime = block.timestamp;
-        if (account != address(0)) {
-            rewards[account] = earned(account);
-            userRewardPerTokenPaid[account] = rewardPerTokenAccumulated;
-        }
+        /* solhint-enable avoid-low-level-calls */
+
+        emit RewardToppedUp(reward);
+        rewardToken.safeTransferFrom(msg.sender, address(this), reward);
     }
 
-    function rewardPerToken() internal view returns (uint256) {
-        if (totalStaked == 0) {
-            return rewardPerTokenAccumulated;
-        }
+    /// @notice Withdraws all unlocked reward tokens to the AssetPool.
+    function withdraw() external {
+        uint256 amount = earned();
+        rewardAccumulated = 0;
+        lastUpdateTime = lastTimeRewardApplicable();
+        emit RewardWithdrawn(amount);
+        rewardToken.safeTransfer(assetPool, amount);
+    }
 
+    /// @notice Returns the amount of earned and not yet withdrawn reward
+    /// tokens.
+    function earned() public view returns (uint256) {
         return
-            rewardPerTokenAccumulated.add(
-                /* solhint-disable-next-line not-rely-on-time */
-                block
-                    .timestamp
-                    .sub(lastUpdateTime)
-                    .mul(MINTING_RATE.mul(rewardRate))
-                    .mul(CoveragePoolConstants.getFloatingPointDivisor())
-                    .div(totalStaked)
+            rewardAccumulated.add(
+                lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate)
             );
+    }
+
+    /// @notice Returns the timestamp at which a reward was last time applicable.
+    ///         When reward interval is pending, returns current block's
+    ///         timestamp. If the last reward interval ended and no other reward
+    ///         interval had been allocated, returns the last reward interval's
+    ///         end timestamp.
+    function lastTimeRewardApplicable() public view returns (uint256) {
+        return Math.min(block.timestamp, intervalFinish);
     }
 }

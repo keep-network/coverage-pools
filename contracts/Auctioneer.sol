@@ -4,11 +4,8 @@ pragma solidity <0.9.0;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
-import "./CollateralPool.sol";
+import "./CoveragePool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-
-// TODO auctioneer should be able to speed up auctions based on exit market activity
 
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
@@ -17,13 +14,12 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory {
-    using SafeERC20 for IERC20;
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
     mapping(address => bool) public openAuctions;
 
-    CollateralPool public collateralPool;
+    CoveragePool public coveragePool;
 
     event AuctionCreated(
         address indexed tokenAccepted,
@@ -39,15 +35,10 @@ contract Auctioneer is CloneFactory {
     );
     event AuctionClosed(address indexed auction);
 
-    /// @dev Initialize the auctioneer
-    /// @param _collateralPool The address of the master deposit contract.
-    /// @param _masterAuction  The address of the master auction contract.
-    function initialize(CollateralPool _collateralPool, address _masterAuction)
-        external
-    {
+    constructor(CoveragePool _coveragePool, address _masterAuction) {
         require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
-        collateralPool = _collateralPool;
+        coveragePool = _coveragePool;
         masterAuction = _masterAuction;
     }
 
@@ -82,22 +73,22 @@ contract Auctioneer is CloneFactory {
         Auction auction = Auction(msg.sender);
 
         // actually seize funds, setting them aside for the taker to withdraw
-        // from the collateral pool.
+        // from the coverage pool.
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         //
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
-        collateralPool.seizeFunds(portionToSeize, auctionTaker);
+        coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
         if (!auction.isOpen()) {
-            actBeforeAuctionClose(auction);
+            onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
         }
     }
 
-    /// @notice Opens a new auction against the collateral pool. The auction
+    /// @notice Opens a new auction against the coverage pool. The auction
     ///         will remain open until filled.
     /// @dev Calls `Auction.initialize` to initialize the instance.
     /// @param tokenAccepted The token with which the auction can be taken
@@ -149,5 +140,10 @@ contract Auctioneer is CloneFactory {
         delete openAuctions[auctionAddress];
     }
 
-    function actBeforeAuctionClose(Auction auction) internal virtual {}
+    /// @notice Auction lifecycle hook allowing to act on auction closed
+    ///         as fully filled. This function is not executed when an auction
+    ///         was partially filled. When this function is executed auction is
+    ///         already closed and funds from the coverage pool are seized.
+    /// @dev Override this function to act on auction closed as fully filled.
+    function onAuctionFullyFilled(Auction auction) internal virtual {}
 }

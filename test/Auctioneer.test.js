@@ -18,7 +18,7 @@ describe("Auctioneer", () => {
   let bidder
   let auctioneer
   let masterAuction
-  let collateralPoolStub
+  let coveragePoolStub
   let testToken
 
   before(async () => {
@@ -31,30 +31,26 @@ describe("Auctioneer", () => {
     const coveragePoolConstants = await CoveragePoolConstants.deploy()
     await coveragePoolConstants.deployed()
 
-    const Auctioneer = await ethers.getContractFactory("AuctioneerStub")
+    const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
     const TestToken = await ethers.getContractFactory("TestToken")
     const Auction = await ethers.getContractFactory("Auction", {
       libraries: {
         CoveragePoolConstants: coveragePoolConstants.address,
       },
     })
-    const CollateralPoolStub = await ethers.getContractFactory(
-      "CollateralPoolStub"
-    )
+    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
 
-    auctioneer = await Auctioneer.deploy()
-    await auctioneer.deployed()
+    coveragePoolStub = await CoveragePoolStub.deploy()
+    await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    collateralPoolStub = await CollateralPoolStub.deploy()
-    await collateralPoolStub.deployed()
-
-    await auctioneer.initialize(
-      collateralPoolStub.address,
+    auctioneer = await AuctioneerStub.deploy(
+      coveragePoolStub.address,
       masterAuction.address
     )
+    await auctioneer.deployed()
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
@@ -62,19 +58,6 @@ describe("Auctioneer", () => {
 
   beforeEach(async () => {
     await testToken.mint(bidder.address, testTokensToMint)
-  })
-
-  describe("initialize", () => {
-    context("when the auctioneer has been already initialized", () => {
-      it("should not be initialized again", async () => {
-        await expect(
-          auctioneer.initialize(
-            collateralPoolStub.address,
-            masterAuction.address
-          )
-        ).to.be.revertedWith("Auctioneer already initialized")
-      })
-    })
   })
 
   describe("createAuction", () => {
@@ -186,10 +169,10 @@ describe("Auctioneer", () => {
           )
         })
 
-        it("should seize funds from collateral pool", async () => {
+        it("should seize funds from coverage pool", async () => {
           // assert SeizeFunds emitted with the right values
           // check whether seizeFunds was executed with the right params
-          events = pastEvents(receipt1, collateralPoolStub, "FundsSeized")
+          events = pastEvents(receipt1, coveragePoolStub, "FundsSeized")
           expect(events.length).to.equal(1)
           expect(events[0].args["recipient"]).to.equal(bidder.address)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -246,9 +229,9 @@ describe("Auctioneer", () => {
         )
       })
 
-      it("should seize funds from collateral pool", async () => {
+      it("should seize funds from coverage pool", async () => {
         // assert SeizeFunds emitted with the right values
-        events = pastEvents(receipt, collateralPoolStub, "FundsSeized")
+        events = pastEvents(receipt, coveragePoolStub, "FundsSeized")
         expect(events.length).to.equal(1)
         expect(events[0].args["recipient"]).to.equal(bidder.address)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -288,21 +271,21 @@ describe("Auctioneer", () => {
 
     context("when the auction is still open", () => {
       it("should close the auction", async () => {
-        await auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+        await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
 
         expect(await auction.isOpen()).to.be.false
       })
 
       it("should emit the auction closed event", async () => {
         await expect(
-          auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+          auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
         )
           .to.emit(auctioneer, "AuctionClosed")
           .withArgs(auctionAddress)
       })
 
       it("should no longer track the auction", async () => {
-        await auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+        await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
 
         expect(await auctioneer.openAuctions(auctionAddress)).to.be.false
       })
@@ -313,7 +296,7 @@ describe("Auctioneer", () => {
         await auction.connect(bidder).takeOffer(auctionAmountDesired)
 
         await expect(
-          auctioneer.connect(bidder).callEarlyCloseAuction(auctionAddress)
+          auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
         ).to.be.revertedWith("Address is not an open auction")
       })
     })
@@ -323,7 +306,7 @@ describe("Auctioneer", () => {
         await expect(
           auctioneer
             .connect(bidder)
-            .callEarlyCloseAuction(await bidder.getAddress())
+            .publicEarlyCloseAuction(await bidder.getAddress())
         ).to.be.revertedWith("Address is not an open auction")
       })
     })
@@ -332,7 +315,11 @@ describe("Auctioneer", () => {
   async function createAuction() {
     const createAuctionTx = await auctioneer
       .connect(owner)
-      .callCreateAuction(testToken.address, auctionAmountDesired, auctionLength)
+      .publicCreateAuction(
+        testToken.address,
+        auctionAmountDesired,
+        auctionLength
+      )
 
     return await createAuctionTx.wait()
   }

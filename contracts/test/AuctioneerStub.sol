@@ -5,11 +5,15 @@ pragma solidity <0.9.0;
 import "../Auctioneer.sol";
 
 contract AuctioneerStub is Auctioneer {
+    constructor(CoveragePool _coveragePool, address _masterAuction)
+        Auctioneer(_coveragePool, _masterAuction)
+    {}
+
     /// @dev This fallback function is needed by the `impersonateContract`
     ///      test helper function.
-    fallback() external payable {}
+    receive() external payable {}
 
-    function callCreateAuction(
+    function publicCreateAuction(
         IERC20 tokenAccepted,
         uint256 amountDesired,
         uint256 auctionLength
@@ -17,7 +21,7 @@ contract AuctioneerStub is Auctioneer {
         createAuction(tokenAccepted, amountDesired, auctionLength);
     }
 
-    function callEarlyCloseAuction(Auction auction) public {
+    function publicEarlyCloseAuction(Auction auction) public {
         earlyCloseAuction(auction);
     }
 }
