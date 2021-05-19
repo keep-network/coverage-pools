@@ -48,8 +48,8 @@ describe("RiskManagerV1", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1Stub")
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
-      signerBondsSwapStrategy.address,
       coveragePoolStub.address,
+      signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength
     )
