@@ -156,7 +156,7 @@ describe("RiskManagerV1", () => {
           await testToken.connect(owner).approve(riskManagerV1.address, surplus)
           await riskManagerV1.fundTbtcSurplus(surplus)
 
-          // Just to make the `processSignerBonds` call possible.
+          // Just to make the `swapSignerBonds` call possible.
           await owner.sendTransaction({
             to: riskManagerV1.address,
             value: ethers.utils.parseEther("10"),
@@ -209,7 +209,7 @@ describe("RiskManagerV1", () => {
           await testToken.connect(owner).approve(riskManagerV1.address, surplus)
           await riskManagerV1.fundTbtcSurplus(surplus)
 
-          // Just to make the `processSignerBonds` call possible.
+          // Just to make the `swapSignerBonds` call possible.
           await owner.sendTransaction({
             to: riskManagerV1.address,
             value: ethers.utils.parseEther("10"),
