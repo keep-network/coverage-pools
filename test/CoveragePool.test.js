@@ -12,6 +12,7 @@ describe("CoveragePool", () => {
   let underwriter
   let recipient
   let riskManager
+  let thirdParty
 
   beforeEach(async () => {
     // Governance that owns Coverage Pool
@@ -22,6 +23,8 @@ describe("CoveragePool", () => {
     recipient = await ethers.getSigner(3)
     // Risk Manager that will seize funds
     riskManager = await ethers.getSigner(4)
+    // Account that is not authorized to call functions on Coverage Pool
+    thirdParty = await ethers.getSigner(5)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
@@ -64,10 +67,9 @@ describe("CoveragePool", () => {
   describe("beginRiskManagerApproval", () => {
     context("when caller is not the governance", () => {
       it("should revert", async () => {
-        const notGovernance = await ethers.getSigner(5)
         await expect(
           coveragePool
-            .connect(notGovernance)
+            .connect(thirdParty)
             .beginRiskManagerApproval(riskManager.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
@@ -96,10 +98,9 @@ describe("CoveragePool", () => {
   describe("finalizeRiskManagerApproval", () => {
     context("when caller is not the governance", () => {
       it("should revert", async () => {
-        const notGovernance = await ethers.getSigner(5)
         await expect(
           coveragePool
-            .connect(notGovernance)
+            .connect(thirdParty)
             .finalizeRiskManagerApproval(riskManager.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
@@ -188,10 +189,9 @@ describe("CoveragePool", () => {
 
       context("when caller is not the governance", () => {
         it("should revert", async () => {
-          const notGovernance = await ethers.getSigner(5)
           await expect(
             coveragePool
-              .connect(notGovernance)
+              .connect(thirdParty)
               .beginRiskManagerUnapproval(riskManager.address)
           ).to.be.revertedWith("Ownable: caller is not the owner")
         })
@@ -234,10 +234,9 @@ describe("CoveragePool", () => {
 
     context("when caller is not the governance", () => {
       it("should revert", async () => {
-        const notGovernance = await ethers.getSigner(5)
         await expect(
           coveragePool
-            .connect(notGovernance)
+            .connect(thirdParty)
             .finalizeRiskManagerUnapproval(riskManager.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })

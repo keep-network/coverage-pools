@@ -39,20 +39,20 @@ contract CoveragePool is Ownable {
         collateralToken = _assetPool.collateralToken();
     }
 
-    /// @notice Begins risk manager approval process
+    /// @notice Begins risk manager approval process.
     /// @dev Can be called only by the contract owner. For a risk manager to be
     /// approved, a call to finalizeRiskManagerApproval must follow (after a
-    /// governance delay)
-    /// @param riskManager Risk manager that will be approved
+    /// governance delay).
+    /// @param riskManager Risk manager that will be approved.
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
     }
 
-    /// @notice Finalizes risk manager approval process
+    /// @notice Finalizes risk manager approval process.
     /// @dev Can be called only by the contract owner. Must be proceded with a
     /// call to beginRiskManagerApproval and a governance delay must elapse.
-    /// @param riskManager Risk manager that will be approved
+    /// @param riskManager Risk manager that will be approved.
     function finalizeRiskManagerApproval(address riskManager)
         external
         onlyOwner
@@ -71,12 +71,12 @@ contract CoveragePool is Ownable {
         approvedRiskManagers[riskManager] = true;
     }
 
-    /// @notice Begins risk manager unapproval process
+    /// @notice Begins risk manager unapproval process.
     /// @dev Can be called only by the contract owner. For a risk manager to be
     /// unapproved, a call to finalizeRiskManagerUnapproval must follow (after
     /// a governance delay). Can only be called on a risk manager that is
     /// approved.
-    /// @param riskManager Risk manager that will be unapproved
+    /// @param riskManager Risk manager that will be unapproved.
     function beginRiskManagerUnapproval(address riskManager)
         external
         onlyOwner
@@ -86,10 +86,10 @@ contract CoveragePool is Ownable {
         riskManagerUnapprovalTimestamps[riskManager] = block.timestamp;
     }
 
-    /// @notice Finalizes risk manager unapproval process
+    /// @notice Finalizes risk manager unapproval process.
     /// @dev Can be called only by the contract owner. Must be proceded with a
     /// call to beginRiskManagerUnapproval and a governance delay must elapse.
-    /// @param riskManager Risk manager that will be unapproved
+    /// @param riskManager Risk manager that will be unapproved.
     function finalizeRiskManagerUnapproval(address riskManager)
         external
         onlyOwner
@@ -115,7 +115,7 @@ contract CoveragePool is Ownable {
     ///      function will need to take this divisor into account.
     /// @param recipient Address that will receive the pool's seized funds.
     /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR
+    ///        multiplied by FLOATING_POINT_DIVISOR.
     function seizeFunds(address recipient, uint256 portionToSeize)
         external
         onlyApprovedRiskManager
