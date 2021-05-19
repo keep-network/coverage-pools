@@ -22,14 +22,14 @@ contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
 
     /// @notice Withdraws collected bonds to the given target address.
     /// @dev Can be called by the governance only.
-    /// @param target Arbitrary target address chosen by the governance that
-    ///        will be responsible for swapping ETH and depositing collateral
-    ///        to the coverage pool.
-    function withdraw(address payable target) external onlyOwner {
-        require(target != address(0), "Invalid target address");
+    /// @param recipient Arbitrary recipient address chosen by the governance
+    ///        that will be responsible for swapping ETH and depositing
+    ///        collateral to the coverage pool.
+    function withdraw(address payable recipient) external onlyOwner {
+        require(recipient != address(0), "Invalid recipient address");
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls,arbitrary-send
-        (bool success, ) = target.call{value: address(this).balance}("");
+        (bool success, ) = recipient.call{value: address(this).balance}("");
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */
     }
