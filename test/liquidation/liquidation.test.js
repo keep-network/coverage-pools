@@ -38,8 +38,8 @@ describe("Integration -- liquidation happy path", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
-      signerBondsSwapStrategy.address,
       coveragePool.address,
+      signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength
     )
@@ -80,14 +80,14 @@ describe("Integration -- liquidation happy path", () => {
       expect(await auction.isOpen()).to.be.false
     })
 
-    it("should purchase and withdraw signer bonds from deposit", async () => {
+    it("should liquidate the deposit", async () => {
       // Auction bidder has spend their TBTC
       expect(await tbtcToken.balanceOf(bidder.address)).to.equal(0)
       // Deposit has been liquidated
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
     })
 
-    it("should trigger signer bonds processing", async () => {
+    it("should swap signer bonds", async () => {
       await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
       await expect(tx).to.changeEtherBalance(
         signerBondsSwapStrategy,
