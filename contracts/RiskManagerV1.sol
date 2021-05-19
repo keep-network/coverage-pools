@@ -32,8 +32,8 @@ interface IDeposit {
 /// @dev This interface is meant to abstract the underlying signer bonds
 ///      swap strategy and make it interchangeable for the governance.
 interface ISignerBondsSwapStrategy {
-    /// @notice Processes the signer bonds.
-    function processSignerBonds() external payable;
+    /// @notice Swaps signer bonds.
+    function swapSignerBonds() external payable;
 }
 
 /// @title RiskManagerV1 for tBTCv1
@@ -211,7 +211,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         deposit.withdrawFunds();
 
         // slither-disable-next-line arbitrary-send
-        signerBondsSwapStrategy.processSignerBonds{value: withdrawableAmount}();
+        signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
     }
 
     /// @notice Get the time remaining until the function parameter timer

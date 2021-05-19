@@ -19,13 +19,13 @@ describe("SignerBondsEscrow", () => {
     await signerBondsEscrow.deployed()
   })
 
-  describe("processSignerBonds", () => {
+  describe("swapSignerBonds", () => {
     let tx
 
     beforeEach(async () => {
       tx = await signerBondsEscrow
         .connect(depositor)
-        .processSignerBonds({ value: ethers.utils.parseEther("10") })
+        .swapSignerBonds({ value: ethers.utils.parseEther("10") })
     })
 
     it("should add the processed signer bonds to the contract balance", async () => {
@@ -46,7 +46,7 @@ describe("SignerBondsEscrow", () => {
         beforeEach(async () => {
           await signerBondsEscrow
             .connect(depositor)
-            .processSignerBonds({ value: ethers.utils.parseEther("10") })
+            .swapSignerBonds({ value: ethers.utils.parseEther("10") })
 
           tx = await signerBondsEscrow
             .connect(owner)
