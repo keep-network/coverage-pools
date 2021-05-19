@@ -22,5 +22,6 @@ contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
         // slither-disable-next-line low-level-calls,arbitrary-send
         (bool success, ) = target.call{value: address(this).balance}("");
         require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
     }
 }
