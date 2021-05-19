@@ -44,12 +44,6 @@ describe("CoveragePool", () => {
     )
     await assetPool.deployed()
 
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
-    )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
-
     const CoveragePool = await ethers.getContractFactory("CoveragePool")
     coveragePool = await CoveragePool.deploy(assetPool.address)
     await coveragePool.deployed()

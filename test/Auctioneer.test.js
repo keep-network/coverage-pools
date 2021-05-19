@@ -25,19 +25,9 @@ describe("Auctioneer", () => {
     owner = await ethers.getSigner(0)
     bidder = await ethers.getSigner(1)
 
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
-    )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
-
     const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
     const TestToken = await ethers.getContractFactory("TestToken")
-    const Auction = await ethers.getContractFactory("Auction", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
+    const Auction = await ethers.getContractFactory("Auction")
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
 
     coveragePoolStub = await CoveragePoolStub.deploy()
