@@ -87,7 +87,7 @@ describe("Integration -- liquidation happy path", () => {
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
     })
 
-    it("should trigger signer bonds processing", async () => {
+    it("should swap signer bonds", async () => {
       await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
       await expect(tx).to.changeEtherBalance(
         signerBondsSwapStrategy,

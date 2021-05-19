@@ -53,8 +53,6 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     IERC20 public tbtcToken;
     // tBTC surplus collected from early closed auctions.
     uint256 public tbtcSurplus;
-    // opened coverage pool auction => reserved tBTC surplus amount
-    mapping(address => uint256) public tbtcSurplusReservations;
 
     // TODO: should be possible to change by the governance.
     ISignerBondsSwapStrategy public signerBondsSwapStrategy;
@@ -119,24 +117,18 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
-        // TODO: Adjust the auction length according to the used surplus amount
-        //       in order to preserve the same profitability delay.
-        (, uint256 auctionAmountTbtc) = lotSizeTbtc.trySub(tbtcSurplus);
-        uint256 tbtcSurplusReserved = lotSizeTbtc.sub(auctionAmountTbtc);
-        tbtcSurplus = tbtcSurplus.sub(tbtcSurplusReserved);
-
         // If the surplus can cover the deposit liquidation cost, liquidate
         // that deposit directly without the auction process.
-        if (auctionAmountTbtc == 0) {
+        if (tbtcSurplus >= lotSizeTbtc) {
+            tbtcSurplus = tbtcSurplus.sub(lotSizeTbtc);
             liquidateDeposit(deposit);
             return;
         }
 
         address auctionAddress =
-            createAuction(tbtcToken, auctionAmountTbtc, auctionLength);
+            createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
         auctionToDeposit[auctionAddress] = depositAddress;
-        tbtcSurplusReservations[auctionAddress] = tbtcSurplusReserved;
     }
 
     /// @notice Closes an auction early.
@@ -151,17 +143,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         Auction auction = Auction(depositToAuction[depositAddress]);
 
-        // Add auction's transferred amount to the surplus pool and return
-        // the surplus reservation taken upon auction initialization.
-        tbtcSurplus = tbtcSurplus.add(
-            auction.amountTransferred().add(
-                tbtcSurplusReservations[address(auction)]
-            )
-        );
+        // Add auction's transferred amount to the surplus pool.
+        tbtcSurplus = tbtcSurplus.add(auction.amountTransferred());
 
         delete depositToAuction[depositAddress];
         delete auctionToDeposit[address(auction)];
-        delete tbtcSurplusReservations[address(auction)];
         earlyCloseAuction(auction);
     }
 
@@ -222,13 +208,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         delete depositToAuction[address(deposit)];
         delete auctionToDeposit[address(auction)];
-        delete tbtcSurplusReservations[address(auction)];
 
         liquidateDeposit(deposit);
     }
 
-    /// @notice Purchases ETH from signer bonds and processes obtained funds
-    ///         using the underlying signer bonds processing strategy.
+    /// @notice Purchases ETH from signer bonds and swaps obtained funds
+    ///         using the underlying signer bonds swap strategy.
     /// @dev By the time this function is called, TBTC token balance for this
     ///      contract should be enough to buy signer bonds.
     /// @param deposit TBTC deposit which should be liquidated.
@@ -236,7 +221,8 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         uint256 approvedAmount = deposit.lotSizeTbtc();
         tbtcToken.safeApprove(address(deposit), approvedAmount);
 
-        // Purchase signers bonds ETH with TBTC acquired from the auction
+        // Purchase signers bonds ETH with TBTC acquired from the auction or
+        // taken from the surplus pool.
         deposit.purchaseSignerBondsAtAuction();
 
         uint256 withdrawableAmount = deposit.withdrawableAmount();

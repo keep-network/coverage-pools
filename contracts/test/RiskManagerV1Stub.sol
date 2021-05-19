@@ -10,15 +10,15 @@ contract RiskManagerV1Stub is RiskManagerV1 {
 
     constructor(
         IERC20 _tbtcToken,
-        ISignerBondsProcessor _signerBondsProcessor,
-        CollateralPool _collateralPool,
+        ISignerBondsSwapStrategy _signerBondsSwapStrategy,
+        CoveragePool _coveragePool,
         address _masterAuction,
         uint256 _auctionLength
     )
         RiskManagerV1(
             _tbtcToken,
-            _signerBondsProcessor,
-            _collateralPool,
+            _signerBondsSwapStrategy,
+            _coveragePool,
             _masterAuction,
             _auctionLength
         )
@@ -27,12 +27,5 @@ contract RiskManagerV1Stub is RiskManagerV1 {
     function fundTbtcSurplus(uint256 amount) external {
         tbtcToken.safeTransferFrom(msg.sender, address(this), amount);
         tbtcSurplus = tbtcSurplus.add(amount);
-    }
-
-    function setTbtcSurplusReservation(address auction, uint256 amount)
-        external
-    {
-        tbtcToken.safeTransferFrom(msg.sender, address(this), amount);
-        tbtcSurplusReservations[auction] = amount;
     }
 }
