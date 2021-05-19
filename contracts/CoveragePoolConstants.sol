@@ -8,6 +8,10 @@ library CoveragePoolConstants {
     // when dealing with floating numbers.
     uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
 
+    // Amount of time that needs to elapse before initiation of
+    // approval/unapproval of a risk manager and finalizing approval/unapproval
+    uint256 public constant RISK_MANAGER_GOVERNANCE_DELAY = 30 days;
+
     // Getter for easy access
     function getFloatingPointDivisor() external pure returns (uint256) {
         return FLOATING_POINT_DIVISOR;
