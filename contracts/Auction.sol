@@ -98,7 +98,7 @@ contract Auction is IAuction {
         self.auctionLength = _auctionLength;
         self.velocityPoolDepletingRate =
             1 *
-            CoveragePoolConstants.getFloatingPointDivisor();
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
     /// @notice Takes an offer from an auction buyer with a minimum required tokens
@@ -134,7 +134,7 @@ contract Auction is IAuction {
     ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() external view override returns (uint256, uint256) {
-        return (_onOffer(), CoveragePoolConstants.getFloatingPointDivisor());
+        return (_onOffer(), CoveragePoolConstants.FLOATING_POINT_DIVISOR);
     }
 
     function amountOutstanding() external view returns (uint256) {
@@ -176,9 +176,6 @@ contract Auction is IAuction {
             amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
-            uint256 FLOATING_POINT_DIVISOR =
-                CoveragePoolConstants.getFloatingPointDivisor();
-
             // Time passed since the auction start or the last takeOffer call
             // with a partial fill.
             uint256 timePassed =
@@ -188,9 +185,10 @@ contract Auction is IAuction {
             // Ratio of the auction's amount included in this takeOffer call to
             // the whole outstanding auction amount.
             uint256 ratioAmountPaid =
-                FLOATING_POINT_DIVISOR.mul(amountToTransfer).div(
-                    self.amountOutstanding
-                );
+                CoveragePoolConstants
+                    .FLOATING_POINT_DIVISOR
+                    .mul(amountToTransfer)
+                    .div(self.amountOutstanding);
             // We will shift the start time offset and increase the velocity pool
             // depleting rate proportionally to the fraction of the outstanding
             // amount paid in this function call so that the auction can offer
@@ -199,9 +197,12 @@ contract Auction is IAuction {
             //
             //slither-disable-next-line divide-before-multiply
             self.startTimeOffset = self.startTimeOffset.add(
-                timePassed.mul(ratioAmountPaid).div(FLOATING_POINT_DIVISOR)
+                timePassed.mul(ratioAmountPaid).div(
+                    CoveragePoolConstants.FLOATING_POINT_DIVISOR
+                )
             );
-            self.velocityPoolDepletingRate = FLOATING_POINT_DIVISOR
+            self.velocityPoolDepletingRate = CoveragePoolConstants
+                .FLOATING_POINT_DIVISOR
                 .mul(self.auctionLength)
                 .div(self.auctionLength.sub(self.startTimeOffset));
         }
@@ -242,7 +243,7 @@ contract Auction is IAuction {
             // by this function will be divided by FLOATING_POINT_DIVISOR. To
             // return the entire pool, we need to return just this divisor in order
             // to get 1.0 ie. FLOATING_POINT_DIVISOR / FLOATING_POINT_DIVISOR = 1.0
-            return CoveragePoolConstants.getFloatingPointDivisor();
+            return CoveragePoolConstants.FLOATING_POINT_DIVISOR;
         }
 
         return

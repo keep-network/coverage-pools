@@ -2,7 +2,6 @@
 
 pragma solidity <0.9.0;
 
-import "./CollateralPool.sol";
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
@@ -28,13 +27,13 @@ interface IDeposit {
     function withdrawableAmount() external view returns (uint256);
 }
 
-/// @title ISignerBondsProcessor
-/// @notice Represents a signer bonds processor.
+/// @title ISignerBondsSwapStrategy
+/// @notice Represents a signer bonds swap strategy.
 /// @dev This interface is meant to abstract the underlying signer bonds
-///      processing strategy and make it interchangeable for the governance.
-interface ISignerBondsProcessor {
-    /// @notice Processes the signer bonds.
-    function processSignerBonds() external payable;
+///      swap strategy and make it interchangeable for the governance.
+interface ISignerBondsSwapStrategy {
+    /// @notice Swaps signer bonds.
+    function swapSignerBonds() external payable;
 }
 
 /// @title RiskManagerV1 for tBTCv1
@@ -58,7 +57,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     mapping(address => uint256) public tbtcSurplusReservations;
 
     // TODO: should be possible to change by the governance.
-    ISignerBondsProcessor public signerBondsProcessor;
+    ISignerBondsSwapStrategy public signerBondsSwapStrategy;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -87,13 +86,13 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     constructor(
         IERC20 _tbtcToken,
-        ISignerBondsProcessor _signerBondsProcessor,
-        CollateralPool _collateralPool,
+        ISignerBondsSwapStrategy _signerBondsSwapStrategy,
+        CoveragePool _coveragePool,
         address _masterAuction,
         uint256 _auctionLength
-    ) Auctioneer(_collateralPool, _masterAuction) {
+    ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
-        signerBondsProcessor = _signerBondsProcessor;
+        signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
     }
 
@@ -244,7 +243,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         deposit.withdrawFunds();
 
         // slither-disable-next-line arbitrary-send
-        signerBondsProcessor.processSignerBonds{value: withdrawableAmount}();
+        signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
     }
 
     /// @notice Get the time remaining until the function parameter timer

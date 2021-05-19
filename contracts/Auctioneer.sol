@@ -4,7 +4,7 @@ pragma solidity <0.9.0;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
-import "./CollateralPool.sol";
+import "./CoveragePool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Auctioneer
@@ -19,7 +19,7 @@ contract Auctioneer is CloneFactory {
     address public masterAuction;
     mapping(address => bool) public openAuctions;
 
-    CollateralPool public collateralPool;
+    CoveragePool public coveragePool;
 
     event AuctionCreated(
         address indexed tokenAccepted,
@@ -35,10 +35,10 @@ contract Auctioneer is CloneFactory {
     );
     event AuctionClosed(address indexed auction);
 
-    constructor(CollateralPool _collateralPool, address _masterAuction) {
+    constructor(CoveragePool _coveragePool, address _masterAuction) {
         require(_masterAuction != address(0), "Invalid master auction address");
         require(masterAuction == address(0), "Auctioneer already initialized");
-        collateralPool = _collateralPool;
+        coveragePool = _coveragePool;
         masterAuction = _masterAuction;
     }
 
@@ -73,12 +73,12 @@ contract Auctioneer is CloneFactory {
         Auction auction = Auction(msg.sender);
 
         // actually seize funds, setting them aside for the taker to withdraw
-        // from the collateral pool.
+        // from the coverage pool.
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         //
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
-        collateralPool.seizeFunds(portionToSeize, auctionTaker);
+        coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
         if (!auction.isOpen()) {
             onAuctionFullyFilled(auction);
@@ -88,7 +88,7 @@ contract Auctioneer is CloneFactory {
         }
     }
 
-    /// @notice Opens a new auction against the collateral pool. The auction
+    /// @notice Opens a new auction against the coverage pool. The auction
     ///         will remain open until filled.
     /// @dev Calls `Auction.initialize` to initialize the instance.
     /// @param tokenAccepted The token with which the auction can be taken
