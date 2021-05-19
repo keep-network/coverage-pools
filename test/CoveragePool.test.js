@@ -87,7 +87,7 @@ describe("CoveragePool", () => {
           .be.false
       })
 
-      it("should store risk manager approval timestamp", async () => {
+      it("should store approval process begin timestamp", async () => {
         expect(
           await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
         ).to.be.above(0)
@@ -148,7 +148,7 @@ describe("CoveragePool", () => {
             .finalizeRiskManagerApproval(riskManager.address)
         })
 
-        it("should remove risk manager timestamp", async () => {
+        it("should remove approval process begin timestamp", async () => {
           expect(
             await coveragePool.riskManagerApprovalTimestamps(
               riskManager.address
@@ -209,7 +209,7 @@ describe("CoveragePool", () => {
             .to.be.true
         })
 
-        it("should store risk manager unapproval timestamp", async () => {
+        it("should store unapproval process begin timestamp", async () => {
           expect(
             await coveragePool.riskManagerUnapprovalTimestamps(
               riskManager.address
@@ -284,7 +284,7 @@ describe("CoveragePool", () => {
             .finalizeRiskManagerUnapproval(riskManager.address)
         })
 
-        it("should remove risk manager timestamp", async () => {
+        it("should remove unapproval process begin timestamp", async () => {
           expect(
             await coveragePool.riskManagerUnapprovalTimestamps(
               riskManager.address
