@@ -8,7 +8,7 @@ describe("Integration -- liquidation happy path", () => {
   const bondedAmount = to1e18(150)
 
   let tbtcToken
-  let signerBondsProcessor
+  let signerBondsSwapStrategy
   let coveragePool
   let riskManagerV1
   let tbtcDeposit
@@ -20,11 +20,11 @@ describe("Integration -- liquidation happy path", () => {
     tbtcToken = await TestToken.deploy()
     await tbtcToken.deployed()
 
-    const SignerBondsProcessorStub = await ethers.getContractFactory(
-      "SignerBondsProcessorStub"
+    const SignerBondsSwapStrategy = await ethers.getContractFactory(
+      "SignerBondsEscrow"
     )
-    signerBondsProcessor = await SignerBondsProcessorStub.deploy()
-    await signerBondsProcessor.deployed()
+    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+    await signerBondsSwapStrategy.deployed()
 
     const Auction = await ethers.getContractFactory("Auction")
 
@@ -38,7 +38,7 @@ describe("Integration -- liquidation happy path", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
-      signerBondsProcessor.address,
+      signerBondsSwapStrategy.address,
       coveragePool.address,
       masterAuction.address,
       auctionLength
@@ -89,10 +89,13 @@ describe("Integration -- liquidation happy path", () => {
 
     it("should trigger signer bonds processing", async () => {
       await expect(tx)
-        .to.emit(signerBondsProcessor, "SignerBondsProcessed")
+        .to.emit(signerBondsSwapStrategy, "SignerBondsProcessed")
         .withArgs(bondedAmount)
       await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
-      await expect(tx).to.changeEtherBalance(signerBondsProcessor, bondedAmount)
+      await expect(tx).to.changeEtherBalance(
+        signerBondsSwapStrategy,
+        bondedAmount
+      )
     })
   })
 })

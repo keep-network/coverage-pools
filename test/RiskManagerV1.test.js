@@ -17,7 +17,7 @@ const auctionLength = 86400 // 24h
 
 describe("RiskManagerV1", () => {
   let testToken
-  let signerBondsProcessor
+  let signerBondsSwapStrategy
   let owner
   let notifier
   let riskManagerV1
@@ -28,11 +28,11 @@ describe("RiskManagerV1", () => {
     testToken = await TestToken.deploy()
     await testToken.deployed()
 
-    const SignerBondsProcessorStub = await ethers.getContractFactory(
-      "SignerBondsProcessorStub"
+    const SignerBondsSwapStrategy = await ethers.getContractFactory(
+      "SignerBondsEscrow"
     )
-    signerBondsProcessor = await SignerBondsProcessorStub.deploy()
-    await signerBondsProcessor.deployed()
+    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+    await signerBondsSwapStrategy.deployed()
 
     const Auction = await ethers.getContractFactory("Auction")
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
@@ -45,7 +45,7 @@ describe("RiskManagerV1", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       testToken.address,
-      signerBondsProcessor.address,
+      signerBondsSwapStrategy.address,
       coveragePoolStub.address,
       masterAuction.address,
       auctionLength

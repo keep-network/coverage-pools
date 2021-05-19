@@ -27,11 +27,11 @@ interface IDeposit {
     function withdrawableAmount() external view returns (uint256);
 }
 
-/// @title ISignerBondsProcessor
-/// @notice Represents a signer bonds processor.
+/// @title ISignerBondsSwapStrategy
+/// @notice Represents a signer bonds swap strategy.
 /// @dev This interface is meant to abstract the underlying signer bonds
-///      processing strategy and make it interchangeable for the governance.
-interface ISignerBondsProcessor {
+///      swap strategy and make it interchangeable for the governance.
+interface ISignerBondsSwapStrategy {
     /// @notice Processes the signer bonds.
     function processSignerBonds() external payable;
 }
@@ -53,7 +53,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     IERC20 public tbtcToken;
 
     // TODO: should be possible to change by the governance.
-    ISignerBondsProcessor public signerBondsProcessor;
+    ISignerBondsSwapStrategy public signerBondsSwapStrategy;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -82,13 +82,13 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     constructor(
         IERC20 _tbtcToken,
-        ISignerBondsProcessor _signerBondsProcessor,
+        ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         CoveragePool _coveragePool,
         address _masterAuction,
         uint256 _auctionLength
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
-        signerBondsProcessor = _signerBondsProcessor;
+        signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
     }
 
@@ -211,7 +211,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         deposit.withdrawFunds();
 
         // slither-disable-next-line arbitrary-send
-        signerBondsProcessor.processSignerBonds{value: withdrawableAmount}();
+        signerBondsSwapStrategy.processSignerBonds{value: withdrawableAmount}();
     }
 
     /// @notice Get the time remaining until the function parameter timer

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @title SignerBondsEscrow
 /// @notice Process incoming signer bonds by putting them into escrow the
 ///         governance can withdraw from.
-contract SignerBondsEscrow is ISignerBondsProcessor, Ownable {
+contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
     /// @notice Processes the signer bonds.
     /// @dev Adds incoming bonds to the overall contract balance.
     function processSignerBonds() external payable override {}
