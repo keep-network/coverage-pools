@@ -68,4 +68,8 @@ contract DepositStub is IDeposit {
     function notifyUndercollateralizedLiquidation() external {
         currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
+
+    function withdrawableAmount() external view override returns (uint256) {
+        return address(this).balance;
+    }
 }
