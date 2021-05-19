@@ -88,9 +88,6 @@ describe("Integration -- liquidation happy path", () => {
     })
 
     it("should trigger signer bonds processing", async () => {
-      await expect(tx)
-        .to.emit(signerBondsSwapStrategy, "SignerBondsProcessed")
-        .withArgs(bondedAmount)
       await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
       await expect(tx).to.changeEtherBalance(
         signerBondsSwapStrategy,

@@ -70,7 +70,7 @@ describe("SignerBondsEscrow", () => {
       it("should revert", async () => {
         await expect(
           signerBondsEscrow.connect(riskManager).withdraw(riskManager.address)
-        ).to.be.revertedWith("Ownable: caller is not the governance")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -78,7 +78,7 @@ describe("SignerBondsEscrow", () => {
       it("should revert", async () => {
         await expect(
           signerBondsEscrow.connect(governance).withdraw(ZERO_ADDRESS)
-        ).to.be.revertedWith("Invalid target address")
+        ).to.be.revertedWith("Invalid recipient address")
       })
     })
 
