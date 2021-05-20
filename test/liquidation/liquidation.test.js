@@ -8,6 +8,7 @@ describe("Integration -- liquidation happy path", () => {
   const bondedAmount = to1e18(150)
 
   let tbtcToken
+  let signerBondsSwapStrategy
   let coveragePool
   let riskManagerV1
   let tbtcDeposit
@@ -19,17 +20,13 @@ describe("Integration -- liquidation happy path", () => {
     tbtcToken = await TestToken.deploy()
     await tbtcToken.deployed()
 
-    const CoveragePoolConstants = await ethers.getContractFactory(
-      "CoveragePoolConstants"
+    const SignerBondsSwapStrategy = await ethers.getContractFactory(
+      "SignerBondsEscrow"
     )
-    const coveragePoolConstants = await CoveragePoolConstants.deploy()
-    await coveragePoolConstants.deployed()
+    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+    await signerBondsSwapStrategy.deployed()
 
-    const Auction = await ethers.getContractFactory("Auction", {
-      libraries: {
-        CoveragePoolConstants: coveragePoolConstants.address,
-      },
-    })
+    const Auction = await ethers.getContractFactory("Auction")
 
     const masterAuction = await Auction.deploy()
     await masterAuction.deployed()
@@ -42,6 +39,7 @@ describe("Integration -- liquidation happy path", () => {
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
       coveragePool.address,
+      signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength
     )
@@ -82,13 +80,19 @@ describe("Integration -- liquidation happy path", () => {
       expect(await auction.isOpen()).to.be.false
     })
 
-    it("should purchase and withdraw signer bonds from deposit", async () => {
-      // Risk Manager has all ETH bonds at their disposal
-      await expect(tx).to.changeEtherBalance(riskManagerV1, bondedAmount)
+    it("should liquidate the deposit", async () => {
       // Auction bidder has spend their TBTC
       expect(await tbtcToken.balanceOf(bidder.address)).to.equal(0)
       // Deposit has been liquidated
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
+    })
+
+    it("should swap signer bonds", async () => {
+      await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
+      await expect(tx).to.changeEtherBalance(
+        signerBondsSwapStrategy,
+        bondedAmount
+      )
     })
   })
 })
