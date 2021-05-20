@@ -89,7 +89,7 @@ describe("RiskManagerV1", () => {
     })
 
     context(
-      "when deposit is in liquidation state and not above collateralization threshold",
+      "when deposit is in liquidation state and at the collateralization threshold",
       () => {
         let notifyLiquidationTx
 
@@ -270,22 +270,126 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("updateCollateralizationThreshold", () => {
-    context("when collateralization percent is updated by a non-owner", () => {
-      it("should revert", async () => {
-        const notOwner = await ethers.getSigner(2)
-        await expect(
-          riskManagerV1.connect(notOwner).updateCollateralizationThreshold(102)
-        ).to.be.revertedWith("caller is not the owner")
+  describe("beginCollateralizationThresholdUpdate", () => {
+    context("when the caller is the owner", () => {
+      const currentCollateralizationThreshold = collateralizationThreshold
+      const newCollateralizationThreshold = 102
+      let tx
+
+      beforeEach(async () => {
+        tx = await riskManagerV1
+          .connect(owner)
+          .beginCollateralizationThresholdUpdate(newCollateralizationThreshold)
+      })
+
+      it("should not update collateralization threshold", async () => {
+        expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
+          currentCollateralizationThreshold
+        )
+      })
+
+      it("should start the governance delay timer", async () => {
+        expect(
+          await riskManagerV1.getRemainingCollateralizationThresholdUpdateTime()
+        ).to.be.equal(43200) // 12h contract governance delay
+      })
+
+      it("should emit the CollateralizationThresholdUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(riskManagerV1, "CollateralizationThresholdUpdateStarted")
+          .withArgs(newCollateralizationThreshold, blockTimestamp)
       })
     })
 
-    context("when collateralization percent is updated by an owner", () => {
-      it("should update collateralization threshold", async () => {
-        await riskManagerV1.connect(owner).updateCollateralizationThreshold(102)
-        expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
-          102
-        )
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(notifier)
+            .beginCollateralizationThresholdUpdate(102)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("finalizeAuctionLengthUpdate", () => {
+    const newCollateralizationThreshold = 102
+
+    context(
+      "when the update process is initialized, governance delay has passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await riskManagerV1
+            .connect(owner)
+            .beginCollateralizationThresholdUpdate(
+              newCollateralizationThreshold
+            )
+
+          await increaseTime(43200) // +12h contract governance delay
+
+          tx = await riskManagerV1
+            .connect(owner)
+            .finalizeCollateralizationThresholdUpdate()
+        })
+
+        it("should update the collateralization threshold", async () => {
+          expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
+            newCollateralizationThreshold
+          )
+        })
+
+        it("should emit CollateralizationThresholdUpdated event", async () => {
+          await expect(tx)
+            .to.emit(riskManagerV1, "CollateralizationThresholdUpdated")
+            .withArgs(newCollateralizationThreshold)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            riskManagerV1.getRemainingCollateralizationThresholdUpdateTime()
+          ).to.be.revertedWith("Update not initiated")
+        })
+      }
+    )
+
+    context("when the governance delay has not passed", () => {
+      it("should revert", async () => {
+        await riskManagerV1
+          .connect(owner)
+          .beginCollateralizationThresholdUpdate(newCollateralizationThreshold)
+
+        await increaseTime(39600) // +11h
+
+        await expect(
+          riskManagerV1
+            .connect(owner)
+            .finalizeCollateralizationThresholdUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(notifier)
+            .finalizeCollateralizationThresholdUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(owner)
+            .finalizeCollateralizationThresholdUpdate()
+        ).to.be.revertedWith("Change not initiated")
       })
     })
   })

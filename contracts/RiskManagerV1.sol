@@ -40,13 +40,16 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     // fall below this collateralization threshold.
     // Risk manager should open a coverage pool auction for only those deposits
     // that nobody else is willing to purchase. The default value can be updated
-    // by the governance at any moment.
+    // by the governance in two steps. First step is to begin the update process
+    // with the new value and the second step is to finalize it after
+    // GOVERNANCE_TIME_DELAY has passed.
     uint256 public collateralizationThreshold = 101; // percent
+    uint256 public newCollateralizationThreshold;
+    uint256 public collateralizationThresholdInitiated;
 
     uint256 public auctionLength;
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
-    uint256 public collateralizationThresholdInitiated;
 
     IERC20 public tbtcToken;
 
@@ -61,7 +64,10 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
     event AuctionLengthUpdated(uint256 auctionLength);
 
-    event CollateralizationThresholdUpdateStarted(uint256 timestamp);
+    event CollateralizationThresholdUpdateStarted(
+        uint256 collateralizationThreshold,
+        uint256 timestamp
+    );
     event CollateralizationThresholdUpdated(uint256 collateralizationThreshold);
 
     /// @notice Reverts if called before the delay elapses.
@@ -139,40 +145,36 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         earlyCloseAuction(auction);
     }
 
-    /// TODO: add docs
-    function beginCollateralizationThresholdUpdate() external onlyOwner {
+    /// @notice Begins the collateralization threshold update process.
+    /// @dev Can be called only by the contract owner. The collateralization
+    ///      threshold should be adjusted by taking into account factors like
+    ///      collateralization ratio and gas price.
+    /// @param _collateralizationThreshold New collateralization threshold in percent.
+    function beginCollateralizationThresholdUpdate(
+        uint256 _collateralizationThreshold
+    ) external onlyOwner {
+        newCollateralizationThreshold = _collateralizationThreshold;
         /* solhint-disable-next-line not-rely-on-time */
         collateralizationThresholdInitiated = block.timestamp;
-        /* solhint-disable-next-line not-rely-on-time */
-        emit CollateralizationThresholdUpdateStarted(block.timestamp);
+        /* solhint-disable not-rely-on-time */
+        emit CollateralizationThresholdUpdateStarted(
+            _collateralizationThreshold,
+            block.timestamp
+        );
     }
 
-    /// TODO: add docs
-    function finalizeCollateralizationThresholdUpdate(
-        uint256 _collateralizationThreshold
-    )
+    /// @notice Finalizes the collateralization threshold update process.
+    /// @dev Can be called only by the contract owner, after the the
+    ///      governance delay elapses.
+    function finalizeCollateralizationThresholdUpdate()
         external
         onlyOwner
         onlyAfterGovernanceDelay(collateralizationThresholdInitiated)
     {
-        collateralizationThreshold = _collateralizationThreshold;
+        collateralizationThreshold = newCollateralizationThreshold;
         emit CollateralizationThresholdUpdated(collateralizationThreshold);
         collateralizationThresholdInitiated = 0;
-    }
-
-    /// @notice Get the time remaining until the collateralization threshold
-    ///         can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingCollateralizationThresholdUpdateTime()
-        external
-        view
-        returns (uint256)
-    {
-        return
-            getRemainingChangeTime(
-                collateralizationThresholdInitiated,
-                GOVERNANCE_TIME_DELAY
-            );
+        newCollateralizationThreshold = 0;
     }
 
     /// @notice Begins the auction length update process.
@@ -203,6 +205,21 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         emit AuctionLengthUpdated(newAuctionLength);
         newAuctionLength = 0;
         auctionLengthChangeInitiated = 0;
+    }
+
+    /// @notice Get the time remaining until the collateralization threshold
+    ///         can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingCollateralizationThresholdUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                collateralizationThresholdInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
     }
 
     /// @notice Get the time remaining until the auction length parameter
