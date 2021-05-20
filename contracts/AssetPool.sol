@@ -2,18 +2,19 @@
 
 pragma solidity <0.9.0;
 
-import "./UnderwriterToken.sol";
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./RewardsPool.sol";
+import "./UnderwriterToken.sol";
+
 /// @title AssetPool
-/// @notice Asset pool is a component of a Coverage Pool. Each Asset Pool
+/// @notice Asset pool is a component of a Coverage Pool. Asset Pool
 ///         accepts a single ERC20 token as collateral, and returns an
 ///         underwriter token. For example, an asset pool might accept deposits
-///         in WETH in return for covETH underwriter tokens. Underwriter tokens
+///         in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
 ///         represent an ownership share in the underlying collateral of the
 ///         Asset Pool.
 contract AssetPool is Ownable {
@@ -24,9 +25,18 @@ contract AssetPool is Ownable {
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
 
-    constructor(IERC20 _collateralToken, UnderwriterToken _underwriterToken) {
+    RewardsPool public rewardsPool;
+
+    constructor(
+        IERC20 _collateralToken,
+        UnderwriterToken _underwriterToken,
+        address rewardsManager
+    ) {
         collateralToken = _collateralToken;
         underwriterToken = _underwriterToken;
+
+        rewardsPool = new RewardsPool(_collateralToken, this);
+        rewardsPool.transferOwnership(rewardsManager);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
@@ -60,16 +70,18 @@ contract AssetPool is Ownable {
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     function withdraw(uint256 covAmount) external {
-        // TODO: Implement exit market. All withdrawals from the pool that
-        // accept a fixed delay can do so without a fee. Any underwriter who
-        // wants to withdraw more quickly will forfeit part of their collateral
-        // to the pool, with a fee rate based on their percent ownership of the
-        // pool.
         uint256 covBalance = underwriterToken.balanceOf(msg.sender);
         require(
             covAmount <= covBalance,
             "Underwriter token amount exceeds balance"
         );
+        require(
+            covAmount > 0,
+            "Underwriter token amount must be greater than 0"
+        );
+
+        rewardsPool.withdraw();
+
         uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
@@ -84,10 +96,13 @@ contract AssetPool is Ownable {
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
     function claim(address recipient, uint256 amount) external onlyOwner {
+        rewardsPool.withdraw();
         collateralToken.safeTransfer(recipient, amount);
     }
 
     function _deposit(address depositor, uint256 amount) internal {
+        rewardsPool.withdraw();
+
         uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 

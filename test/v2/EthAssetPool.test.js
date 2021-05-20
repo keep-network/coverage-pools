@@ -20,10 +20,12 @@ describe("EthAssetPool", () => {
     underwriterToken = await UnderwriterToken.deploy("Underwriter Token", "COV")
     await underwriterToken.deployed()
 
+    const rewardManager = await ethers.getSigner(1)
     const AssetPool = await ethers.getContractFactory("AssetPool")
     wethAssetPool = await AssetPool.deploy(
       wethToken.address,
-      underwriterToken.address
+      underwriterToken.address,
+      rewardManager.address
     )
     await wethAssetPool.deployed()
     await underwriterToken.transferOwnership(wethAssetPool.address)
@@ -35,9 +37,9 @@ describe("EthAssetPool", () => {
     )
     await ethAssetPool.deployed()
 
-    underwriter1 = await ethers.getSigner(1)
-    underwriter2 = await ethers.getSigner(2)
-    underwriter3 = await ethers.getSigner(3)
+    underwriter1 = await ethers.getSigner(2)
+    underwriter2 = await ethers.getSigner(3)
+    underwriter3 = await ethers.getSigner(4)
   })
 
   describe("deposit", () => {
