@@ -202,7 +202,7 @@ contract AssetPool is Ownable {
                 block.timestamp
             );
             collateralToken.safeTransfer(underwriter, amountToWithdraw);
-        } else if (hardWithdrawalEndTimestamp >= block.timestamp) {
+        } else if (hardWithdrawalEndTimestamp > block.timestamp) {
             // After the graceful withdrawal timeout but before the hard
             // withdrawal timeout. A portion of collateral and tokens is
             // seized by the pool, proportionally to the time passed after
