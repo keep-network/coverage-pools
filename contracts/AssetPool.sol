@@ -27,6 +27,46 @@ contract AssetPool is Ownable {
 
     RewardsPool public rewardsPool;
 
+    mapping(address => uint256) public withdrawalInitiatedTimestamp;
+    mapping(address => uint256) public pendingWithdrawal;
+
+    // The time it takes for the underwriter to withdraw their collateral
+    // and rewards from the pool. This is the time that needs to pass between
+    // initiating and completing the withdrawal. During that time, underwriter
+    // is still earning rewards and their share of the pool is still a subject
+    // of a possible coverage claim.
+    uint256 public constant withdrawalDelay = 14 days;
+    // The time the underwriter has after the withdrawal delay passed to
+    // complete the withdrawal so that part of their tokens is not seized by
+    // the pool.
+    // After the graceful withdrawal period passes, tokens are slowly getting
+    // seized by the pool over time. This is to slash potential free-riders,
+    // given that the underwriter is earning rewards all the time it has their
+    // collateral in the pool, including the time after the withdrawal has been
+    // initiated.
+    uint256 public constant gracefulWitdrawalTimeout = 7 days;
+    // After the hard withdrawal timeout, 99% of the tokens is seized by the
+    // pool and 1% of tokens is sent to the notifier who will complete the
+    // withdrawal on behalf of the underwriter. Hard withdrawal timeout starts
+    // counting from the moment withdrawal delay has passed.
+    uint256 public constant hardWithdrawalTimeout = 70 days;
+
+    event WithdrawalInitiated(
+        address indexed underwriter,
+        uint256 covAmount,
+        uint256 timestamp
+    );
+    event WithdrawalCompleted(
+        address indexed underwriter,
+        uint256 amount,
+        uint256 timestamp
+    );
+    event GracefulWithdrawalTimedOut(
+        address indexed underwriter,
+        uint256 timestamp
+    );
+    event WithdrawalTimedOut(address indexed underwriter, uint256 timestamp);
+
     constructor(
         IERC20 _collateralToken,
         UnderwriterToken _underwriterToken,
@@ -64,12 +104,16 @@ contract AssetPool is Ownable {
         _deposit(msg.sender, amount);
     }
 
-    /// @notice Withdraws collateral from the asset pool. Accepts the amount of
-    ///         underwriter tokens representing the share of the pool that
-    ///         should be withdrawn.
+    /// @notice Initiates the withdrawal of collateral and rewards from the pool.
+    ///         Accepts the amount of underwriter tokens representing the share
+    ///         of the pool that should be withdrawn.
+    ///         Underwriter needs to complete the withdrawal by calling the
+    ///         `completeWithdrawal` function after the withdrawal delay passes
+    ///         but before the graceful withdrawal timeout ends to avoid part of
+    ///         their share being seized by the pool.
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function withdraw(uint256 covAmount) external {
+    function initiateWithdrawal(uint256 covAmount) external {
         uint256 covBalance = underwriterToken.balanceOf(msg.sender);
         require(
             covAmount <= covBalance,
@@ -80,17 +124,115 @@ contract AssetPool is Ownable {
             "Underwriter token amount must be greater than 0"
         );
 
+        pendingWithdrawal[msg.sender] = covAmount.add(
+            pendingWithdrawal[msg.sender]
+        );
+        /* solhint-disable not-rely-on-time */
+        withdrawalInitiatedTimestamp[msg.sender] = block.timestamp;
+
+        emit WithdrawalInitiated(
+            msg.sender,
+            pendingWithdrawal[msg.sender],
+            block.timestamp
+        );
+
+        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
+        /* solhint-enable not-rely-on-time */
+    }
+
+    /// @notice Completes the previously initiated withdrawal for the
+    ///         underwriter. Anyone can complete the withdrawal for the
+    ///         underwriter who previously initiated it.
+    ///         Depending on how long it took to complete the withdrawal since
+    ///         the time it has been initiated, part of the collateral and
+    ///         rewards can be seized by the pool.
+    ///         After the withdrawal delay and below the graceful withdrawal
+    ///         timeout, no tokens are seized by the pool. After the graceful
+    ///         withdrawal timeout, tokens are slowly getting seized by the pool
+    ///         over time. After the hard withdrawal timeout, 99% of tokens is
+    ///         seized by the pool and 1% of tokens is sent to the notifier who
+    ///         completed the withdrawal on behalf of the underwriter.
+    function completeWithdrawal(address underwriter) external {
+        /* solhint-disable not-rely-on-time */
+        uint256 initiatedAt = withdrawalInitiatedTimestamp[underwriter];
+        require(initiatedAt > 0, "No withdrawal initiated for the underwriter");
+
+        uint256 withdrawalDelayEndTimestamp = initiatedAt.add(withdrawalDelay);
+        require(
+            withdrawalDelayEndTimestamp < block.timestamp,
+            "Withdrawal delay has not elapsed"
+        );
+
+        uint256 covAmount = pendingWithdrawal[underwriter];
+        uint256 covSupply = underwriterToken.totalSupply();
+        delete withdrawalInitiatedTimestamp[underwriter];
+        delete pendingWithdrawal[underwriter];
+
+        // slither-disable-next-line reentrancy-events
         rewardsPool.withdraw();
 
-        uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
         uint256 amountToWithdraw =
             covAmount.mul(collateralBalance).div(covSupply);
 
-        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
+        //
+        //      withdrawal              graceful withdrawal
+        //        delay                 timeout
+        //  /--------------\ /----------|
+        // x----------------x-----------x-------------------------------x------>
+        // ^                 \-----------------------------------------|
+        // initiatedAt                                   hard withdrawal
+        //                                               timeout
+        //
+
+        // When the graceful withdrawal time ends. After this time, part of the
+        // collateral and rewards will be seized by the pool.
+        uint256 gracefulWithdrawalEndTimestamp =
+            withdrawalDelayEndTimestamp.add(gracefulWitdrawalTimeout);
+        // When the time for the withdrawal ends. After this time, 99% of
+        // rewards and collateral is seized by the pool and 1% of rewards and
+        // collateral is sent to the notifier who completed the withdrawal on
+        // behalf of the underwriter.
+        uint256 hardWithdrawalEndTimestamp =
+            withdrawalDelayEndTimestamp.add(hardWithdrawalTimeout);
+
+        if (gracefulWithdrawalEndTimestamp >= block.timestamp) {
+            // Before the graceful withdrawal timeout. This is the happy path.
+            emit WithdrawalCompleted(
+                underwriter,
+                amountToWithdraw,
+                block.timestamp
+            );
+            collateralToken.safeTransfer(underwriter, amountToWithdraw);
+        } else if (hardWithdrawalEndTimestamp > block.timestamp) {
+            // After the graceful withdrawal timeout but before the hard
+            // withdrawal timeout. A portion of collateral and tokens is
+            // seized by the pool, proportionally to the time passed after
+            // the graceful withdrawal timeout.
+            uint256 delayRatio =
+                hardWithdrawalEndTimestamp.sub(block.timestamp).mul(1e18).div(
+                    hardWithdrawalTimeout.sub(gracefulWitdrawalTimeout)
+                );
+            // slither-disable-next-line divide-before-multiply
+            uint256 amountToWithdrawReduced =
+                delayRatio.mul(amountToWithdraw).div(1e18);
+            emit WithdrawalCompleted(
+                underwriter,
+                amountToWithdrawReduced,
+                block.timestamp
+            );
+            emit GracefulWithdrawalTimedOut(underwriter, block.timestamp);
+            collateralToken.safeTransfer(underwriter, amountToWithdrawReduced);
+        } else {
+            // After the hard withdrawal timeout passed. 99% of tokens is seized
+            // by the pool, 1% of tokens goes go the notifier.
+            emit WithdrawalCompleted(underwriter, 0, block.timestamp);
+            emit WithdrawalTimedOut(underwriter, block.timestamp);
+            collateralToken.safeTransfer(msg.sender, amountToWithdraw.div(100));
+        }
+        /* solhint-enable not-rely-on-time */
         underwriterToken.burn(covAmount);
-        collateralToken.safeTransfer(msg.sender, amountToWithdraw);
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
