@@ -46,12 +46,12 @@ contract AssetPool is Ownable {
     // given that the underwriter is earning rewards all the time it has their
     // collateral in the pool, including the time after the withdrawal has been
     // initiated.
-    uint256 public gracefulWitdrawalTimeout = 7 days;
+    uint256 public constant gracefulWitdrawalTimeout = 7 days;
     // After the hard withdrawal timeout, 99% of the tokens is seized by the
     // pool and 1% of tokens is sent to the notifier who will complete the
     // withdrawal on behalf of the underwriter. Hard withdrawal timeout starts
     // counting from the moment withdrawal has been initiated.
-    uint256 public hardWithdrawalTimeout = 70 days;
+    uint256 public constant hardWithdrawalTimeout = 70 days;
 
     event WithdrawalInitiated(
         address indexed underwriter,
