@@ -3,6 +3,7 @@ const {
   to1e18,
   increaseTime,
   lastBlockTime,
+  pastEvents,
   to1ePrecision,
 } = require("./helpers/contract-test-helpers")
 
@@ -397,6 +398,8 @@ describe("AssetPool", () => {
     })
 
     context("when hard withdrawal timeout has elapsed", () => {
+      let tx
+
       beforeEach(async () => {
         const amount = to1e18(100)
         await assetPool.connect(underwriter1).deposit(amount)
@@ -405,7 +408,7 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
         await increaseTime((14 + 70) * 86400) // 14 + 70 days
-        await assetPool
+        tx = await assetPool
           .connect(thirdParty)
           .completeWithdrawal(underwriter1.address)
       })
@@ -417,6 +420,18 @@ describe("AssetPool", () => {
         expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
           to1e18(99)
         )
+      })
+
+      it("should emit WithdrawalCompleted event", async () => {
+        expect(tx)
+          .to.emit(assetPool, "WithdrawalCompleted")
+          .withArgs(underwriter1.address, 0, await lastBlockTime())
+      })
+
+      it("should emit WithdrawalTimedOut event", async () => {
+        expect(tx)
+          .to.emit(assetPool, "WithdrawalTimedOut")
+          .withArgs(underwriter1.address, await lastBlockTime())
       })
     })
 
@@ -486,9 +501,55 @@ describe("AssetPool", () => {
           assertionPrecision
         )
       })
+
+      it("should emit WithdrawalCompleted event", async () => {
+        await increaseTime(62 * 86400) // 63 days
+        const tx = await assetPool
+          .connect(thirdParty)
+          .completeWithdrawal(underwriter1.address)
+        const receipt = await tx.wait()
+        const events = pastEvents(receipt, assetPool, "WithdrawalCompleted")
+
+        expect(events.length).to.equal(1)
+        expect(events[0].args["underwriter"]).to.equal(underwriter1.address)
+        expect(events[0].args["amount"]).to.be.closeTo(
+          to1ePrecision(158, 16), // see the previous test for explanation
+          assertionPrecision
+        )
+        expect(events[0].args["timestamp"]).to.equal(await lastBlockTime())
+      })
+
+      it("should emit GracefulWithdrawalTimedOut event", async () => {
+        await increaseTime(62 * 86400) // 63 days
+        const tx = await assetPool
+          .connect(thirdParty)
+          .completeWithdrawal(underwriter1.address)
+
+        expect(tx)
+          .to.emit(assetPool, "GracefulWithdrawalTimedOut")
+          .withArgs(underwriter1.address, await lastBlockTime())
+      })
     })
 
     context("when graceful withdrawal timeout has not passed", () => {
+      it("should emit WithdrawalCompleted event", async () => {
+        const amount = to1e18(1050)
+        await assetPool.connect(underwriter1).deposit(amount)
+        // We can approve the number of tokens equal to the number of tokens
+        // deposited - there were no claims and no rewards were allocated so
+        // those numbers are equal.
+        await underwriterToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+        await assetPool.connect(underwriter1).initiateWithdrawal(amount)
+        await increaseTime(14 * 86400) // 14 days
+        const tx = await assetPool.completeWithdrawal(underwriter1.address)
+
+        expect(tx)
+          .to.emit(assetPool, "WithdrawalCompleted")
+          .withArgs(underwriter1.address, amount, await lastBlockTime())
+      })
+
       context("when no collateral tokens were claimed by the pool", () => {
         const depositedUnderwriter1 = to1e18(100)
         const depositedUnderwriter2 = to1e18(331)

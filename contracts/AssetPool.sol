@@ -56,6 +56,16 @@ contract AssetPool is Ownable {
         uint256 covAmount,
         uint256 timestamp
     );
+    event WithdrawalCompleted(
+        address indexed underwriter,
+        uint256 amount,
+        uint256 timestamp
+    );
+    event GracefulWithdrawalTimedOut(
+        address indexed underwriter,
+        uint256 timestamp
+    );
+    event WithdrawalTimedOut(address indexed underwriter, uint256 timestamp);
 
     constructor(
         IERC20 _collateralToken,
@@ -187,6 +197,11 @@ contract AssetPool is Ownable {
         if (gracefulWithdrawalEndTimestamp >= block.timestamp) {
             // Before the graceful withdrawal timeout. This is the happy path.
             collateralToken.safeTransfer(underwriter, amountToWithdraw);
+            emit WithdrawalCompleted(
+                underwriter,
+                amountToWithdraw,
+                block.timestamp
+            );
         } else if (hardWithdrawalEndTimestamp >= block.timestamp) {
             // After the graceful withdrawal timeout but before the hard
             // withdrawal timeout. A portion of collateral and tokens is
@@ -200,14 +215,20 @@ contract AssetPool is Ownable {
             uint256 amountToWithdrawReduced =
                 delayRatio.mul(amountToWithdraw).div(1e18);
             collateralToken.safeTransfer(underwriter, amountToWithdrawReduced);
+            emit WithdrawalCompleted(
+                underwriter,
+                amountToWithdrawReduced,
+                block.timestamp
+            );
+            emit GracefulWithdrawalTimedOut(underwriter, block.timestamp);
         } else {
             // After the hard withdrawal timeout passed. 99% of tokens is seized
             // by the pool, 1% of tokens goes go the notifier.
             collateralToken.safeTransfer(msg.sender, amountToWithdraw.div(100));
+            emit WithdrawalCompleted(underwriter, 0, block.timestamp);
+            emit WithdrawalTimedOut(underwriter, block.timestamp);
         }
         /* solhint-enable not-rely-on-time */
-
-        // TODO: events
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
