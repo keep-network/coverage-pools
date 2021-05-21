@@ -10,8 +10,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 
-import "hardhat/console.sol";
-
 /// @title AssetPool
 /// @notice Asset pool is a component of a Coverage Pool. Asset Pool
 ///         accepts a single ERC20 token as collateral, and returns an
