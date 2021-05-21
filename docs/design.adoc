@@ -94,7 +94,7 @@ days to complete the withdrawal. After 7 days, graceful withdrawal timeout
 passes and part of underwriter's rewards and collateral is slowly getting seized
 by the pool - more and more over the time. Seizing is needed to avoid malicious
 underwriters free-riding the pool - being able to exit at any moment and still
-earning rewards. After additional 60 days (70 days from the time withdrawal
+earning rewards. After additional 63 days (70 days from the time withdrawal
 delay passed), 99% of tokens is seized by the pool and 1% of tokens is sent
 to the notifier who completed the withdrawal on behalf of the underwriter.
 
