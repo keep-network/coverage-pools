@@ -65,14 +65,7 @@ describe("Integration", () => {
     let tx
 
     beforeEach(async () => {
-      await tbtcDeposit.notifyUndercollateralizedLiquidation()
-      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
-
-      const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
-      )
-      auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
-      await tbtcToken.connect(bidder).approve(auction.address, lotSize)
+      auction = await prepareAuction()
       tx = await auction.takeOffer(lotSize)
     })
 
@@ -99,14 +92,7 @@ describe("Integration", () => {
   describe("when deposit has changed state between auction creation and auction offer taken", () => {
     let auction
     beforeEach(async () => {
-      await tbtcDeposit.notifyUndercollateralizedLiquidation()
-      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
-
-      const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
-      )
-      auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
-      await tbtcToken.connect(bidder).approve(auction.address, lotSize)
+      auction = await prepareAuction()
       // simulate deposit state change outside Coverge Pools
       await tbtcDeposit.setStateLiquidated()
     })
@@ -117,4 +103,16 @@ describe("Integration", () => {
       )
     })
   })
+
+  async function prepareAuction() {
+    await tbtcDeposit.notifyUndercollateralizedLiquidation()
+    await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+
+    const auctionAddress = await riskManagerV1.depositToAuction(
+      tbtcDeposit.address
+    )
+    const auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
+    await tbtcToken.connect(bidder).approve(auction.address, lotSize)
+    return auction
+  }
 })
