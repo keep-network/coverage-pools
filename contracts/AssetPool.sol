@@ -163,6 +163,7 @@ contract AssetPool is Ownable {
             "Withdrawal delay has not elapsed"
         );
 
+        // slither-disable-next-line reentrancy-events
         rewardsPool.withdraw();
 
         uint256 covAmount = pendingWithdrawal[underwriter];
@@ -171,7 +172,6 @@ contract AssetPool is Ownable {
 
         uint256 amountToWithdraw =
             covAmount.mul(collateralBalance).div(covSupply);
-        underwriterToken.burn(covAmount);
 
         //
         //      withdrawal              graceful withdrawal
@@ -196,12 +196,12 @@ contract AssetPool is Ownable {
 
         if (gracefulWithdrawalEndTimestamp >= block.timestamp) {
             // Before the graceful withdrawal timeout. This is the happy path.
-            collateralToken.safeTransfer(underwriter, amountToWithdraw);
             emit WithdrawalCompleted(
                 underwriter,
                 amountToWithdraw,
                 block.timestamp
             );
+            collateralToken.safeTransfer(underwriter, amountToWithdraw);
         } else if (hardWithdrawalEndTimestamp >= block.timestamp) {
             // After the graceful withdrawal timeout but before the hard
             // withdrawal timeout. A portion of collateral and tokens is
@@ -214,21 +214,22 @@ contract AssetPool is Ownable {
             // slither-disable-next-line divide-before-multiply
             uint256 amountToWithdrawReduced =
                 delayRatio.mul(amountToWithdraw).div(1e18);
-            collateralToken.safeTransfer(underwriter, amountToWithdrawReduced);
             emit WithdrawalCompleted(
                 underwriter,
                 amountToWithdrawReduced,
                 block.timestamp
             );
             emit GracefulWithdrawalTimedOut(underwriter, block.timestamp);
+            collateralToken.safeTransfer(underwriter, amountToWithdrawReduced);
         } else {
             // After the hard withdrawal timeout passed. 99% of tokens is seized
             // by the pool, 1% of tokens goes go the notifier.
-            collateralToken.safeTransfer(msg.sender, amountToWithdraw.div(100));
             emit WithdrawalCompleted(underwriter, 0, block.timestamp);
             emit WithdrawalTimedOut(underwriter, block.timestamp);
+            collateralToken.safeTransfer(msg.sender, amountToWithdraw.div(100));
         }
         /* solhint-enable not-rely-on-time */
+        underwriterToken.burn(covAmount);
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
