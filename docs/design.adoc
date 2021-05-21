@@ -1,0 +1,291 @@
+= Coverage pool
+
+== Overview
+
+A coverage pool is a flexible new money lego that can be used as a back-stop or
+"buyer of last resort" in on-chain financial systems. It is a governable,
+fee-earning pool to cover low-likelihood on-chain events.
+
+This document describes the v1, single-asset version of a coverage pool.
+
+v2 of a coverage pool includes a multi-asset coverage and rewards, and is
+covered in v2 documentation.
+
+== Components
+
+=== Asset pool
+
+Asset pool accepts a single ERC-20 token as collateral, and returns an
+underwriter token. For example, an asset-specific pool might accept
+deposits in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
+represent an ownership share in the underlying collateral of the asset-specific
+pool, including ownership in rewards accrued by the asset pool.
+
+Underwriter tokens natively support meta transactions. This means owners can
+authorize a transfer of their underwriter tokens with a signature rather than
+an on-chain transaction from their address. The signed message conforms EIP-712
+standard, the same one used by Uniswap pool share tokens or MakerDAO DAI tokens.
+Anyone can submit the signature on the owner's behalf by calling the EIP-2612
+permit function, paying gas fees and possibly performing other actions in the
+same transaction.
+
+=== Rewards pool
+
+Rewards pool accepts a single ERC-20 token as a reward and releases it to the
+asset pool over time in one-week reward intervals. The owner of the rewards pool
+is the reward manager address funding the pool with rewards. The token released
+by the reward pool is the same ERC-20 token as the one accepted by the asset
+pool as collateral.
+
+=== Coverage pool
+
+Coverage pool is an owner of the asset pool with the right to demand coverage
+from the pool. The coverage pool keeps a governable list of approved risk
+managers allowed to claim the coverage.
+
+=== Risk manager
+
+Risk manager is a smart contract with the exclusive right to claim coverage
+from the coverage pool.
+
+Demanding coverage is akin to filing a claim in traditional insurance and
+processing your own claim. The risk manager holds an incredibly privileged
+position, because the ability to claim coverage of an arbitrarily large
+position could bankrupt the coverage pool.
+
+Because of the nature of the role, the risk manager is a critical component of
+the coverage pool. Depending on the implementation, a risk manager can determine
+whether to put assets at capped or uncapped risk; how quickly auctions should
+put collateral up on offer; whether to end an auction early; and whether to
+remunerate existing underwriters in the case of "extra" assets on hand from an
+auction.
+
+Coverage is always paid out in the pool's covered asset.
+
+=== Auctions
+
+When the risk manager claims coverage, it specifies an amount denominated in
+the asset the pool covers. An auction is opened, increasing the portion of the
+pool on offer over time. Eventually, if no offer was taken, the entire coverage
+pool is on offer.
+
+For an auction to be filled, a participant pays the asking price, and in return
+receives a portion of the asset from the asset pool. An auction can be filled
+partially, allowing multiple participants to take the offer.
+
+In addition to claiming coverage and opening an auction, the risk manager
+determines the length of the auction, determining its velocity. Risk manager 
+might decide to end an auction early if coverage is no longer needed.
+
+== Depositing and withdrawing from the pool
+
+Underwriters can deposit into the pool at any time and they can top up their
+positions at any time with no initialization period. 
+
+There is a fixed, non-governable, two-week withdrawal period for underwriters.
+During this period, underwriters are earning rewards but their positions are
+also a subject of potential claims of the risk manager.
+
+Before asset pool balance sheet changes during deposit, withdrawal, or claim
+operations, asset pool withdraws unlocked rewards from the rewards pool.
+This way, asset pool can adjust the number of underwriter (COV) tokens minted so  
+that new underwriters are not participating in rewards accrued by the pool
+before they joined. Also, rewards unlocked by the rewards pool are
+"auto-compounding" for the asset pool underwriters:
+
+```
+COV_toMint / COV_totalSupply = collateral_toDeposit / collateral_totalDeposited
+COV_toMint = collateral_toDeposit * COV_totalSupply / collateral_totalDeposited
+```
+
+The three scenarios below illustrate how deposit and withdrawal works, and how 
+coverage claim affects the asset pool. For simplicity, a two-week withdrawal 
+period has been omitted.
+
+=== Scenario 1
+
+==== Description
+70k KEEP allocated as a weekly reward.
+
+Three underwriters depositing roughly at the same time:
+
+* underwriter 1 depositing 150k KEEP
+* underwriter 2 depositing 50k KEEP
+* underwriter 3 depositing 200k KEEP
+
+After four days, 40k KEEP rewards unlocked and all three underwriters are
+withdrawing from the pool.
+
+==== Earnings
+* underwriter 1: 15k KEEP
+* underwriter 2: 5k KEEP
+* underwriter 3: 20k KEEP
+
+==== Explanation
+* underwriter 1 has 150/400 share of the pool (150k out of 400k COV tokens), +
+  they can claim 150/400 rewards unlocked: 150 / 400 * 40k = 15k
+* underwriter 2 has 50/400 share of the pool. (50k out of 400k COV tokens), +
+  they can claim 50/400 rewards unlocked: 50 / 400 * 40k = 5k
+* underwriter 3 has 200/400 share of the pool. (200k out of 400k COV tokens), +
+  they can claim 200/400 rewards unlocked: 200/400 * 40k = 20k
+
+=== Scenario 2
+
+70k KEEP allocated as a weekly reward.
+
+Three underwriters depositing:
+
+* underwriter 1 depositing 150k KEEP
+* underwriter 2 depositing 50k KEEP after 24 hours
+* underwriter 3 depositing 200k KEEP after 24 hours
+
+24 hours passes, all three underwriters are withdrawing from the pool.
+
+==== Earnings
+* underwriter 1: ~21610 KEEP
+* underwriter 2: ~3627 KEEP
+* underwriter 3: ~4761 KEEP
+
+==== Explanation
+Underwriter 1 is depositing. They receive 150k COV tokens. + 
+For the first 24 hours, underwriter 1 is the only one in the pool.
+They earn 70k / 7 = 10k KEEP.
+
+Underwriter 2 is depositing. There is 150k + 10k KEEP is in the pool at that 
+time (deposited and rewarded). The pool needs too adjust the amount of COV
+tokens minted for underwriter 2 so that they do not take a share of rewards
+accrued by the pool so far: COV_minted = 50k * 150k / 160k = 46.87k.
+
+For the next 24 hours. there are two underwriters in the pool and they earn
+rewards proportionally to their share in the pool:
+
+* underwriter 1: 150 / 196.87 * 10k = 7619.24 KEEP
+* underwriter 2: 46.87 / 196.87 * 10k = 2380.75 KEEP
+
+Underwriter 3 is depositing. 150k + 10k + 50k + 10k is in the pool at that time
+(deposited and rewarded). The pool needs to adjust the amount of COV tokens
+minted for underwriter 3 so that they do not take a share of rewards accrued by 
+the pool so far: COV_minted = 200k * 196.87k / 220k = 178.97k.
+
+For the next 24 hours, there are three underwriters in the pool and they earn
+rewards proportionally to their share:
+
+- underwriter 1: 150 / 375.84 * 10k = 3991.06 KEEP
+- underwriter 2: 46.87 / 375.84 * 10k = 1247.07 KEEP
+- underwriter 3: 178.97 / 375.84 * 10k = 4761.86 KEEP
+
+In total, underwriters earn:
+
+- underwriter 1: 10k + 7619.24 + 3991.06 = 21610.3 KEEP
+- underwriter 2: 2380.75 + 1247.07 = 3627.82 KEEP
+- underwriter 3: 4761.86 KEEP
+
+
+=== Scenario 3
+
+This scenario is an extension of Scenario 2 with an additional claim for
+50k KEEP tokens from the coverage pool at the end.
+
+There is 430k KEEP in the pool (deposited + rewards):
+
+* underwriter 1 has 150 / 375.84 = 0.399 of the pool (= (150k + 21 610) / 430k))
+* underwriter 2 has 46.87 / 375.84 = 0.124 of the pool (= (50k + 3 627) / 430k))
+* underwriter 3 has 178.97 / 375.84 = 0.476 of the pool (= (200k + 4 761) / 430k))
+
+The coverage pool claims 50k KEEP and all underwriters withdraw their funds
+right after. 
+
+==== Earnings
+- underwriter 1: 1655 KEEP
+- underwriter 2: -2608 KEEP
+- underwriter 3: -19048 KEEP
+
+==== Explanation
+
+Coverage pool loses 50k KEEP. Underwriters are expected to take a hit
+proportionally to their share of the pool:
+
+* underwriter 1: -50k * 150 / 375.84 = -19955 KEEP
+* underwriter 2: -50k * 46.87 / 375.84 = -50k * 0.124 = -6235 KEEP
+* underwriter 3: -50k * 178.97 / 375.84 = -50k * 0.476 = -23809 KEEP
+
+In total, underwriters earn/lose:
+
+* underwriter 1: 21610 - 19955  = 1655 KEEP
+* underwriter 2: 3627 - 6235 = -2608 KEEP
+* underwriter 3: 4761 - 23809 = -19048 KEEP
+
+== tBTC v1 risk manager
+
+tBTC v1 risk manager will be the first implementation of a risk manager approved
+by the coverage pool. The coverage pool will contribute to potentially lowering
+collateral ratios and scaling tBTC’s TVL. The coverage pool serves as a buyer
+of last resort. It purchases enough TBTC on auction to make the depositor whole
+in the event of liquidation if the stakers' collateral is not sufficient.
+
+In case of liquidation of a tBTC deposit below a certain collateralization
+threshold, the risk manager opens an auction to acquire TBTC to purchase signer
+bonds. Collateralization threshold and auction length are governable parameters. 
+
+ETH purchased by the risk manager from tBTC signer bonds is swapped and
+transferred to the asset pool and there are two strategies for doing that:
+
+* ETH is automatically swapped to asset pool underlying token on Uniswap,
+* ETH is deposited in the escrow contract allowing the governance to do the swap 
+  manually and deposit the underlying token to the asset pool.
+
+Which strategy is used is a governable parameter.
+
+In case signer bonds were purchased by a third party before the auction was
+fully filled, TBTC acquired by the risk manager from potential partial auction
+takes will be used in the future, to purchase signer bonds once the accumulated
+surplus value allows for it. For example:
+
+* Liquidation of 1 TBTC deposit, auction opened for 1 TBTC and early closed
+  after being filled for 0.3 TBTC total. 0.3 TBTC goes to the risk manager.
+* Liquidation of 1 TBTC deposit, auction opened for 1 TBTC and early closed
+  after being filled for 0.8 TBTC total. 0.8 TBTC goes to the risk manager.
+* Liquidation of 1 TBTC deposit, there is 1.1 TBTC in the surplus, instead of
+  opening an auction, risk manager purchases signer bonds reducing the surplus
+  to 0.1 TBTC.
+
+== Upgradeability
+
+All coverage pool contracts are non-upgradeable and there are few governable
+parameters listed in the next section. Underwriters can migrate to a new version
+of coverage pool by moving their collateral to a new asset pool approved by the
+governance.
+
+== Governance
+
+The governance included in the system design follows two principles:
+
+* All governance should abide by a time delay, giving users time to respond
+  to changes in the system.
+* The governance role should be assignable to a credibly neutral third party or 
+  eventual decentralization, such as the community multisig.
+
+.Governable parameters
+|===
+|Parameter |Time delay|Description
+
+|Approved risk managers
+|30 days
+|Governance can approve and unapprove a risk manager.
+
+|Auction length
+|12 hours
+|Governance can adjust auction length based on coverage pool TVL and the minimum 
+possible auctioned value.
+
+|tBTC deposit collateralization
+|12 hours
+|Governance can set the maximum collateralization level of tBTC deposit under
+the liquidation the tBTC v1 risk manager is going to open an auction for. The
+risk manager is a buyer of the last resort and should not work with tBTC
+liquidating deposits still attractive for arbitraging bots.
+
+|The strategy for depositing purchased tBTC signer bonds
+|12 hours
+|Governance can chose which strategy should be used by tBTC v1 risk manager for
+depositing ETH signer bonds purchased from tBTC to the asset pool.
