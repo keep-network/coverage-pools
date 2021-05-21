@@ -198,6 +198,7 @@ contract AssetPool is Ownable {
                 hardWithdrawalEndTimestamp.sub(block.timestamp).mul(1e18).div(
                     hardWithdrawalTimeout.sub(gracefulWitdrawalTimeout)
                 );
+            // slither-disable-next-line divide-before-multiply
             uint256 amountToWithdrawReduced =
                 delayRatio.mul(amountToWithdraw).div(1e18);
             collateralToken.safeTransfer(underwriter, amountToWithdrawReduced);
