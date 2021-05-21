@@ -58,6 +58,12 @@ the market. If you need to cover risk in a new system... maybe because you're
 building a synthetic asset exchange, or a lending platform — coverage pools
 might be for you.
 
+== Getting started
+
+* Read the link:./docs/design.adoc[v1 design documentation].
+* For questions and support, join the #keep-protocol channel on
+https://discord.gg/4R6RGFf[Discord].
+
 == Build and test
 
 Coverage pool contracts use https://hardhat.org/[*Hardhat*] development
