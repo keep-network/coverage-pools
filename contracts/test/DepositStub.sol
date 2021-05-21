@@ -69,6 +69,10 @@ contract DepositStub is IDeposit {
         currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
 
+    function setStateLiquidated() external {
+        currentState = uint256(States.LIQUIDATED);
+    }
+
     function withdrawableAmount() external view override returns (uint256) {
         return address(this).balance;
     }

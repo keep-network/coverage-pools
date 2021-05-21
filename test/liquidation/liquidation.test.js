@@ -2,7 +2,7 @@ const { expect } = require("chai")
 const { to1e18 } = require("../helpers/contract-test-helpers")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 
-describe("Integration -- liquidation happy path", () => {
+describe("Integration", () => {
   const auctionLength = 86400 // 24h
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
@@ -92,6 +92,28 @@ describe("Integration -- liquidation happy path", () => {
       await expect(tx).to.changeEtherBalance(
         signerBondsSwapStrategy,
         bondedAmount
+      )
+    })
+  })
+
+  describe("when deposit has changed state between auction creation and auction offer taken", () => {
+    let auction
+    beforeEach(async () => {
+      await tbtcDeposit.notifyUndercollateralizedLiquidation()
+      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+
+      const auctionAddress = await riskManagerV1.depositToAuction(
+        tbtcDeposit.address
+      )
+      auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
+      await tbtcToken.connect(bidder).approve(auction.address, lotSize)
+      // simulate deposit state change outside Coverge Pools
+      await tbtcDeposit.setStateLiquidated()
+    })
+
+    it("should revert", async () => {
+      await expect(auction.takeOffer(lotSize)).to.be.revertedWith(
+        "Deposit liquidation is not in progress"
       )
     })
   })
