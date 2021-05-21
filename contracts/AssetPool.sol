@@ -163,11 +163,14 @@ contract AssetPool is Ownable {
             "Withdrawal delay has not elapsed"
         );
 
+        uint256 covAmount = pendingWithdrawal[underwriter];
+        uint256 covSupply = underwriterToken.totalSupply();
+        delete withdrawalInitiatedTimestamp[underwriter];
+        delete pendingWithdrawal[underwriter];
+
         // slither-disable-next-line reentrancy-events
         rewardsPool.withdraw();
 
-        uint256 covAmount = pendingWithdrawal[underwriter];
-        uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
         uint256 amountToWithdraw =
