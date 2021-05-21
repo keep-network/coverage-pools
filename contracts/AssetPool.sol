@@ -116,8 +116,6 @@ contract AssetPool is Ownable {
             "Underwriter token amount must be greater than 0"
         );
 
-        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
-
         pendingWithdrawal[msg.sender] = covAmount.add(
             pendingWithdrawal[msg.sender]
         );
@@ -129,6 +127,8 @@ contract AssetPool is Ownable {
             pendingWithdrawal[msg.sender],
             block.timestamp
         );
+
+        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
         /* solhint-enable not-rely-on-time */
     }
 
