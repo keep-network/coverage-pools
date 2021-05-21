@@ -211,31 +211,6 @@ contract AssetPool is Ownable {
         // TODO: events
     }
 
-    // TODO: Remove this function. Withdrawal should be a two-step process.
-    function withdraw(uint256 covAmount) external {
-        uint256 covBalance = underwriterToken.balanceOf(msg.sender);
-        require(
-            covAmount <= covBalance,
-            "Underwriter token amount exceeds balance"
-        );
-        require(
-            covAmount > 0,
-            "Underwriter token amount must be greater than 0"
-        );
-
-        rewardsPool.withdraw();
-
-        uint256 covSupply = underwriterToken.totalSupply();
-        uint256 collateralBalance = collateralToken.balanceOf(address(this));
-
-        uint256 amountToWithdraw =
-            covAmount.mul(collateralBalance).div(covSupply);
-
-        underwriterToken.safeTransferFrom(msg.sender, address(this), covAmount);
-        underwriterToken.burn(covAmount);
-        collateralToken.safeTransfer(msg.sender, amountToWithdraw);
-    }
-
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
     function claim(address recipient, uint256 amount) external onlyOwner {
