@@ -473,8 +473,8 @@ describe("AssetPool", () => {
         )
       })
 
-      it("should seize portion of tokens right before hard timeout", async () => {
-        await increaseTime(62 * 86400) // 63 days
+      it("should seize portion of tokens before hard timeout", async () => {
+        await increaseTime(62 * 86400) // 62 days
         await assetPool
           .connect(thirdParty)
           .completeWithdrawal(underwriter1.address)
@@ -503,7 +503,7 @@ describe("AssetPool", () => {
       })
 
       it("should emit WithdrawalCompleted event", async () => {
-        await increaseTime(62 * 86400) // 63 days
+        await increaseTime(62 * 86400) // 62 days
         const tx = await assetPool
           .connect(thirdParty)
           .completeWithdrawal(underwriter1.address)
@@ -520,7 +520,7 @@ describe("AssetPool", () => {
       })
 
       it("should emit GracefulWithdrawalTimedOut event", async () => {
-        await increaseTime(62 * 86400) // 63 days
+        await increaseTime(62 * 86400) // 62 days
         const tx = await assetPool
           .connect(thirdParty)
           .completeWithdrawal(underwriter1.address)

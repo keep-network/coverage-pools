@@ -48,7 +48,7 @@ contract AssetPool is Ownable {
     // After the hard withdrawal timeout, 99% of the tokens is seized by the
     // pool and 1% of tokens is sent to the notifier who will complete the
     // withdrawal on behalf of the underwriter. Hard withdrawal timeout starts
-    // counting from the moment withdrawal has been initiated.
+    // counting from the moment withdrawal delay has passed.
     uint256 public constant hardWithdrawalTimeout = 70 days;
 
     event WithdrawalInitiated(
