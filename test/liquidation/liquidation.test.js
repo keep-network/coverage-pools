@@ -89,11 +89,11 @@ describe("Integration", () => {
     })
   })
 
-  describe("when deposit has changed state between auction creation and auction offer taken", () => {
+  describe("when deposit has changed the state outside the coverage pool during pending coverage pool auction", () => {
     let auction
     beforeEach(async () => {
       auction = await prepareAuction()
-      // simulate deposit state change outside Coverge Pools
+      // simulate deposit state change outside Coverage Pools
       await tbtcDeposit.setStateLiquidated()
     })
 
