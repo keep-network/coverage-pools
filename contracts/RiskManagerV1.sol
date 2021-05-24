@@ -214,18 +214,13 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
     }
 
-    /// @notice Throws if deposit not present among deposits in liquidation or
-    ///         the state of the deposit is not
+    /// @notice Throws if the state of the deposit is not
     ///         DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE.
     /// @dev This function is called when the auctioneer is informed about the
     ///      results of an auction. It is invoked from the Auctioneer
     ///      contract's offerTaken function.
     /// @param auction Address of an auction whose deposit needs to be checked.
     function checkDepositState(address auction) internal override {
-        require(
-            auctionToDeposit[auction] != address(0),
-            "Liquidation not started on deposit"
-        );
         IDeposit deposit = IDeposit(auctionToDeposit[auction]);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
