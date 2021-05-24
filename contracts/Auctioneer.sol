@@ -151,9 +151,9 @@ contract Auctioneer is CloneFactory {
     function onAuctionFullyFilled(Auction auction) internal virtual {}
 
     /// @notice Checks the state of the deposit asocciated with an auction
-    /// (throws if the deposit is not in the process of liquidation).
+    ///         (throws if the deposit is not in the process of liquidation).
     /// @dev This function should be overridden by risk managers that inherit
-    /// from the Auctioneer contract.
+    ///      from the Auctioneer contract.
     /// @param auction Address of an auction whose deposit needs to be checked.
     function checkDepositState(address auction) internal virtual {}
 }
