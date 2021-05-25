@@ -50,6 +50,16 @@ contract AssetPool is Ownable {
     // withdrawal on behalf of the underwriter. Hard withdrawal timeout starts
     // counting from the moment withdrawal delay has passed.
     uint256 public constant hardWithdrawalTimeout = 70 days;
+    // After the withdrawl initiation prevention timeout passes, the underwriter
+    // will not be able to initiate withdrawal again until the current
+    // withdrawal is completed. Before the withdrawal initiation prevention
+    // timeout passes, the underwriter can initiate withdrawal multiple times,
+    // and thus reset the withdrawal initiated timestamp to the timestamp of
+    // the last withdrawal initiation.
+    // The value of withdrawal initiation prevention timeout is the sum of the
+    // withdrawal delay and graceful withdrawal timeout.
+    uint256 public constant withdrawalInitiationPreventionTimeout =
+        withdrawalDelay + gracefulWitdrawalTimeout; // 21 days
 
     event WithdrawalInitiated(
         address indexed underwriter,
@@ -107,8 +117,14 @@ contract AssetPool is Ownable {
     /// @notice Initiates the withdrawal of collateral and rewards from the pool.
     ///         Accepts the amount of underwriter tokens representing the share
     ///         of the pool that should be withdrawn.
-    ///         Underwriter needs to complete the withdrawal by calling the
-    ///         `completeWithdrawal` function after the withdrawal delay passes
+    ///         Can be called multiple times (without any delay between the
+    ///         calls) if the graceful withdrawal timeout has not elapsed yet.
+    ///         Each call increases the share of the pool that will be withdrawn
+    ///         by the specified amount of underwriter tokens and each
+    ///         time the waiting for the withdrawal delay starts over.
+    ///         After the last call to `initiateWithdrawal`, the underwriter
+    ///         needs to complete the withdrawal by calling the
+    ///         `completeWithdrawal` function after the withdrawal delay passes,
     ///         but before the graceful withdrawal timeout ends to avoid part of
     ///         their share being seized by the pool.
     /// @dev Before calling this function, underwriter token needs to have the
@@ -123,10 +139,25 @@ contract AssetPool is Ownable {
             covAmount > 0,
             "Underwriter token amount must be greater than 0"
         );
+        // Ensure withdrawal not initiated or withdrawal initiation prevention
+        // timeout has not elapsed
+        //slither-disable-next-line incorrect-equality
+        require(
+            withdrawalInitiatedTimestamp[msg.sender] == 0 ||
+                withdrawalInitiatedTimestamp[msg.sender].add(
+                    withdrawalInitiationPreventionTimeout
+                ) >
+                /* solhint-disable not-rely-on-time */
+                block.timestamp,
+            "Cannot initiate withdrawal after graceful withdrawal timeout"
+        );
 
         pendingWithdrawal[msg.sender] = covAmount.add(
             pendingWithdrawal[msg.sender]
         );
+
+        // Save the withdrawal initiation timestamp (possibly overwriting
+        // previous timestamp)
         /* solhint-disable not-rely-on-time */
         withdrawalInitiatedTimestamp[msg.sender] = block.timestamp;
 
