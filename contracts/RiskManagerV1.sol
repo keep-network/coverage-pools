@@ -54,7 +54,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     // by the governance in two steps. First step is to begin the update process
     // with the new value and the second step is to finalize it after
     // GOVERNANCE_TIME_DELAY has passed.
-    uint256 public collateralizationThreshold = 101; // percent
+    uint256 public collateralizationThreshold; // percent
     uint256 public newCollateralizationThreshold;
     uint256 public collateralizationThresholdChangeInitiated;
 
@@ -103,11 +103,13 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         CoveragePool _coveragePool,
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
-        uint256 _auctionLength
+        uint256 _auctionLength,
+        uint256 _collateralizationThreshold
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
+        collateralizationThreshold = _collateralizationThreshold;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds

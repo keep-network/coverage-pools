@@ -49,7 +49,8 @@ describe("RiskManagerV1", () => {
       coveragePoolStub.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
-      auctionLength
+      auctionLength,
+      collateralizationThreshold
     )
     await riskManagerV1.deployed()
 
