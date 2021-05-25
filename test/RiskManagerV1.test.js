@@ -312,7 +312,7 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("finalizeAuctionLengthUpdate", () => {
+  describe("finalizeCollateralizationThresholdUpdate", () => {
     const newCollateralizationThreshold = 102
 
     context(

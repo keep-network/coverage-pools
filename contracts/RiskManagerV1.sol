@@ -56,7 +56,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     // GOVERNANCE_TIME_DELAY has passed.
     uint256 public collateralizationThreshold = 101; // percent
     uint256 public newCollateralizationThreshold;
-    uint256 public collateralizationThresholdInitiated;
+    uint256 public collateralizationThresholdChangeInitiated;
 
     uint256 public auctionLength;
     uint256 public newAuctionLength;
@@ -163,18 +163,19 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     /// @notice Begins the collateralization threshold update process.
     /// @dev Can be called only by the contract owner. The collateralization
-    ///      threshold should be adjusted by taking into account factors like
-    ///      collateralization ratio and gas price.
-    /// @param _collateralizationThreshold New collateralization threshold in percent.
+    ///      threshold should be adjusted by taking into account factors like:
+    ///      tBTC deposit undercollateralized threshold percent, tBTC deposit
+    ///      severely undercollateralized threshold percent, and the gas price.
+    /// @param _newCollateralizationThreshold New collateralization threshold in percent.
     function beginCollateralizationThresholdUpdate(
-        uint256 _collateralizationThreshold
+        uint256 _newCollateralizationThreshold
     ) external onlyOwner {
-        newCollateralizationThreshold = _collateralizationThreshold;
+        newCollateralizationThreshold = _newCollateralizationThreshold;
         /* solhint-disable-next-line not-rely-on-time */
-        collateralizationThresholdInitiated = block.timestamp;
+        collateralizationThresholdChangeInitiated = block.timestamp;
         /* solhint-disable not-rely-on-time */
         emit CollateralizationThresholdUpdateStarted(
-            _collateralizationThreshold,
+            _newCollateralizationThreshold,
             block.timestamp
         );
     }
@@ -185,11 +186,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     function finalizeCollateralizationThresholdUpdate()
         external
         onlyOwner
-        onlyAfterGovernanceDelay(collateralizationThresholdInitiated)
+        onlyAfterGovernanceDelay(collateralizationThresholdChangeInitiated)
     {
         collateralizationThreshold = newCollateralizationThreshold;
         emit CollateralizationThresholdUpdated(collateralizationThreshold);
-        collateralizationThresholdInitiated = 0;
+        collateralizationThresholdChangeInitiated = 0;
         newCollateralizationThreshold = 0;
     }
 
@@ -233,7 +234,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     {
         return
             getRemainingChangeTime(
-                collateralizationThresholdInitiated,
+                collateralizationThresholdChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
     }
