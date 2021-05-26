@@ -142,16 +142,16 @@ contract Auctioneer is CloneFactory {
         delete openAuctions[auctionAddress];
     }
 
-    /// @notice Auction lifecycle hook allowing to act on auction partially
-    ///         filled. This function is not executed when an auction
-    ///         was fully filled.
-    /// @dev Override this function to act on auction partially filled.
-    function onAuctionPartiallyFilled(Auction auction) internal view virtual {}
-
     /// @notice Auction lifecycle hook allowing to act on auction closed
     ///         as fully filled. This function is not executed when an auction
     ///         was partially filled. When this function is executed auction is
     ///         already closed and funds from the coverage pool are seized.
     /// @dev Override this function to act on auction closed as fully filled.
     function onAuctionFullyFilled(Auction auction) internal virtual {}
+
+    /// @notice Auction lifecycle hook allowing to act on auction partially
+    ///         filled. This function is not executed when an auction
+    ///         was fully filled.
+    /// @dev Override this function to act on auction partially filled.
+    function onAuctionPartiallyFilled(Auction auction) internal view virtual {}
 }
