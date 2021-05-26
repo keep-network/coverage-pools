@@ -193,11 +193,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///         against the maximum allowed price impact limit.
     /// @param amount Amount of tokens.
     /// @return True if the price impact is allowed, false otherwise.
-    function isAllowedPriceImpact(uint256 amount)
-        internal
-        view
-        returns (bool)
-    {
+    function isAllowedPriceImpact(uint256 amount) internal view returns (bool) {
         // Get the token amount and include the 0.3% fee within.
         uint256 amountWithFee = amount.mul(997).div(1000);
 
