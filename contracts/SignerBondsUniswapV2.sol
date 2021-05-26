@@ -184,8 +184,8 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         // Include slippage tolerance into the minimum amount of output tokens.
         if (slippageTolerance > 0) {
             amountOutMin = amountOutMin
-                .mul(SLIPPAGE_DIVISOR.sub(slippageTolerance))
-                .div(SLIPPAGE_DIVISOR);
+                .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
+                .div(BASIS_POINTS_DIVISOR);
         }
 
         uint256[] memory amounts =
@@ -213,7 +213,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         uint256 amountWithFee = amount.mul(997).div(1000);
 
         // Get reserves of the target token.
-        uint256 tokenReserves = pair.getReserves()[1];
+        (,uint256 tokenReserves,) = uniswapPair.getReserves();
 
         // Calculate the price impact. Multiply it by the floating point
         // divisor to avoid float number.
