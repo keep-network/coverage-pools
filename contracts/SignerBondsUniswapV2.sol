@@ -81,24 +81,12 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     constructor(IUniswapV2Router _uniswapRouter, CoveragePool _coveragePool) {
         uniswapRouter = _uniswapRouter;
         coveragePool = _coveragePool;
-        targetToken = coveragePool.collateralToken();
+        targetToken = _coveragePool.collateralToken();
         uniswapPair = IUniswapV2Pair(
-            address(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            uniswapRouter.factory(),
-                            keccak256(
-                                abi.encodePacked(
-                                    uniswapRouter.WETH(),
-                                    address(targetToken)
-                                )
-                            ),
-                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
-                        )
-                    )
-                )
+            computePairAddress(
+                _uniswapRouter.factory(),
+                _uniswapRouter.WETH(),
+                address(targetToken)
             )
         );
     }
@@ -164,6 +152,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///      TODO: explain what happens with obtained tokens
     /// @param amount Amount to swap.
     function swapSignerBondsOnUniswapV2(uint256 amount) external {
+        require(amount > 0, "Amount is zero");
         require(amount <= address(this).balance, "Amount exceeds balance");
 
         // Setup the swap path. WETH must be the first component.
@@ -177,8 +166,8 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         uint256 amountOutMin = uniswapRouter.getAmountsOut(amount, path)[1];
 
         require(
-            isAcceptablePriceImpact(amountOutMin),
-            "Price impact exceeds allowance"
+            isAllowedPriceImpact(amountOutMin),
+            "Price impact exceeds allowed limit"
         );
 
         // Include slippage tolerance into the minimum amount of output tokens.
@@ -202,9 +191,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     /// @notice Checks the price impact of buying a given amount of tokens
     ///         against the maximum allowed price impact limit.
-    /// @param amount Amount of tokens
-    /// @return True if the price impact is acceptable, false otherwise.
-    function isAcceptablePriceImpact(uint256 amount)
+    /// @param amount Amount of tokens.
+    /// @return True if the price impact is allowed, false otherwise.
+    function isAllowedPriceImpact(uint256 amount)
         internal
         view
         returns (bool)
@@ -213,15 +202,14 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         uint256 amountWithFee = amount.mul(997).div(1000);
 
         // Get reserves of the target token.
-        (,uint256 tokenReserves,) = uniswapPair.getReserves();
+        (, uint256 tokenReserves, ) = uniswapPair.getReserves();
 
         // Calculate the price impact. Multiply it by the floating point
         // divisor to avoid float number.
         uint256 priceImpact =
-            CoveragePoolConstants
-                .FLOATING_POINT_DIVISOR
-                .mul(amountWithFee)
-                .div(tokenReserves);
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR.mul(amountWithFee).div(
+                tokenReserves
+            );
 
         // Calculate the price impact limit. Multiply it by the floating point
         // divisor to avoid float number and make it comparable with the
@@ -233,5 +221,33 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
                 .div(BASIS_POINTS_DIVISOR);
 
         return priceImpact <= priceImpactLimit;
+    }
+
+    /// @notice Compute Uniswap v2 pair address.
+    /// @param factory Address of the Uniswap v2 factory.
+    /// @param tokenA Address of token A.
+    /// @param tokenB Address of token B.
+    /// @return Address of token pair.
+    function computePairAddress(
+        address factory,
+        address tokenA,
+        address tokenB
+    ) internal pure returns (address) {
+        (address token0, address token1) =
+            tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+
+        return
+            address(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex"ff",
+                            factory,
+                            keccak256(abi.encodePacked(token0, token1)),
+                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+                        )
+                    )
+                )
+            );
     }
 }
