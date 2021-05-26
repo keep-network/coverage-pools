@@ -98,7 +98,7 @@ describe("Integration", () => {
     })
 
     it("should revert", async () => {
-      await expect(auction.takeOffer(lotSize)).to.be.revertedWith(
+      await expect(auction.takeOffer(lotSize.div(2))).to.be.revertedWith(
         "Deposit liquidation is not in progress"
       )
     })

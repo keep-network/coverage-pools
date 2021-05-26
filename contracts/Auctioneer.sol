@@ -62,9 +62,6 @@ contract Auctioneer is CloneFactory {
     ) external {
         require(openAuctions[msg.sender], "Sender isn't an auction");
 
-        // Check the state of the deposit associated with the auction
-        checkDepositState(msg.sender);
-
         emit AuctionOfferTaken(
             msg.sender,
             auctionTaker,
@@ -83,7 +80,9 @@ contract Auctioneer is CloneFactory {
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
-        if (!auction.isOpen()) {
+        if (auction.isOpen()) {
+            onAuctionPartiallyFilled(auction);
+        } else {
             onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
@@ -143,17 +142,16 @@ contract Auctioneer is CloneFactory {
         delete openAuctions[auctionAddress];
     }
 
+    /// @notice Auction lifecycle hook allowing to act on auction partially
+    ///         filled. This function is not executed when an auction
+    ///         was fully filled.
+    /// @dev Override this function to act on auction partially filled.
+    function onAuctionPartiallyFilled(Auction auction) internal view virtual {}
+
     /// @notice Auction lifecycle hook allowing to act on auction closed
     ///         as fully filled. This function is not executed when an auction
     ///         was partially filled. When this function is executed auction is
     ///         already closed and funds from the coverage pool are seized.
     /// @dev Override this function to act on auction closed as fully filled.
     function onAuctionFullyFilled(Auction auction) internal virtual {}
-
-    /// @notice Checks the state of the deposit asocciated with an auction
-    ///         (throws if the deposit is not in the process of liquidation).
-    /// @dev This function should be overridden by risk managers that inherit
-    ///      from the Auctioneer contract.
-    /// @param auction Address of an auction whose deposit needs to be checked.
-    function checkDepositState(address auction) internal virtual {}
 }
