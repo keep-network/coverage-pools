@@ -99,22 +99,6 @@ contract Auction is IAuction {
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
-    /// @notice Takes an offer from an auction buyer with a minimum required tokens
-    ///         to buy in case another transaction was faster with an offer that
-    ///         left outstanding amount in a state which cannot meet 'amount' value
-    ///         in this transaction.
-    /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction.
-    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
-    /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    /// @param minAmount minimum amount of tokens to buy
-    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
-        require(
-            self.amountOutstanding >= minAmount,
-            "Can't fulfill minimum offer"
-        );
-        takeOffer(amount);
-    }
-
     /// @notice Tears down the auction manually, before its entire amount
     ///         is bought by takers.
     /// @dev Can be called only by the auctioneer which may decide to early
@@ -143,6 +127,36 @@ contract Auction is IAuction {
         return self.amountOutstanding > 0;
     }
 
+    /// @notice Takes an offer from an auction buyer with a minimum required tokens
+    ///         to seize from the coverage pool.
+    /// @dev 'minAmount' sets a minimum amount of tokens to seize in this transaction.
+    ///      If a minimum amount is not satisfied, then transaction will revert.
+    /// @param amount the amount the taker is paying, denominated in tokenAccepted
+    /// @param minAmountToSeize minimum amount of tokens to seize from the coverage pool
+    function takeOfferWithMin(uint256 amount, uint256 minAmountToSeize)
+        external
+    {
+        require(amount > 0, "Can't pay 0 tokens");
+        uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
+        uint256 amountOnOffer = _onOffer();
+
+        uint256 portionToSeize =
+            amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
+
+        bool isMinimalAmountToSeizeAvailable =
+            self.auctioneer.isMinimalAmountToSeizeAvailable(
+                minAmountToSeize,
+                portionToSeize
+            );
+
+        require(
+            isMinimalAmountToSeizeAvailable,
+            "Can't fulfill offer with a minimal amount to seize"
+        );
+
+        _processOffer(amount, portionToSeize);
+    }
+
     /// @notice Takes an offer from an auction buyer.
     /// @dev There are two possible ways to take an offer from a buyer. The first
     ///      one is to buy entire auction with the amount desired for this auction.
@@ -150,20 +164,25 @@ contract Auction is IAuction {
     ///      auction depleting rate is increased.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted
     function takeOffer(uint256 amount) public override {
-        // TODO frontrunning mitigation
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 amountOnOffer = _onOffer();
 
+        uint256 portionToSeize =
+            amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
+
+        _processOffer(amountToTransfer, portionToSeize);
+    }
+
+    function _processOffer(uint256 amountToTransfer, uint256 portionToSeize)
+        internal
+    {
         //slither-disable-next-line reentrancy-no-eth
         self.tokenAccepted.safeTransferFrom(
             msg.sender,
             address(self.auctioneer),
             amountToTransfer
         );
-
-        uint256 portionToSeize =
-            amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             // Time passed since the auction start or the last takeOffer call

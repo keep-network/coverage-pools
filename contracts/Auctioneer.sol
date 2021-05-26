@@ -88,6 +88,15 @@ contract Auctioneer is CloneFactory {
         }
     }
 
+    function isMinimalAmountToSeizeAvailable(
+        uint256 minAmountToSeize,
+        uint256 portionToSeize
+    ) external returns (bool) {
+        uint256 amountToSeize = coveragePool.amountToSeize(portionToSeize);
+
+        return minAmountToSeize <= amountToSeize;
+    }
+
     /// @notice Opens a new auction against the coverage pool. The auction
     ///         will remain open until filled.
     /// @dev Calls `Auction.initialize` to initialize the instance.
