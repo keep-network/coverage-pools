@@ -44,22 +44,12 @@ contract AssetPool is Ownable {
     // given that the underwriter is earning rewards all the time it has their
     // collateral in the pool, including the time after the withdrawal has been
     // initiated.
-    uint256 public constant gracefulWitdrawalTimeout = 7 days;
+    uint256 public constant gracefulWithdrawalTimeout = 7 days;
     // After the hard withdrawal timeout, 99% of the tokens is seized by the
     // pool and 1% of tokens is sent to the notifier who will complete the
     // withdrawal on behalf of the underwriter. Hard withdrawal timeout starts
     // counting from the moment withdrawal delay has passed.
     uint256 public constant hardWithdrawalTimeout = 70 days;
-    // After the withdrawl initiation prevention timeout passes, the underwriter
-    // will not be able to initiate withdrawal again until the current
-    // withdrawal is completed. Before the withdrawal initiation prevention
-    // timeout passes, the underwriter can initiate withdrawal multiple times,
-    // and thus reset the withdrawal initiated timestamp to the timestamp of
-    // the last withdrawal initiation.
-    // The value of withdrawal initiation prevention timeout is the sum of the
-    // withdrawal delay and graceful withdrawal timeout.
-    uint256 public constant withdrawalInitiationPreventionTimeout =
-        withdrawalDelay + gracefulWitdrawalTimeout; // 21 days
 
     event WithdrawalInitiated(
         address indexed underwriter,
@@ -118,7 +108,7 @@ contract AssetPool is Ownable {
     ///         Accepts the amount of underwriter tokens representing the share
     ///         of the pool that should be withdrawn.
     ///         Can be called multiple times (without any delay between the
-    ///         calls) if the graceful withdrawal timeout has not elapsed yet.
+    ///         calls) if the withdrawal delay has not elapsed yet.
     ///         Each call increases the share of the pool that will be withdrawn
     ///         by the specified amount of underwriter tokens and each
     ///         time the waiting for the withdrawal delay starts over.
@@ -139,17 +129,14 @@ contract AssetPool is Ownable {
             covAmount > 0,
             "Underwriter token amount must be greater than 0"
         );
-        // Ensure withdrawal not initiated or withdrawal initiation prevention
-        // timeout has not elapsed
+        // Ensure withdrawal not initiated or withdrawal delay has not elapsed
         //slither-disable-next-line incorrect-equality
         require(
             withdrawalInitiatedTimestamp[msg.sender] == 0 ||
-                withdrawalInitiatedTimestamp[msg.sender].add(
-                    withdrawalInitiationPreventionTimeout
-                ) >
+                withdrawalInitiatedTimestamp[msg.sender].add(withdrawalDelay) >=
                 /* solhint-disable not-rely-on-time */
                 block.timestamp,
-            "Cannot initiate withdrawal after graceful withdrawal timeout"
+            "Cannot initiate withdrawal after withdrawal delay"
         );
 
         pendingWithdrawal[msg.sender] = covAmount.add(
@@ -220,7 +207,7 @@ contract AssetPool is Ownable {
         // When the graceful withdrawal time ends. After this time, part of the
         // collateral and rewards will be seized by the pool.
         uint256 gracefulWithdrawalEndTimestamp =
-            withdrawalDelayEndTimestamp.add(gracefulWitdrawalTimeout);
+            withdrawalDelayEndTimestamp.add(gracefulWithdrawalTimeout);
         // When the time for the withdrawal ends. After this time, 99% of
         // rewards and collateral is seized by the pool and 1% of rewards and
         // collateral is sent to the notifier who completed the withdrawal on
@@ -243,7 +230,7 @@ contract AssetPool is Ownable {
             // the graceful withdrawal timeout.
             uint256 delayRatio =
                 hardWithdrawalEndTimestamp.sub(block.timestamp).mul(1e18).div(
-                    hardWithdrawalTimeout.sub(gracefulWitdrawalTimeout)
+                    hardWithdrawalTimeout.sub(gracefulWithdrawalTimeout)
                 );
             // slither-disable-next-line divide-before-multiply
             uint256 amountToWithdrawReduced =

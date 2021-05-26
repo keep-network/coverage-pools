@@ -370,16 +370,15 @@ describe("AssetPool", () => {
           await assetPool
             .connect(underwriter1)
             .initiateWithdrawal(amount.sub(10))
-          // wait for 21 days (14 days for withdrawal delay and 7 days for
-          // graceful withdrawal timeout)
-          await increaseTime(1814400)
+          // wait for 14 days for withdrawal delay to pass
+          await increaseTime(14 * 24 * 3600)
         })
 
         it("should revert", async () => {
           await expect(
             assetPool.connect(underwriter1).initiateWithdrawal(10)
           ).to.be.revertedWith(
-            "Cannot initiate withdrawal after graceful withdrawal timeout"
+            "Cannot initiate withdrawal after withdrawal delay"
           )
         })
       }
