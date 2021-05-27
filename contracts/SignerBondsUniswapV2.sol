@@ -60,9 +60,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
     IUniswapV2Router public uniswapRouter;
-    CoveragePool public coveragePool;
-    IERC20 public targetToken;
     IUniswapV2Pair public uniswapPair;
+    address public targetTokenRecipient;
+    address public targetToken;
 
     // Determines the maximum allowed price impact for the swap transaction.
     // If transaction's price impact is higher, transaction will be reverted.
@@ -80,13 +80,13 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     constructor(IUniswapV2Router _uniswapRouter, CoveragePool _coveragePool) {
         uniswapRouter = _uniswapRouter;
-        coveragePool = _coveragePool;
-        targetToken = _coveragePool.collateralToken();
+        targetTokenRecipient = address(_coveragePool.assetPool());
+        targetToken = address(_coveragePool.collateralToken());
         uniswapPair = IUniswapV2Pair(
             computePairAddress(
                 _uniswapRouter.factory(),
                 _uniswapRouter.WETH(),
-                address(targetToken)
+                targetToken
             )
         );
     }
@@ -148,17 +148,17 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///      contract balance. Some governance parameters are applied on the
     ///      transaction. The swap's price impact must fit within the
     ///      maximum allowed price impact and the transaction is constrained
-    ///      with the slippage tolerance and deadline.
-    ///      TODO: explain what happens with obtained tokens
+    ///      with the slippage tolerance and deadline. Acquired target tokens
+    ///      are sent to the recipient address set during contract construction.
     /// @param amount Amount to swap.
     function swapSignerBondsOnUniswapV2(uint256 amount) external {
-        require(amount > 0, "Amount is zero");
+        require(amount > 0, "Amount must be greater than 0");
         require(amount <= address(this).balance, "Amount exceeds balance");
 
         // Setup the swap path. WETH must be the first component.
         address[] memory path = new address[](2);
         path[0] = uniswapRouter.WETH();
-        path[1] = address(targetToken);
+        path[1] = targetToken;
 
         // Calculate the maximum output token amount basing on pair reserves.
         // This value will be used as the minimum amount of output tokens that
@@ -180,7 +180,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
             uniswapRouter.swapExactETHForTokens{value: amount}(
                 amountOutMin,
                 path,
-                address(this), // TODO: tokens should be sent to cov pool.
+                targetTokenRecipient,
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp.add(swapDeadline)
             );
