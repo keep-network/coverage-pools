@@ -4,6 +4,7 @@ const {
   to1e18,
   impersonateAccount,
   resetFork,
+  ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 
@@ -25,6 +26,7 @@ describeFn("System -- liquidation happy path", () => {
   const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
   const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
   const auctionLength = 86400 // 24h
+  const collateralizationThreshold = 300
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
@@ -66,13 +68,27 @@ describeFn("System -- liquidation happy path", () => {
       coveragePool.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
-      auctionLength
+      auctionLength,
+      collateralizationThreshold
     )
     await riskManagerV1.deployed()
 
     tbtcDeposit = await ethers.getContractAt("IDepositStub", depositAddress)
 
     bidder = await impersonateAccount(bidderAddress)
+  })
+
+  describe("initial state", () => {
+    it("should assert a deposit is in active state", async () => {
+      expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+    })
+
+    it("should assert an auction does not exist", async () => {
+      const auctionAddress = await riskManagerV1.depositToAuction(
+        tbtcDeposit.address
+      )
+      expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+    })
   })
 
   describe("when auction has been fully filled", () => {
