@@ -22,9 +22,9 @@ contract UniswapV2PairStub is IUniswapV2Pair {
         view
         override
         returns (
-            uint112 reserve0,
-            uint112 reserve1,
-            uint32 blockTimestampLast
+            uint112,
+            uint112,
+            uint32
         )
     {
         return (reserve0, reserve1, blockTimestampLast);

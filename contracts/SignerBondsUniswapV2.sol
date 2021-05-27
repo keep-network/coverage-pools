@@ -171,11 +171,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         );
 
         // Include slippage tolerance into the minimum amount of output tokens.
-        if (slippageTolerance > 0) {
-            amountOutMin = amountOutMin
-                .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
-                .div(BASIS_POINTS_DIVISOR);
-        }
+        amountOutMin = amountOutMin
+            .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
+            .div(BASIS_POINTS_DIVISOR);
 
         uint256[] memory amounts =
             uniswapRouter.swapExactETHForTokens{value: amount}(

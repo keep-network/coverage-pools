@@ -115,14 +115,15 @@ describe("SignerBondsUniswapV2", () => {
 
     context("when price impact exceeds allowed limit", async () => {
       it("should revert", async () => {
-        // Default max allowed price impact is 1%. Such price impact will
+        // Default max allowed price impact is 1%. Such a price impact will
         // occur when 50 tokens will be bought (50/5000 = 0.01 = 1%). To
-        // buy 50 tokens, we need 10 ETH (10 ETH * 5 = 50 tokens). To violate
-        // the price impact limit, we need to buy tokens for more than 10 ETH.
+        // get 50 tokens, we need 10 ETH (10 ETH * 5 = 50 tokens) + 0.3% fee.
+        // In result, we need to buy tokens for more than 10.03 ETH to violate
+        // the price impact limit.
         await expect(
           signerBondsUniswapV2
             .connect(other)
-            .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10").add(1))
+            .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10.031"))
         ).to.be.revertedWith("Price impact exceeds allowed limit")
       })
     })
