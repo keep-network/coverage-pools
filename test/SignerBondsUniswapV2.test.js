@@ -1,7 +1,10 @@
 const chai = require("chai")
 const expect = chai.expect
 
-const { to1e18 } = require("./helpers/contract-test-helpers")
+const { deployMockContract } = require("@ethereum-waffle/mock-contract")
+const { to1e18, lastBlockTime } = require("./helpers/contract-test-helpers")
+const CoveragePool = require("../artifacts/contracts/CoveragePool.sol/CoveragePool.json")
+const { BigNumber } = ethers
 
 describe("SignerBondsUniswapV2", () => {
   let governance
@@ -9,11 +12,12 @@ describe("SignerBondsUniswapV2", () => {
   let other
   let uniswapV2RouterStub
   let uniswapV2PairStub
-  let coveragePoolStub
+  let mockCoveragePool
   let signerBondsUniswapV2
 
+  const assetPoolAddress = "0x6e7278c99ac5314e53a3E95b2343D4C57FD46159"
   // Real KEEP token mainnet address in order to get a verifiable pair address.
-  const tokenAddress = "0x85eee30c52b0b379b046fb0f85f4f3dc3009afec"
+  const tokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
 
   beforeEach(async () => {
     governance = await ethers.getSigner(0)
@@ -32,16 +36,16 @@ describe("SignerBondsUniswapV2", () => {
     uniswapV2PairStub = await UniswapV2PairStub.deploy()
     await uniswapV2PairStub.deployed()
 
-    const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
-    coveragePoolStub = await CoveragePoolStub.deploy(tokenAddress)
-    await coveragePoolStub.deployed()
+    mockCoveragePool = await deployMockContract(governance, CoveragePool.abi)
+    await mockCoveragePool.mock.assetPool.returns(assetPoolAddress)
+    await mockCoveragePool.mock.collateralToken.returns(tokenAddress)
 
     const SignerBondsUniswapV2 = await ethers.getContractFactory(
       "SignerBondsUniswapV2Stub"
     )
     signerBondsUniswapV2 = await SignerBondsUniswapV2.deploy(
       uniswapV2RouterStub.address,
-      coveragePoolStub.address
+      mockCoveragePool.address
     )
     await signerBondsUniswapV2.deployed()
 
@@ -73,9 +77,82 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  // TODO: setMaxAllowedPriceImpact
-  // TODO: setSlippageTolerance
-  // TODO: setSwapDeadline
+  describe("setMaxAllowedPriceImpact", () => {
+    context("when the caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(other).setMaxAllowedPriceImpact("150")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called with value bigger than max", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2
+            .connect(governance)
+            .setMaxAllowedPriceImpact("10001")
+        ).to.be.revertedWith("Maximum value is 10000 basis points")
+      })
+    })
+
+    context("when the caller is the governance", () => {
+      it("should set max allowed price impact parameter", async () => {
+        await signerBondsUniswapV2
+          .connect(governance)
+          .setMaxAllowedPriceImpact("150")
+        expect(await signerBondsUniswapV2.maxAllowedPriceImpact()).to.be.equal(
+          "150"
+        )
+      })
+    })
+  })
+
+  describe("setSlippageTolerance", () => {
+    context("when the caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(other).setSlippageTolerance("100")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called with value bigger than max", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(governance).setSlippageTolerance("10001")
+        ).to.be.revertedWith("Maximum value is 10000 basis points")
+      })
+    })
+
+    context("when the caller is the governance", () => {
+      it("should set slippage tolerance parameter", async () => {
+        await signerBondsUniswapV2
+          .connect(governance)
+          .setSlippageTolerance("100")
+        expect(await signerBondsUniswapV2.slippageTolerance()).to.be.equal(
+          "100"
+        )
+      })
+    })
+  })
+
+  describe("setSwapDeadline", () => {
+    context("when the caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(other).setSwapDeadline("2400")
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the governance", () => {
+      it("should set slippage tolerance parameter", async () => {
+        await signerBondsUniswapV2.connect(governance).setSwapDeadline("2400")
+        expect(await signerBondsUniswapV2.swapDeadline()).to.be.equal("2400")
+      })
+    })
+  })
 
   describe("swapSignerBondsOnUniswapV2", () => {
     const ethReserves = 1000
@@ -99,7 +176,7 @@ describe("SignerBondsUniswapV2", () => {
       it("should revert", async () => {
         await expect(
           signerBondsUniswapV2.connect(other).swapSignerBondsOnUniswapV2(0)
-        ).to.be.revertedWith("Amount is zero")
+        ).to.be.revertedWith("Amount must be greater than 0")
       })
     })
 
@@ -113,7 +190,7 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
-    context("when price impact exceeds allowed limit", async () => {
+    context("when price impact exceeds allowed limit", () => {
       it("should revert", async () => {
         // Default max allowed price impact is 1%. Such a price impact will
         // occur when 50 tokens will be bought (50/5000 = 0.01 = 1%). To
@@ -128,6 +205,44 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
-    // TODO: remaining cases
+    context("when amount and price impact are correct", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await signerBondsUniswapV2
+          .connect(other)
+          .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("5"))
+      })
+
+      it("should swap exact ETH for tokens on Uniswap", async () => {
+        await expect(tx).to.changeEtherBalance(
+          signerBondsUniswapV2,
+          ethers.utils.parseEther("-5")
+        )
+
+        await expect(tx)
+          .to.emit(uniswapV2RouterStub, "SwapExactETHForTokensExecuted")
+          .withArgs(
+            // Result of getAmountsOut with default slippage
+            // tolerance (0.5%) included. In this case its 5*1e18 * 5 * 99.5%
+            "24875000000000000000",
+            // First component is WETH and second is target token.
+            ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", tokenAddress],
+            // Asset pool should be the recipient.
+            assetPoolAddress,
+            // Block time plus default deadline value (20 min).
+            BigNumber.from(await lastBlockTime()).add(1200)
+          )
+      })
+
+      it("should emit UniswapV2SwapExecuted event", async () => {
+        await expect(tx)
+          .to.emit(signerBondsUniswapV2, "UniswapV2SwapExecuted")
+          .withArgs([
+            "5000000000000000000", // ETH to WETH is 1:1
+            "25000000000000000000", // WETH to TARGET is 1:5
+          ])
+      })
+    })
   })
 })

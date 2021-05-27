@@ -97,10 +97,12 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     /// @notice Sets the maximum price impact allowed for a swap transaction.
     /// @param _maxAllowedPriceImpact Maximum allowed price impact specified
-    ///        in basis points. Value of this parameter should be between
+    ///        in basis points. Value of this parameter must be between
     ///        0 and 10000 (inclusive). It should be chosen carefully as
-    ///        transactions with high price impact result in poor execution
-    ///        prices.
+    ///        high limit level will accept transactions with high volumes.
+    ///        Those transactions may result in poor execution prices. Very low
+    ///        limit will force low swap volumes. Limit equal to 0 will
+    ///        effectively make swaps impossible.
     function setMaxAllowedPriceImpact(uint256 _maxAllowedPriceImpact)
         external
         onlyOwner
@@ -114,11 +116,13 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     /// @notice Sets the slippage tolerance for a swap transaction.
     /// @param _slippageTolerance Slippage tolerance in basis points. Value of
-    ///        this parameter should be between 0 and 10000 (inclusive). It
+    ///        this parameter must be between 0 and 10000 (inclusive). It
     ///        should be chosen carefully as transactions with high slippage
     ///        tolerance result in poor execution prices. On the other hand,
     ///        very low slippage tolerance may cause transactions to be
-    ///        reverted frequently.
+    ///        reverted frequently. Slippage tolerance equal to 0 is possible
+    ///        and disallows any slippage to happen on the swap at the cost
+    ///        of higher revert risk.
     function setSlippageTolerance(uint256 _slippageTolerance)
         external
         onlyOwner
@@ -136,9 +140,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///        transactions with long deadlines may result in poor execution
     ///        prices. On the other hand, very short deadlines may cause
     ///        transactions to be reverted frequently, especially in a
-    ///        gas-expensive environment.
+    ///        gas-expensive environment. Deadline equal to 0 will effectively
+    //         make swaps impossible.
     function setSwapDeadline(uint256 _swapDeadline) external onlyOwner {
-        require(_swapDeadline > 0, "Deadline must be grater than zero");
         swapDeadline = _swapDeadline;
     }
 
