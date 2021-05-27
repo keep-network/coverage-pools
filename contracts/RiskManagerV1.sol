@@ -20,6 +20,8 @@ interface IDeposit {
 
     function purchaseSignerBondsAtAuction() external;
 
+    function notifyRedemptionSignatureTimedOut() external;
+
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
