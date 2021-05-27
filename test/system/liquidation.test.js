@@ -20,7 +20,8 @@ const describeFn =
 // which is ready to be liquidated at the starting block. The bidder which
 // takes the offer is also a real account with actual tBTC balance. At the
 // end of the scenario, the risk manager should liquidate the deposit successfully,
-// and 66% of the deposit's bonded amount should land on the signer processor.
+// and 66% of the deposit's bonded amount should land on the signer bonds
+// swap strategy contract.
 describeFn("System -- liquidation happy path", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
@@ -157,7 +158,7 @@ describeFn("System -- liquidation happy path", () => {
       // No funds should last on the risk manager contract.
       await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
 
-      // All funds should be moved to the signer bonds processor contract.
+      // All funds should be moved to the signer bonds swap strategy contract.
       await expect(tx).to.changeEtherBalance(
         signerBondsSwapStrategy,
         bondedAmount.mul(bondedAmountPercentage).div(100)
