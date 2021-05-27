@@ -175,6 +175,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
             .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
             .div(BASIS_POINTS_DIVISOR);
 
+        // slither-disable-next-line arbitrary-send,reentrancy-events
         uint256[] memory amounts =
             uniswapRouter.swapExactETHForTokens{value: amount}(
                 amountOutMin,
@@ -200,6 +201,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
         // Calculate the price impact. Multiply it by the floating point
         // divisor to avoid float number.
+        // slither-disable-next-line divide-before-multiply
         uint256 priceImpact =
             CoveragePoolConstants.FLOATING_POINT_DIVISOR.mul(amountWithFee).div(
                 tokenReserves
