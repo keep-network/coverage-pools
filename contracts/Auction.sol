@@ -99,22 +99,6 @@ contract Auction is IAuction {
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
-    /// @notice Takes an offer from an auction buyer with a minimum required tokens
-    ///         to buy in case another transaction was faster with an offer that
-    ///         left outstanding amount in a state which cannot meet 'amount' value
-    ///         in this transaction.
-    /// @dev 'minAmount' sets a minimum limit of tokens to buy in this transaction.
-    ///      If `amountOutstanding` < 'minAmount', transaction will revert.
-    /// @param amount the amount the taker is paying, denominated in tokenAccepted
-    /// @param minAmount minimum amount of tokens to buy
-    function takeOfferWithMin(uint256 amount, uint256 minAmount) external {
-        require(
-            self.amountOutstanding >= minAmount,
-            "Can't fulfill minimum offer"
-        );
-        takeOffer(amount);
-    }
-
     /// @notice Tears down the auction manually, before its entire amount
     ///         is bought by takers.
     /// @dev Can be called only by the auctioneer which may decide to early

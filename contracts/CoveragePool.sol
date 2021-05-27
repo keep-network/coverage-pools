@@ -120,12 +120,21 @@ contract CoveragePool is Ownable {
         external
         onlyApprovedRiskManager
     {
+        uint256 amountToSeize = amountToSeize(portionToSeize);
+
+        assetPool.claim(recipient, amountToSeize);
+    }
+
+    /// @notice Calculates amount of tokens to be seized from the coverage pool.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR.
+    function amountToSeize(uint256 portionToSeize) public returns (uint256) {
         uint256 amountToSeize =
             collateralToken
                 .balanceOf(address(assetPool))
                 .mul(portionToSeize)
                 .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
 
-        assetPool.claim(recipient, amountToSeize);
+        return amountToSeize;
     }
 }

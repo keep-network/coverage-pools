@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity <0.9.0;
+
+import "./Auction.sol";
+import "./CoveragePool.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
+/// @title AuctionBidder
+/// @notice A contract for auction bidders for buying coverage pool auctions. This
+///         contract offers additional features for bidders to decide if their
+///         requirements for making a purchase are satisfied.
+contract AuctionBidder {
+    using SafeMath for uint256;
+
+    CoveragePool public coveragePool;
+
+    constructor(CoveragePool _coveragePool) {
+        coveragePool = _coveragePool;
+    }
+
+    /// @notice Takes an offer from an auction buyer with a minimum required tokens
+    ///         to seize from the coverage pool.
+    /// @dev 'minAmountToSeize' sets a minimum amount of tokens to seize in this
+    ///      transaction. If a minimum amount is not satisfied, then the transaction
+    ///      will revert.
+    /// @param auction coverage pool auction
+    /// @param amount the amount a taker is paying, denominated in tokenAccepted
+    /// @param minAmountToSeize minAmountToSeize minimum amount of tokens to seize
+    ///        from the coverage pool
+    function takeOfferWithMin(
+        Auction auction,
+        uint256 amount,
+        uint256 minAmountToSeize
+    ) external {
+        uint256 auctionAmountOutstanding = auction.amountOutstanding();
+        uint256 amountToPay = Math.min(amount, auctionAmountOutstanding);
+        (uint256 amountOnOffer, ) = auction.onOffer();
+        uint256 portionToSeize =
+            amountOnOffer.mul(amountToPay).div(auctionAmountOutstanding);
+
+        uint256 amountToSeize = coveragePool.amountToSeize(portionToSeize);
+
+        require(
+            minAmountToSeize <= amountToSeize,
+            "Can't fulfill offer with a minimal amount to seize"
+        );
+
+        auction.takeOffer(amount);
+    }
+}
