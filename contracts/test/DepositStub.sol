@@ -6,16 +6,10 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../RiskManagerV1.sol";
 
-/// @dev Stub IDeposit interface which adds method needed by tests but not
-///      necessarily by the production code.
-interface IDepositStub is IDeposit {
-    function notifyRedemptionSignatureTimedOut() external;
-}
-
 /// @dev Stub contract simulating - in a simplified way - behavior of tBTC v1
 ///      deposit when it comes to purchasing signer bonds. This is _not_
 ///      a complete tBTC v1 Deposit implementation.
-contract DepositStub is IDepositStub {
+contract DepositStub is IDeposit {
     using SafeERC20 for IERC20;
 
     enum States {
@@ -42,6 +36,7 @@ contract DepositStub is IDepositStub {
     IERC20 public tbtcToken;
     uint256 public override lotSizeTbtc;
     uint256 public override currentState;
+    uint256 public override collateralizationPercentage = 101;
 
     address public buyer;
 

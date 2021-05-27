@@ -20,9 +20,13 @@ interface IDeposit {
 
     function purchaseSignerBondsAtAuction() external;
 
+    function notifyRedemptionSignatureTimedOut() external;
+
     function currentState() external view returns (uint256);
 
     function lotSizeTbtc() external view returns (uint256);
+
+    function collateralizationPercentage() external view returns (uint256);
 
     function withdrawableAmount() external view returns (uint256);
 }
@@ -45,6 +49,16 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
+    // Auction will not be opened if the deposit collateralization level does not
+    // fall below this collateralization threshold.
+    // Risk manager should open a coverage pool auction for only those deposits
+    // that nobody else is willing to purchase. The default value can be updated
+    // by the governance in two steps. First step is to begin the update process
+    // with the new value and the second step is to finalize it after
+    // GOVERNANCE_TIME_DELAY has passed.
+    uint256 public collateralizationThreshold; // percent
+    uint256 public newCollateralizationThreshold;
+    uint256 public collateralizationThresholdChangeInitiated;
 
     uint256 public auctionLength;
     uint256 public newAuctionLength;
@@ -66,6 +80,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
     event AuctionLengthUpdated(uint256 auctionLength);
 
+    event CollateralizationThresholdUpdateStarted(
+        uint256 collateralizationThreshold,
+        uint256 timestamp
+    );
+    event CollateralizationThresholdUpdated(uint256 collateralizationThreshold);
+
     /// @notice Reverts if called before the delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
     ///        of the change.
@@ -85,11 +105,13 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         CoveragePool _coveragePool,
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
-        uint256 _auctionLength
+        uint256 _auctionLength,
+        uint256 _collateralizationThreshold
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
+        collateralizationThreshold = _collateralizationThreshold;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -106,9 +128,10 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             "Deposit is not in liquidation state"
         );
 
-        // TODO: check the deposit collateralization
-        //       Risk manager will create an auction only for deposits that nobody
-        //       else is willing to take.
+        require(
+            deposit.collateralizationPercentage() <= collateralizationThreshold,
+            "Deposit collateralization is above the threshold level"
+        );
 
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
@@ -142,6 +165,39 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         earlyCloseAuction(auction);
     }
 
+    /// @notice Begins the collateralization threshold update process.
+    /// @dev Can be called only by the contract owner. The collateralization
+    ///      threshold should be adjusted by taking into account factors like:
+    ///      tBTC deposit undercollateralized threshold percent, tBTC deposit
+    ///      severely undercollateralized threshold percent, and the gas price.
+    /// @param _newCollateralizationThreshold New collateralization threshold in percent.
+    function beginCollateralizationThresholdUpdate(
+        uint256 _newCollateralizationThreshold
+    ) external onlyOwner {
+        newCollateralizationThreshold = _newCollateralizationThreshold;
+        /* solhint-disable-next-line not-rely-on-time */
+        collateralizationThresholdChangeInitiated = block.timestamp;
+        /* solhint-disable not-rely-on-time */
+        emit CollateralizationThresholdUpdateStarted(
+            _newCollateralizationThreshold,
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the collateralization threshold update process.
+    /// @dev Can be called only by the contract owner, after the the
+    ///      governance delay elapses.
+    function finalizeCollateralizationThresholdUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(collateralizationThresholdChangeInitiated)
+    {
+        collateralizationThreshold = newCollateralizationThreshold;
+        emit CollateralizationThresholdUpdated(collateralizationThreshold);
+        collateralizationThresholdChangeInitiated = 0;
+        newCollateralizationThreshold = 0;
+    }
+
     /// @notice Begins the auction length update process.
     /// @dev Can be called only by the contract owner. The auction length should
     ///      be adjusted very carefully. Total value locked of the coverage pool
@@ -170,6 +226,21 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         emit AuctionLengthUpdated(newAuctionLength);
         newAuctionLength = 0;
         auctionLengthChangeInitiated = 0;
+    }
+
+    /// @notice Get the time remaining until the collateralization threshold
+    ///         can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingCollateralizationThresholdUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                collateralizationThresholdChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
     }
 
     /// @notice Get the time remaining until the auction length parameter
