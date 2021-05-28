@@ -26,7 +26,7 @@ interface IDeposit {
 
     function lotSizeTbtc() external view returns (uint256);
 
-    function collateralizationPercentage() external view returns (uint256);
+    function auctionValue() external view returns (uint256);
 
     function withdrawableAmount() external view returns (uint256);
 }
@@ -128,13 +128,24 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             "Deposit is not in liquidation state"
         );
 
-        require(
-            deposit.collateralizationPercentage() <= collateralizationThreshold,
-            "Deposit collateralization is above the threshold level"
-        );
+        // TODO: Read ETHTBTC price ratio from ex. Uniswap. As of May 28 it is 0.0686243
+        uint256 ratioDivisor = 10000000;
+        uint256 notFractionalETHTBTCRatio = 686243;
+        uint256 ETHTBTCRatio = notFractionalETHTBTCRatio.mul(CoveragePoolConstants.FLOATING_POINT_DIVISOR).div(ratioDivisor);
 
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
+
+        // Calculates the amount of value at auction right now
+        uint256 auctionValueInWei = deposit.auctionValue();
+        uint256 auctionValueInTbtc = auctionValueInWei.mul(ETHTBTCRatio).div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
+        uint256 hundred = 100;
+        uint256 auctionValuePercent = hundred.mul(auctionValueInTbtc).div(lotSizeTbtc);
+
+        require(
+            auctionValuePercent <= collateralizationThreshold,
+            "Tbtc deposit auction is above the coverage pool threshold level"
+        );
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
