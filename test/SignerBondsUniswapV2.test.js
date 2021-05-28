@@ -225,7 +225,7 @@ describe("SignerBondsUniswapV2", () => {
         await expect(tx)
           .to.emit(uniswapV2RouterStub, "SwapExactETHForTokensExecuted")
           .withArgs(
-            // Result of getAmountsOut (includes 0.3% fee( with default slippage
+            // Result of getAmountsOut (includes 0.3% fee) with default slippage
             // tolerance (0.5%) included.
             // In this case its (5*1e18 * 5 * 99.7%) * 99.5%
             "24800375000000000000",
