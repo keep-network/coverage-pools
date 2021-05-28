@@ -225,9 +225,10 @@ describe("SignerBondsUniswapV2", () => {
         await expect(tx)
           .to.emit(uniswapV2RouterStub, "SwapExactETHForTokensExecuted")
           .withArgs(
-            // Result of getAmountsOut with default slippage
-            // tolerance (0.5%) included. In this case its 5*1e18 * 5 * 99.5%
-            "24875000000000000000",
+            // Result of getAmountsOut (includes 0.3% fee( with default slippage
+            // tolerance (0.5%) included.
+            // In this case its (5*1e18 * 5 * 99.7%) * 99.5%
+            "24800375000000000000",
             // First component is WETH and second is target token.
             ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", tokenAddress],
             // Asset pool should be the recipient.
@@ -241,8 +242,8 @@ describe("SignerBondsUniswapV2", () => {
         await expect(tx)
           .to.emit(signerBondsUniswapV2, "UniswapV2SwapExecuted")
           .withArgs([
-            "5000000000000000000", // ETH to WETH is 1:1
-            "25000000000000000000", // WETH to TARGET is 1:5
+            "5000000000000000000", // ETH -> WETH
+            "24925000000000000000", // WETH -> TARGET with 0.3% fee included
           ])
       })
     })

@@ -48,7 +48,7 @@ contract UniswapV2RouterStub is IUniswapV2Router {
 
         amounts = new uint256[](2);
         amounts[0] = msg.value;
-        amounts[1] = msg.value.mul(exchangeRate);
+        amounts[1] = msg.value.mul(exchangeRate).mul(997).div(1000); // simulate 0.3% fee
 
         return amounts;
     }
@@ -62,7 +62,7 @@ contract UniswapV2RouterStub is IUniswapV2Router {
     ) external view override returns (uint256[] memory amounts) {
         amounts = new uint256[](2);
         amounts[0] = amountIn;
-        amounts[1] = amountIn.mul(exchangeRate);
+        amounts[1] = amountIn.mul(exchangeRate).mul(997).div(1000); // simulate 0.3% fee
 
         return amounts;
     }
