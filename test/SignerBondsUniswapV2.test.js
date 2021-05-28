@@ -161,8 +161,10 @@ describe("SignerBondsUniswapV2", () => {
 
     beforeEach(async () => {
       await uniswapV2PairStub.setReserves(
-        to1e18(ethReserves),
-        to1e18(tokenReserves)
+        // Real KEEP token address is smaller than WETH address so
+        // token reserves should be set as reserve0.
+        to1e18(tokenReserves),
+        to1e18(ethReserves)
       )
 
       await uniswapV2RouterStub.setExchangeRate(exchangeRate)

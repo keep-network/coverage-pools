@@ -167,6 +167,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         // Calculate the maximum output token amount basing on pair reserves.
         // This value will be used as the minimum amount of output tokens that
         // must be received for the transaction not to revert.
+        // This value includes liquidity fee equal to 0.3%.
         uint256 amountOutMin = uniswapRouter.getAmountsOut(amount, path)[1];
 
         require(
@@ -197,18 +198,18 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @param amount Amount of tokens.
     /// @return True if the price impact is allowed, false otherwise.
     function isAllowedPriceImpact(uint256 amount) internal view returns (bool) {
-        // Get the token amount and include the 0.3% fee within.
-        uint256 amountWithFee = amount.mul(997).div(1000);
-
-        // Get reserves of the target token.
-        (, uint256 tokenReserves, ) = uniswapPair.getReserves();
+        // Get reserve of the target token.
+        address WETH = uniswapRouter.WETH();
+        address token0 = WETH < targetToken ? WETH : targetToken;
+        (uint256 reserve0, uint256 reserve1, ) = uniswapPair.getReserves();
+        uint256 targetTokenReserve = WETH == token0 ? reserve1 : reserve0;
 
         // Calculate the price impact. Multiply it by the floating point
         // divisor to avoid float number.
         // slither-disable-next-line divide-before-multiply
         uint256 priceImpact =
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR.mul(amountWithFee).div(
-                tokenReserves
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR.mul(amount).div(
+                targetTokenReserve
             );
 
         // Calculate the price impact limit. Multiply it by the floating point
