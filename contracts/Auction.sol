@@ -32,7 +32,7 @@ contract Auction is IAuction {
         Auctioneer auctioneer;
         // the auction price, denominated in tokenAccepted
         uint256 amountOutstanding;
-        uint256 amountInitial;
+        uint256 amountDesired;
         uint256 startTime;
         uint256 startTimeOffset;
         uint256 auctionLength;
@@ -91,7 +91,7 @@ contract Auction is IAuction {
         self.auctioneer = Auctioneer(_auctioneer);
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
-        self.amountInitial = _amountDesired;
+        self.amountDesired = _amountDesired;
         /* solhint-disable-next-line not-rely-on-time */
         self.startTime = block.timestamp;
         self.startTimeOffset = 0;
@@ -120,11 +120,17 @@ contract Auction is IAuction {
     /// @notice Tears down the auction manually, before its entire amount
     ///         is bought by takers.
     /// @dev Can be called only by the auctioneer which may decide to early
-    //       close the auction in case it is no longer needed.
-    function earlyClose() external onlyAuctioneer {
+    ///      close the auction in case it is no longer needed.
+    /// @return Amount of funds transferred to the auction at the time of closing.
+    function earlyClose() external onlyAuctioneer returns (uint256) {
         require(self.amountOutstanding > 0, "Auction must be open");
 
+        uint256 transferredAmount =
+            self.amountDesired.sub(self.amountOutstanding);
+
         harikari();
+
+        return transferredAmount;
     }
 
     /// @notice How much of the collateral pool can currently be purchased at
@@ -139,14 +145,6 @@ contract Auction is IAuction {
 
     function amountOutstanding() external view returns (uint256) {
         return self.amountOutstanding;
-    }
-
-    function amountTransferred() external view returns (uint256) {
-        // Need to check whether the auction is open as harikari is done
-        // upon auction close so there is no possibility to determine
-        // the transferred amount on a closed auction.
-        require(self.amountOutstanding > 0, "Auction must be open");
-        return self.amountInitial.sub(self.amountOutstanding);
     }
 
     function isOpen() external view returns (bool) {
