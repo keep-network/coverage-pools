@@ -180,6 +180,12 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
             .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
             .div(BASIS_POINTS_DIVISOR);
 
+        // TODO: Do not send acquired tokens to the asset pool in case an
+        //       open auction exists. In that case, additional tokens will
+        //       cause the auction to offer more of the coverage pool value for
+        //       the same price. This is unreasonable in terms of economy.
+        //       Figure out how to address that problem.
+
         // slither-disable-next-line arbitrary-send,reentrancy-events
         uint256[] memory amounts =
             uniswapRouter.swapExactETHForTokens{value: amount}(
