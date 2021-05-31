@@ -242,6 +242,10 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     function beginSignerBondsSwapStrategyUpdate(
         ISignerBondsSwapStrategy _newSignerBondsSwapStrategy
     ) external onlyOwner {
+        require(
+            address(_newSignerBondsSwapStrategy) != address(0),
+            "Invalid signer bonds swap strategy address"
+        );
         newSignerBondsSwapStrategy = _newSignerBondsSwapStrategy;
         /* solhint-disable-next-line not-rely-on-time */
         signerBondsSwapStrategyInitiated = block.timestamp;

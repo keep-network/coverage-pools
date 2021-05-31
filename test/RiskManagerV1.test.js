@@ -35,7 +35,6 @@ describe("RiskManagerV1", () => {
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()
 
-    // TODO: Another type of strategy could be used
     anotherSignerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await anotherSignerBondsSwapStrategy.deployed()
 
@@ -408,7 +407,7 @@ describe("RiskManagerV1", () => {
           )
       })
 
-      it("should not update the signerBondsSwapStrategy", async () => {
+      it("should not update the signer bonds swap strategy", async () => {
         expect(await riskManagerV1.signerBondsSwapStrategy()).to.be.equal(
           signerBondsSwapStrategy.address
         )
@@ -438,6 +437,16 @@ describe("RiskManagerV1", () => {
               anotherSignerBondsSwapStrategy.address
             )
         ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when signer bonds swap strategy is invalid", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(owner)
+            .beginSignerBondsSwapStrategyUpdate(ZERO_ADDRESS)
+        ).to.be.revertedWith("Invalid signer bonds swap strategy address")
       })
     })
   })
