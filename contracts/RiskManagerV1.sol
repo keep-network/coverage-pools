@@ -171,6 +171,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         uint256 amountTransferred = earlyCloseAuction(auction);
 
         // Add auction's transferred amount to the surplus pool.
+        // slither-disable-next-line reentrancy-benign
         tbtcSurplus = tbtcSurplus.add(amountTransferred);
     }
 
