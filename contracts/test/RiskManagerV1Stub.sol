@@ -13,14 +13,16 @@ contract RiskManagerV1Stub is RiskManagerV1 {
         CoveragePool _coveragePool,
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
-        uint256 _auctionLength
+        uint256 _auctionLength,
+        uint256 _collateralizationThreshold
     )
         RiskManagerV1(
             _tbtcToken,
             _coveragePool,
             _signerBondsSwapStrategy,
             _masterAuction,
-            _auctionLength
+            _auctionLength,
+            _collateralizationThreshold
         )
     {}
 
