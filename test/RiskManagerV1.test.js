@@ -19,7 +19,7 @@ const auctionLength = 86400 // 24h
 const collateralizationThreshold = 101
 
 describe("RiskManagerV1", () => {
-  let testToken
+  let tbtcToken
   let signerBondsSwapStrategy
   let owner
   let notifier
@@ -29,8 +29,8 @@ describe("RiskManagerV1", () => {
 
   beforeEach(async () => {
     const TestToken = await ethers.getContractFactory("TestToken")
-    testToken = await TestToken.deploy()
-    await testToken.deployed()
+    tbtcToken = await TestToken.deploy()
+    await tbtcToken.deployed()
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
       "SignerBondsEscrow"
@@ -48,7 +48,7 @@ describe("RiskManagerV1", () => {
 
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1Stub")
     riskManagerV1 = await RiskManagerV1.deploy(
-      testToken.address,
+      tbtcToken.address,
       coveragePoolStub.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
@@ -135,8 +135,8 @@ describe("RiskManagerV1", () => {
 
         beforeEach(async () => {
           const surplus = to1ePrecision(30, 16)
-          await testToken.mint(owner.address, surplus)
-          await testToken.connect(owner).approve(riskManagerV1.address, surplus)
+          await tbtcToken.mint(owner.address, surplus)
+          await tbtcToken.connect(owner).approve(riskManagerV1.address, surplus)
           await riskManagerV1.fundTbtcSurplus(surplus)
 
           notifyLiquidationTx = await notifyLiquidation()
@@ -176,8 +176,8 @@ describe("RiskManagerV1", () => {
 
         beforeEach(async () => {
           const surplus = to1e18(1)
-          await testToken.mint(owner.address, surplus)
-          await testToken.connect(owner).approve(riskManagerV1.address, surplus)
+          await tbtcToken.mint(owner.address, surplus)
+          await tbtcToken.connect(owner).approve(riskManagerV1.address, surplus)
           await riskManagerV1.fundTbtcSurplus(surplus)
 
           // Just to make the `swapSignerBonds` call possible.
@@ -231,8 +231,8 @@ describe("RiskManagerV1", () => {
 
         beforeEach(async () => {
           const surplus = to1e18(5)
-          await testToken.mint(owner.address, surplus)
-          await testToken.connect(owner).approve(riskManagerV1.address, surplus)
+          await tbtcToken.mint(owner.address, surplus)
+          await tbtcToken.connect(owner).approve(riskManagerV1.address, surplus)
           await riskManagerV1.fundTbtcSurplus(surplus)
 
           // Just to make the `swapSignerBonds` call possible.
@@ -299,8 +299,8 @@ describe("RiskManagerV1", () => {
         )
 
         // Simulate that someone takes a partial offer on the auction.
-        await testToken.mint(bidder.address, auctionLotSize)
-        await testToken.connect(bidder).approve(auctionAddress, auctionLotSize)
+        await tbtcToken.mint(bidder.address, auctionLotSize)
+        await tbtcToken.connect(bidder).approve(auctionAddress, auctionLotSize)
         auction = new ethers.Contract(auctionAddress, Auction.abi, owner)
         auction.connect(bidder).takeOffer(to1ePrecision(25, 16))
 
