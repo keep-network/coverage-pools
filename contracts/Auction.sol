@@ -120,17 +120,11 @@ contract Auction is IAuction {
     /// @notice Tears down the auction manually, before its entire amount
     ///         is bought by takers.
     /// @dev Can be called only by the auctioneer which may decide to early
-    ///      close the auction in case it is no longer needed.
-    /// @return Amount of funds transferred to the auction at the time of closing.
-    function earlyClose() external onlyAuctioneer returns (uint256) {
+    //       close the auction in case it is no longer needed.
+    function earlyClose() external onlyAuctioneer {
         require(self.amountOutstanding > 0, "Auction must be open");
 
-        uint256 transferredAmount =
-            self.amountDesired.sub(self.amountOutstanding);
-
         harikari();
-
-        return transferredAmount;
     }
 
     /// @notice How much of the collateral pool can currently be purchased at
@@ -145,6 +139,14 @@ contract Auction is IAuction {
 
     function amountOutstanding() external view returns (uint256) {
         return self.amountOutstanding;
+    }
+
+    function amountTransferred() external view returns (uint256) {
+        // Need to check whether the auction is open as harikari is done
+        // upon auction close so there is no possibility to determine
+        // the transferred amount on a closed auction.
+        require(self.amountOutstanding > 0, "Auction must be open");
+        return self.amountDesired.sub(self.amountOutstanding);
     }
 
     function isOpen() external view returns (bool) {

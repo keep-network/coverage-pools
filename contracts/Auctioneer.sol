@@ -134,8 +134,10 @@ contract Auctioneer is CloneFactory {
 
         require(openAuctions[auctionAddress], "Address is not an open auction");
 
+        uint256 amountTransferred = auction.amountTransferred();
+
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
-        uint256 amountTransferred = auction.earlyClose();
+        auction.earlyClose();
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
