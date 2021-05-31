@@ -158,6 +158,12 @@ describe("RiskManagerV1", () => {
               expect(auctionAddress).to.not.equal(ZERO_ADDRESS)
             })
 
+            it("should map the auction to deposit", async () => {
+              expect(
+                await riskManagerV1.openAuctions(auctionAddress)
+              ).to.be.equal(mockIDeposit.address)
+            })
+
             it("should not use the surplus pool", async () => {
               expect(await riskManagerV1.tbtcSurplus()).to.be.equal(
                 to1ePrecision(30, 16)
@@ -336,7 +342,9 @@ describe("RiskManagerV1", () => {
         expect(await riskManagerV1.depositToAuction(auctionAddress)).to.equal(
           ZERO_ADDRESS
         )
-        expect(await riskManagerV1.openAuctions(auctionAddress)).to.be.false
+        expect(await riskManagerV1.openAuctions(auctionAddress)).to.be.equal(
+          ZERO_ADDRESS
+        )
       })
     })
   })

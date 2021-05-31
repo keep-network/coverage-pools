@@ -86,8 +86,6 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
-    // opened coverage pool auction => deposit in liquidation
-    mapping(address => address) public auctionToDeposit;
 
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
@@ -172,7 +170,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
-        auctionToDeposit[auctionAddress] = depositAddress;
+        openAuctions[auctionAddress] = depositAddress;
     }
 
     /// @notice Closes an auction early.
@@ -188,7 +186,6 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         Auction auction = Auction(depositToAuction[depositAddress]);
 
         delete depositToAuction[depositAddress];
-        delete auctionToDeposit[address(auction)];
         uint256 amountTransferred = earlyCloseAuction(auction);
 
         // Add auction's transferred amount to the surplus pool.
@@ -352,10 +349,9 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     ///      succeeds for a deposit liquidated outside of Coverage Pool.
     /// @param auction Coverage pool auction.
     function onAuctionFullyFilled(Auction auction) internal override {
-        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
-
-        delete depositToAuction[address(deposit)];
-        delete auctionToDeposit[address(auction)];
+        address depositAddress = openAuctions[address(auction)];
+        IDeposit deposit = IDeposit(depositAddress);
+        delete depositToAuction[depositAddress];
 
         liquidateDeposit(deposit);
     }
@@ -388,7 +384,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     ///      results of an auction and the auction was partially filled.
     /// @param auction Address of an auction whose deposit needs to be checked.
     function onAuctionPartiallyFilled(Auction auction) internal view override {
-        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+        IDeposit deposit = IDeposit(openAuctions[address(auction)]);
         // Make sure the deposit was not liquidated outside of Coverage Pool
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,

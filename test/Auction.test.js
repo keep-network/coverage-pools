@@ -235,8 +235,8 @@ describe("Auction", () => {
           )
 
           expect(
-            (actualPortionOnOffer * totalValueLocked) / divisor
-          ).to.be.closeTo(minLotSize * BTCETHPrice, precision)
+            actualPortionOnOffer.mul(totalValueLocked).div(divisor)
+          ).to.be.closeTo(minLotSize.mul(BTCETHPrice), to1ePrecision(3, 13))
         }
       )
     })
@@ -718,6 +718,12 @@ describe("Auction", () => {
     const events = pastEvents(receipt, auctioneer, "AuctionCreated")
     const auctionAddress = events[0].args["auctionAddress"]
 
+    // Simulate setting the address of the auction item (e.g. tBTC deposit) by
+    // the risk manager
+    await auctioneer.setAuctionItem(
+      auctionAddress,
+      "0x0000000000000000000000000000000000000001"
+    )
     return new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
   }
 

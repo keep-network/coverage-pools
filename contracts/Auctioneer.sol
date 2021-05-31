@@ -29,7 +29,11 @@ contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
-    mapping(address => bool) public openAuctions;
+
+    // Maps auction to the item being on offer for that auction (e.g. a tBTC
+    // deposit). Must be filled by the risk manager after `createAuction` was
+    // called.
+    mapping(address => address) public openAuctions;
 
     CoveragePool public coveragePool;
 
@@ -72,7 +76,10 @@ contract Auctioneer is CloneFactory {
         uint256 tokenAmountPaid,
         uint256 portionToSeize
     ) external {
-        require(openAuctions[msg.sender], "Sender isn't an auction");
+        require(
+            openAuctions[msg.sender] != address(0),
+            "Sender isn't an auction"
+        );
 
         emit AuctionOfferTaken(
             msg.sender,
@@ -126,8 +133,6 @@ contract Auctioneer is CloneFactory {
             auctionLength
         );
 
-        openAuctions[cloneAddress] = true;
-
         emit AuctionCreated(
             address(tokenAccepted),
             amountDesired,
@@ -147,7 +152,10 @@ contract Auctioneer is CloneFactory {
     function earlyCloseAuction(Auction auction) internal returns (uint256) {
         address auctionAddress = address(auction);
 
-        require(openAuctions[auctionAddress], "Address is not an open auction");
+        require(
+            openAuctions[auctionAddress] != address(0),
+            "Address is not an open auction"
+        );
 
         uint256 amountTransferred = auction.amountTransferred();
 

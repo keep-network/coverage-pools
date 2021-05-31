@@ -5,6 +5,7 @@ const {
   to1e18,
   pastEvents,
   increaseTime,
+  ZERO_ADDRESS,
 } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
@@ -57,12 +58,6 @@ describe("Auctioneer", () => {
     })
 
     context("when caller is the owner", () => {
-      it("should create a new auction", async () => {
-        expect(
-          await auctioneer.openAuctions(events[0].args["auctionAddress"])
-        ).to.equal(true)
-      })
-
       it("should emit auction created event", async () => {
         expect(events.length).to.equal(1)
         expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
@@ -179,7 +174,9 @@ describe("Auctioneer", () => {
         })
 
         it("should not stop tracking the auction", async () => {
-          expect(await auctioneer.openAuctions(auctionAddress)).to.equal(true)
+          expect(await auctioneer.openAuctions(auctionAddress)).not.to.be.equal(
+            ZERO_ADDRESS
+          )
         })
       }
     )
@@ -238,7 +235,9 @@ describe("Auctioneer", () => {
       })
 
       it("should stop tracking the auction", async () => {
-        expect(await auctioneer.openAuctions(auctionAddress)).to.equal(false)
+        expect(await auctioneer.openAuctions(auctionAddress)).to.equal(
+          ZERO_ADDRESS
+        )
       })
     })
   })
@@ -276,8 +275,9 @@ describe("Auctioneer", () => {
 
       it("should no longer track the auction", async () => {
         await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
-
-        expect(await auctioneer.openAuctions(auctionAddress)).to.be.false
+        expect(await auctioneer.openAuctions(auctionAddress)).to.be.equal(
+          ZERO_ADDRESS
+        )
       })
 
       it("should return the auction's transferred amount", async () => {
@@ -323,6 +323,16 @@ describe("Auctioneer", () => {
         auctionLength
       )
 
-    return await createAuctionTx.wait()
+    const receipt = await createAuctionTx.wait()
+    const events = pastEvents(receipt, auctioneer, "AuctionCreated")
+    const auctionAddress = events[0].args["auctionAddress"]
+
+    // Simulate setting the address of the auction item (e.g. tBTC deposit) by
+    // the risk manager
+    await auctioneer.setAuctionItem(
+      auctionAddress,
+      "0x0000000000000000000000000000000000000001"
+    )
+    return receipt
   }
 })

@@ -27,4 +27,11 @@ contract AuctioneerStub is Auctioneer {
         uint256 transferredAmount = earlyCloseAuction(auction);
         emit AuctionEarlyClosed(transferredAmount);
     }
+
+    /// @dev Needed to set the item that will be on offer (e.g. tBTC deposit).
+    ///      Used for test purposes. In real flow the item on offer is set by
+    ///      the risk manager.
+    function setAuctionItem(address auction, address auctionItem) public {
+        openAuctions[auction] = auctionItem;
+    }
 }
