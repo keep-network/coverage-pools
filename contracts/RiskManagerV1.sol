@@ -166,12 +166,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         Auction auction = Auction(depositToAuction[depositAddress]);
 
-        // Add auction's transferred amount to the surplus pool.
-        tbtcSurplus = tbtcSurplus.add(auction.amountTransferred());
-
         delete depositToAuction[depositAddress];
         delete auctionToDeposit[address(auction)];
-        earlyCloseAuction(auction);
+        uint256 amountTransferred = earlyCloseAuction(auction);
+
+        // Add auction's transferred amount to the surplus pool.
+        tbtcSurplus = tbtcSurplus.add(amountTransferred);
     }
 
     /// @notice Begins the collateralization threshold update process.

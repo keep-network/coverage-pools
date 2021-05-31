@@ -128,16 +128,21 @@ contract Auctioneer is CloneFactory {
     ///      is no longer needed. Bear in mind that funds from the early closed
     ///      auction last on the auctioneer contract. Calling code should take
     ///      care of them.
-    function earlyCloseAuction(Auction auction) internal {
+    /// @return Amount of funds transferred to the auction at the time of closing.
+    function earlyCloseAuction(Auction auction) internal returns (uint256) {
         address auctionAddress = address(auction);
 
         require(openAuctions[auctionAddress], "Address is not an open auction");
+
+        uint256 amountTransferred = auction.amountTransferred();
 
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         auction.earlyClose();
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
+
+        return amountTransferred;
     }
 
     /// @notice Auction lifecycle hook allowing to act on auction closed
