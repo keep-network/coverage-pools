@@ -75,205 +75,201 @@ describe("RiskManagerV1", () => {
       })
     })
 
-    context("when deposit is above collateralization threshold level", () => {
-      it("should revert", async () => {
-        await mockIDeposit.mock.currentState.returns(
-          depositLiquidationInProgressState
+    context("when deposit is in liquidation state", () => {
+      context("when deposit is above collateralization threshold level", () => {
+        it("should revert", async () => {
+          await mockIDeposit.mock.currentState.returns(
+            depositLiquidationInProgressState
+          )
+          await mockIDeposit.mock.collateralizationPercentage.returns(
+            collateralizationThreshold + 1
+          )
+          await expect(
+            riskManagerV1.notifyLiquidation(mockIDeposit.address)
+          ).to.be.revertedWith(
+            "Deposit collateralization is above the threshold level"
+          )
+        })
+      })
+
+      context("when deposit is at the collateralization threshold", () => {
+        context("when the surplus pool is empty", () => {
+          let notifyLiquidationTx
+          let auctionAddress
+
+          beforeEach(async () => {
+            notifyLiquidationTx = await notifyLiquidation()
+
+            auctionAddress = await riskManagerV1.depositToAuction(
+              mockIDeposit.address
+            )
+          })
+
+          it("should emit NotifiedLiquidation event", async () => {
+            await expect(notifyLiquidationTx)
+              .to.emit(riskManagerV1, "NotifiedLiquidation")
+              .withArgs(mockIDeposit.address, notifier.address)
+          })
+
+          it("should create an auction ", async () => {
+            expect(auctionAddress).to.be.properAddress
+            expect(auctionAddress).to.not.equal(ZERO_ADDRESS)
+          })
+
+          it("should not use the surplus pool", async () => {
+            expect(await riskManagerV1.tbtcSurplus()).to.be.equal(0)
+          })
+        })
+
+        context(
+          "when the surplus pool is smaller than the deposit lot size",
+          () => {
+            let notifyLiquidationTx
+            let auctionAddress
+
+            beforeEach(async () => {
+              const surplus = to1ePrecision(30, 16)
+              await tbtcToken.mint(owner.address, surplus)
+              await tbtcToken
+                .connect(owner)
+                .approve(riskManagerV1.address, surplus)
+              await riskManagerV1.fundTbtcSurplus(surplus)
+
+              notifyLiquidationTx = await notifyLiquidation()
+
+              auctionAddress = await riskManagerV1.depositToAuction(
+                mockIDeposit.address
+              )
+            })
+
+            it("should emit NotifiedLiquidation event", async () => {
+              await expect(notifyLiquidationTx)
+                .to.emit(riskManagerV1, "NotifiedLiquidation")
+                .withArgs(mockIDeposit.address, notifier.address)
+            })
+
+            it("should create an auction ", async () => {
+              expect(auctionAddress).to.be.properAddress
+              expect(auctionAddress).to.not.equal(ZERO_ADDRESS)
+            })
+
+            it("should not use the surplus pool", async () => {
+              expect(await riskManagerV1.tbtcSurplus()).to.be.equal(
+                to1ePrecision(30, 16)
+              )
+            })
+          }
         )
-        await mockIDeposit.mock.collateralizationPercentage.returns(
-          collateralizationThreshold + 1
+
+        context(
+          "when the surplus pool is equal to the deposit lot size",
+          () => {
+            let notifyLiquidationTx
+            let auctionAddress
+
+            beforeEach(async () => {
+              const surplus = to1e18(1)
+              await tbtcToken.mint(owner.address, surplus)
+              await tbtcToken
+                .connect(owner)
+                .approve(riskManagerV1.address, surplus)
+              await riskManagerV1.fundTbtcSurplus(surplus)
+
+              // Just to make the `swapSignerBonds` call possible.
+              await owner.sendTransaction({
+                to: riskManagerV1.address,
+                value: ethers.utils.parseEther("10"),
+              })
+
+              await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
+              await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
+              await mockIDeposit.mock.withdrawFunds.returns()
+
+              notifyLiquidationTx = await notifyLiquidation()
+
+              auctionAddress = await riskManagerV1.depositToAuction(
+                mockIDeposit.address
+              )
+            })
+
+            it("should emit NotifiedLiquidation event", async () => {
+              await expect(notifyLiquidationTx)
+                .to.emit(riskManagerV1, "NotifiedLiquidation")
+                .withArgs(mockIDeposit.address, notifier.address)
+            })
+
+            it("should not create an auction", async () => {
+              expect(auctionAddress).to.equal(ZERO_ADDRESS)
+            })
+
+            it("should use the entire surplus pool", async () => {
+              expect(await riskManagerV1.tbtcSurplus()).to.be.equal(0)
+            })
+
+            it("should liquidate the deposit directly", async () => {
+              await expect(notifyLiquidationTx).to.changeEtherBalance(
+                signerBondsSwapStrategy,
+                to1e18(10)
+              )
+            })
+          }
         )
-        await expect(
-          riskManagerV1.notifyLiquidation(mockIDeposit.address)
-        ).to.be.revertedWith(
-          "Deposit collateralization is above the threshold level"
+
+        context(
+          "when the surplus pool is bigger than the deposit lot size",
+          () => {
+            let notifyLiquidationTx
+            let auctionAddress
+
+            beforeEach(async () => {
+              const surplus = to1e18(5)
+              await tbtcToken.mint(owner.address, surplus)
+              await tbtcToken
+                .connect(owner)
+                .approve(riskManagerV1.address, surplus)
+              await riskManagerV1.fundTbtcSurplus(surplus)
+
+              // Just to make the `swapSignerBonds` call possible.
+              await owner.sendTransaction({
+                to: riskManagerV1.address,
+                value: ethers.utils.parseEther("10"),
+              })
+
+              await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
+              await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
+              await mockIDeposit.mock.withdrawFunds.returns()
+
+              notifyLiquidationTx = await notifyLiquidation()
+
+              auctionAddress = await riskManagerV1.depositToAuction(
+                mockIDeposit.address
+              )
+            })
+
+            it("should emit NotifiedLiquidation event", async () => {
+              await expect(notifyLiquidationTx)
+                .to.emit(riskManagerV1, "NotifiedLiquidation")
+                .withArgs(mockIDeposit.address, notifier.address)
+            })
+
+            it("should not create an auction", async () => {
+              expect(auctionAddress).to.equal(ZERO_ADDRESS)
+            })
+
+            it("should use a part of the surplus pool", async () => {
+              expect(await riskManagerV1.tbtcSurplus()).to.be.equal(to1e18(4))
+            })
+
+            it("should liquidate the deposit directly", async () => {
+              await expect(notifyLiquidationTx).to.changeEtherBalance(
+                signerBondsSwapStrategy,
+                to1e18(10)
+              )
+            })
+          }
         )
       })
     })
-
-    context(
-      "when deposit is in liquidation state " +
-        "and at the collateralization threshold " +
-        "and the surplus pool is empty",
-      () => {
-        let notifyLiquidationTx
-        let auctionAddress
-
-        beforeEach(async () => {
-          notifyLiquidationTx = await notifyLiquidation()
-
-          auctionAddress = await riskManagerV1.depositToAuction(
-            mockIDeposit.address
-          )
-        })
-
-        it("should emit NotifiedLiquidation event", async () => {
-          await expect(notifyLiquidationTx)
-            .to.emit(riskManagerV1, "NotifiedLiquidation")
-            .withArgs(mockIDeposit.address, notifier.address)
-        })
-
-        it("should create an auction ", async () => {
-          expect(auctionAddress).to.be.properAddress
-          expect(auctionAddress).to.not.equal(ZERO_ADDRESS)
-        })
-
-        it("should not use the surplus pool", async () => {
-          expect(await riskManagerV1.tbtcSurplus()).to.be.equal(0)
-        })
-      }
-    )
-
-    context(
-      "when deposit is in liquidation state " +
-        "and at the collateralization threshold " +
-        "and the surplus pool is " +
-        "smaller than the deposit lot size",
-      () => {
-        let notifyLiquidationTx
-        let auctionAddress
-
-        beforeEach(async () => {
-          const surplus = to1ePrecision(30, 16)
-          await tbtcToken.mint(owner.address, surplus)
-          await tbtcToken.connect(owner).approve(riskManagerV1.address, surplus)
-          await riskManagerV1.fundTbtcSurplus(surplus)
-
-          notifyLiquidationTx = await notifyLiquidation()
-
-          auctionAddress = await riskManagerV1.depositToAuction(
-            mockIDeposit.address
-          )
-        })
-
-        it("should emit NotifiedLiquidation event", async () => {
-          await expect(notifyLiquidationTx)
-            .to.emit(riskManagerV1, "NotifiedLiquidation")
-            .withArgs(mockIDeposit.address, notifier.address)
-        })
-
-        it("should create an auction ", async () => {
-          expect(auctionAddress).to.be.properAddress
-          expect(auctionAddress).to.not.equal(ZERO_ADDRESS)
-        })
-
-        it("should not use the surplus pool", async () => {
-          expect(await riskManagerV1.tbtcSurplus()).to.be.equal(
-            to1ePrecision(30, 16)
-          )
-        })
-      }
-    )
-
-    context(
-      "when deposit is in liquidation state " +
-        "and at the collateralization threshold " +
-        "and the surplus pool is " +
-        "equal to the deposit lot size",
-      () => {
-        let notifyLiquidationTx
-        let auctionAddress
-
-        beforeEach(async () => {
-          const surplus = to1e18(1)
-          await tbtcToken.mint(owner.address, surplus)
-          await tbtcToken.connect(owner).approve(riskManagerV1.address, surplus)
-          await riskManagerV1.fundTbtcSurplus(surplus)
-
-          // Just to make the `swapSignerBonds` call possible.
-          await owner.sendTransaction({
-            to: riskManagerV1.address,
-            value: ethers.utils.parseEther("10"),
-          })
-
-          await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
-          await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-          await mockIDeposit.mock.withdrawFunds.returns()
-
-          notifyLiquidationTx = await notifyLiquidation()
-
-          auctionAddress = await riskManagerV1.depositToAuction(
-            mockIDeposit.address
-          )
-        })
-
-        it("should emit NotifiedLiquidation event", async () => {
-          await expect(notifyLiquidationTx)
-            .to.emit(riskManagerV1, "NotifiedLiquidation")
-            .withArgs(mockIDeposit.address, notifier.address)
-        })
-
-        it("should not create an auction", async () => {
-          expect(auctionAddress).to.equal(ZERO_ADDRESS)
-        })
-
-        it("should use the entire surplus pool", async () => {
-          expect(await riskManagerV1.tbtcSurplus()).to.be.equal(0)
-        })
-
-        it("should liquidate the deposit directly", async () => {
-          await expect(notifyLiquidationTx).to.changeEtherBalance(
-            signerBondsSwapStrategy,
-            to1e18(10)
-          )
-        })
-      }
-    )
-
-    context(
-      "when deposit is in liquidation state " +
-        "and at the collateralization threshold " +
-        "and the surplus pool is " +
-        "bigger than the deposit lot size",
-      () => {
-        let notifyLiquidationTx
-        let auctionAddress
-
-        beforeEach(async () => {
-          const surplus = to1e18(5)
-          await tbtcToken.mint(owner.address, surplus)
-          await tbtcToken.connect(owner).approve(riskManagerV1.address, surplus)
-          await riskManagerV1.fundTbtcSurplus(surplus)
-
-          // Just to make the `swapSignerBonds` call possible.
-          await owner.sendTransaction({
-            to: riskManagerV1.address,
-            value: ethers.utils.parseEther("10"),
-          })
-
-          await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
-          await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-          await mockIDeposit.mock.withdrawFunds.returns()
-
-          notifyLiquidationTx = await notifyLiquidation()
-
-          auctionAddress = await riskManagerV1.depositToAuction(
-            mockIDeposit.address
-          )
-        })
-
-        it("should emit NotifiedLiquidation event", async () => {
-          await expect(notifyLiquidationTx)
-            .to.emit(riskManagerV1, "NotifiedLiquidation")
-            .withArgs(mockIDeposit.address, notifier.address)
-        })
-
-        it("should not create an auction", async () => {
-          expect(auctionAddress).to.equal(ZERO_ADDRESS)
-        })
-
-        it("should use a part of the surplus pool", async () => {
-          expect(await riskManagerV1.tbtcSurplus()).to.be.equal(to1e18(4))
-        })
-
-        it("should liquidate the deposit directly", async () => {
-          await expect(notifyLiquidationTx).to.changeEtherBalance(
-            signerBondsSwapStrategy,
-            to1e18(10)
-          )
-        })
-      }
-    )
   })
 
   describe("notifyLiquidated", () => {
