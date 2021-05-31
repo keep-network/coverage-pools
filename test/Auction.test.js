@@ -6,7 +6,7 @@ const {
   to1e18,
   pastEvents,
   increaseTime,
-  impersonateContract,
+  impersonateAccount,
 } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
@@ -634,7 +634,7 @@ describe("Auction", () => {
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     beforeEach(async () => {
-      auctioneerSigner = await impersonateContract(auctioneer.address, owner)
+      auctioneerSigner = await impersonateAccount(auctioneer.address, owner)
 
       auction = await createAuction(auctionAmountDesired, auctionLength)
       await approveTestTokenForAuction(auction.address)

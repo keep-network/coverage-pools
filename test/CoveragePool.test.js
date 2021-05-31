@@ -19,12 +19,14 @@ describe("CoveragePool", () => {
     governance = await ethers.getSigner(1)
     // Underwriter that will deposit some amount of tokens to Asset Pool
     underwriter = await ethers.getSigner(2)
-    // Recipient that will recive seized funds
+    // Recipient that will receive seized funds
     recipient = await ethers.getSigner(3)
     // Risk Manager that will seize funds
     riskManager = await ethers.getSigner(4)
     // Account that is not authorized to call functions on Coverage Pool
     thirdParty = await ethers.getSigner(5)
+    // Account funding Asset Pool with rewards
+    const rewardsManager = await ethers.getSigner(6)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
@@ -40,7 +42,8 @@ describe("CoveragePool", () => {
     const AssetPool = await ethers.getContractFactory("AssetPool")
     const assetPool = await AssetPool.deploy(
       testToken.address,
-      underwriterToken.address
+      underwriterToken.address,
+      rewardsManager.address
     )
     await assetPool.deployed()
 
