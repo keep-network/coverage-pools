@@ -49,8 +49,10 @@ describe("RiskManagerV1", () => {
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1Stub")
-    riskManagerV1 = await RiskManagerV1.deploy(
+    const RiskManagerV1Stub = await ethers.getContractFactory(
+      "RiskManagerV1Stub"
+    )
+    riskManagerV1 = await RiskManagerV1Stub.deploy(
       tbtcToken.address,
       coveragePoolStub.address,
       signerBondsSwapStrategy.address,
