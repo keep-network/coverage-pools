@@ -690,32 +690,20 @@ describe("Auction", () => {
       await approveTestTokenForAuction(auction.address)
     })
 
-    context("when the auction is open", () => {
-      it("should return the right amount transferred", async () => {
-        expect(await auction.amountTransferred()).to.be.equal(0)
+    it("should return the right amount transferred", async () => {
+      expect(await auction.amountTransferred()).to.be.equal(0)
 
-        await auction.connect(bidder1).takeOffer(to1ePrecision(2, 16))
+      await auction.connect(bidder1).takeOffer(to1ePrecision(2, 16))
 
-        expect(await auction.amountTransferred()).to.be.equal(
-          to1ePrecision(2, 16)
-        )
+      expect(await auction.amountTransferred()).to.be.equal(
+        to1ePrecision(2, 16)
+      )
 
-        await auction.connect(bidder1).takeOffer(to1ePrecision(7, 16))
+      await auction.connect(bidder1).takeOffer(to1ePrecision(7, 16))
 
-        expect(await auction.amountTransferred()).to.be.equal(
-          to1ePrecision(9, 16)
-        )
-      })
-    })
-
-    context("when the auction is closed", () => {
-      it("should revert", async () => {
-        await auction.connect(bidder1).takeOffer(to1ePrecision(10, 16))
-
-        await expect(auction.amountTransferred()).to.be.revertedWith(
-          "Auction must be open"
-        )
-      })
+      expect(await auction.amountTransferred()).to.be.equal(
+        to1ePrecision(9, 16)
+      )
     })
   })
 
