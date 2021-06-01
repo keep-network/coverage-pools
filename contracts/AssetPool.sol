@@ -24,8 +24,10 @@ contract AssetPool is Ownable {
 
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
+    UnderwriterToken public newUnderwriterToken;
 
     RewardsPool public rewardsPool;
+    AssetPool public newAssetPool;
 
     mapping(address => uint256) public withdrawalInitiatedTimestamp;
     mapping(address => uint256) public pendingWithdrawal;
@@ -66,6 +68,11 @@ contract AssetPool is Ownable {
         uint256 timestamp
     );
     event WithdrawalTimedOut(address indexed underwriter, uint256 timestamp);
+    event WithdrawalToNewAssetPoolCompleted(
+        address indexed underwriter,
+        uint256 amount,
+        uint256 timestamp
+    );
 
     constructor(
         IERC20 _collateralToken,
@@ -253,12 +260,67 @@ contract AssetPool is Ownable {
         underwriterToken.burn(covAmount);
     }
 
+    /// @notice Withdraws collateral tokens to a new Asset Pool which previously
+    ///         was approved by the governance. 
+    function withdrawToNewAssetPool() external {
+        /* solhint-disable not-rely-on-time */
+        require(
+            address(newAssetPool) != address(0),
+            "New asset pool must be set"
+        );
+
+        uint256 covUnderwriterBalance = underwriterToken.balanceOf(msg.sender);
+
+        require(
+            covUnderwriterBalance > 0,
+            "Underwriter's token balance must be greater than 0"
+        );
+
+        uint256 covSupply = underwriterToken.totalSupply();
+
+        // slither-disable-next-line reentrancy-events
+        rewardsPool.withdraw();
+
+        uint256 collateralBalance = collateralToken.balanceOf(address(this));
+
+        uint256 amountToWithdraw =
+            covUnderwriterBalance.mul(collateralBalance).div(covSupply);
+
+        collateralToken.safeTransfer(address(newAssetPool), amountToWithdraw);
+        emit WithdrawalToNewAssetPoolCompleted(
+            msg.sender,
+            amountToWithdraw,
+            block.timestamp
+        );
+
+        // mappings cleanup since all the underwriter's funds are transferred to
+        // a new asset pool
+        delete withdrawalInitiatedTimestamp[msg.sender];
+        delete pendingWithdrawal[msg.sender];
+
+        underwriterToken.burn(covUnderwriterBalance);
+
+        // TODO: mint newUnderwriterToken and transfer to msg.sender
+    }
+
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
     function claim(address recipient, uint256 amount) external onlyOwner {
         rewardsPool.withdraw();
         collateralToken.safeTransfer(recipient, amount);
     }
+
+    // TODO: add newUnderwriterToken as a param for approval
+    /// @notice Allows governance to set a new asset pool so the underwriters
+    ///         can move their funds to this new contract.
+    function newAssetPoolApproval(AssetPool _newAssetPool) external onlyOwner {
+        require(
+            address(_newAssetPool) != address(0),
+            "New asset pool can't be zero address"
+        );
+        newAssetPool = _newAssetPool;
+    }
+
 
     function _deposit(address depositor, uint256 amount) internal {
         rewardsPool.withdraw();
