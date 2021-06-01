@@ -92,7 +92,9 @@ contract Auctioneer is CloneFactory {
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
-        if (!auction.isOpen()) {
+        if (auction.isOpen()) {
+            onAuctionPartiallyFilled(auction);
+        } else {
             onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
@@ -164,4 +166,10 @@ contract Auctioneer is CloneFactory {
     ///         already closed and funds from the coverage pool are seized.
     /// @dev Override this function to act on auction closed as fully filled.
     function onAuctionFullyFilled(Auction auction) internal virtual {}
+
+    /// @notice Auction lifecycle hook allowing to act on auction partially
+    ///         filled. This function is not executed when an auction
+    ///         was fully filled.
+    /// @dev Override this function to act on auction partially filled.
+    function onAuctionPartiallyFilled(Auction auction) internal view virtual {}
 }

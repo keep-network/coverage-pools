@@ -2,7 +2,7 @@ const { expect } = require("chai")
 const { to1e18 } = require("../helpers/contract-test-helpers")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 
-describe("Integration -- liquidation happy path", () => {
+describe("Integration", () => {
   const auctionLength = 86400 // 24h
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
@@ -15,6 +15,7 @@ describe("Integration -- liquidation happy path", () => {
   let tbtcDeposit
 
   let bidder
+  let thirdParty
 
   beforeEach(async () => {
     const TestToken = await ethers.getContractFactory("TestToken")
@@ -59,7 +60,10 @@ describe("Integration -- liquidation happy path", () => {
     )
 
     bidder = await ethers.getSigner(1)
+    thirdParty = await ethers.getSigner(2)
+
     await tbtcToken.mint(bidder.address, lotSize)
+    await tbtcToken.mint(thirdParty.address, lotSize)
   })
 
   describe("when auction has been fully filled", () => {
@@ -67,14 +71,7 @@ describe("Integration -- liquidation happy path", () => {
     let tx
 
     beforeEach(async () => {
-      await tbtcDeposit.notifyUndercollateralizedLiquidation()
-      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
-
-      const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
-      )
-      auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
-      await tbtcToken.connect(bidder).approve(auction.address, lotSize)
+      auction = await prepareAuction()
       tx = await auction.takeOffer(lotSize)
     })
 
@@ -97,4 +94,32 @@ describe("Integration -- liquidation happy path", () => {
       )
     })
   })
+
+  describe("when deposit has been liquidated by someone else", () => {
+    let auction
+    beforeEach(async () => {
+      auction = await prepareAuction()
+      // simulate deposit state change outside Coverage Pools
+      await tbtcToken.connect(thirdParty).approve(tbtcDeposit.address, lotSize)
+      await tbtcDeposit.connect(thirdParty).purchaseSignerBondsAtAuction()
+    })
+
+    it("should revert", async () => {
+      await expect(auction.takeOffer(lotSize.div(2))).to.be.revertedWith(
+        "Deposit liquidation is not in progress"
+      )
+    })
+  })
+
+  async function prepareAuction() {
+    await tbtcDeposit.notifyUndercollateralizedLiquidation()
+    await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+
+    const auctionAddress = await riskManagerV1.depositToAuction(
+      tbtcDeposit.address
+    )
+    const auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
+    await tbtcToken.connect(bidder).approve(auction.address, lotSize)
+    return auction
+  }
 })

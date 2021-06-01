@@ -347,6 +347,9 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     ///      the Auctioneer contract. By the time this function is called, all
     ///      the TBTC tokens for the coverage pool auction should be transferred
     ///      to this contract in order to buy signer bonds.
+    ///      Note: There are checks of the deposit's state performed when
+    ///      the signer bonds are purchased. There is no risk this function
+    ///      succeeds for a deposit liquidated outside of Coverage Pool.
     /// @param auction Coverage pool auction.
     function onAuctionFullyFilled(Auction auction) internal override {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
@@ -375,6 +378,22 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         // slither-disable-next-line arbitrary-send
         signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
+    }
+
+    /// @notice Reverts if the deposit for which the auction was created is no
+    ///         longer in the liquidation state. This could happen if signer
+    ///         bonds were purchased from tBTC deposit directly, outside of
+    ///         coverage pool auction.
+    /// @dev This function is invoked when the auctioneer is informed about the
+    ///      results of an auction and the auction was partially filled.
+    /// @param auction Address of an auction whose deposit needs to be checked.
+    function onAuctionPartiallyFilled(Auction auction) internal view override {
+        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+        // Make sure the deposit was not liquidated outside of Coverage Pool
+        require(
+            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            "Deposit liquidation is not in progress"
+        );
     }
 
     /// @notice Get the time remaining until the function parameter timer
