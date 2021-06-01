@@ -279,6 +279,18 @@ describe("Auctioneer", () => {
 
         expect(await auctioneer.openAuctions(auctionAddress)).to.be.false
       })
+
+      it("should return the auction's transferred amount", async () => {
+        await auction.connect(bidder).takeOffer(to1ePrecision(5, 17))
+
+        const tx = await auctioneer
+          .connect(bidder)
+          .publicEarlyCloseAuction(auctionAddress)
+
+        await expect(tx)
+          .to.emit(auctioneer, "AuctionEarlyClosed")
+          .withArgs(to1ePrecision(5, 17))
+      })
     })
 
     context("when the auction is already closed", () => {

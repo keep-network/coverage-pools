@@ -681,6 +681,32 @@ describe("Auction", () => {
     })
   })
 
+  describe("amountTransferred", () => {
+    const auctionLength = 86400 // 24h in sec
+    const auctionAmountDesired = to1ePrecision(10, 16)
+
+    beforeEach(async () => {
+      auction = await createAuction(auctionAmountDesired, auctionLength)
+      await approveTestTokenForAuction(auction.address)
+    })
+
+    it("should return the right amount transferred", async () => {
+      expect(await auction.amountTransferred()).to.be.equal(0)
+
+      await auction.connect(bidder1).takeOffer(to1ePrecision(2, 16))
+
+      expect(await auction.amountTransferred()).to.be.equal(
+        to1ePrecision(2, 16)
+      )
+
+      await auction.connect(bidder1).takeOffer(to1ePrecision(7, 16))
+
+      expect(await auction.amountTransferred()).to.be.equal(
+        to1ePrecision(9, 16)
+      )
+    })
+  })
+
   async function createAuction(auctionAmountDesired, auctionLength) {
     const createAuctionTx = await auctioneer.publicCreateAuction(
       testToken.address,

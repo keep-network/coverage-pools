@@ -65,6 +65,8 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     uint256 public auctionLengthChangeInitiated;
 
     IERC20 public tbtcToken;
+    // tBTC surplus collected from early closed auctions.
+    uint256 public tbtcSurplus;
 
     ISignerBondsSwapStrategy public signerBondsSwapStrategy;
     ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
@@ -147,6 +149,14 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
+        // If the surplus can cover the deposit liquidation cost, liquidate
+        // that deposit directly without the auction process.
+        if (tbtcSurplus >= lotSizeTbtc) {
+            tbtcSurplus = tbtcSurplus.sub(lotSizeTbtc);
+            liquidateDeposit(deposit);
+            return;
+        }
+
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
@@ -163,15 +173,15 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
 
-        // TODO: In case of an auction early close, we might end up having
-        //       TBTC hanging in this contract. Need to decide what to do with
-        //       these tokens.
-
         Auction auction = Auction(depositToAuction[depositAddress]);
 
         delete depositToAuction[depositAddress];
         delete auctionToDeposit[address(auction)];
-        earlyCloseAuction(auction);
+        uint256 amountTransferred = earlyCloseAuction(auction);
+
+        // Add auction's transferred amount to the surplus pool.
+        // slither-disable-next-line reentrancy-benign
+        tbtcSurplus = tbtcSurplus.add(amountTransferred);
     }
 
     /// @notice Begins the collateralization threshold update process.
@@ -319,13 +329,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             );
     }
 
-    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
-    /// @dev    This function is invoked when Auctioneer determines that an auction
-    ///         is eligible to be closed. It cannot be called on-demand outside
-    ///         the Auctioneer contract.
-    ///         By the time this function is called, all the TBTC tokens for the
-    ///         coverage pool auction should be transferred to this contract in
-    ///         order to buy signer bonds.
+    /// @notice Cleans up auction and deposit data and executes deposit liquidation.
+    /// @dev This function is invoked when Auctioneer determines that an auction
+    ///      is eligible to be closed. It cannot be called on-demand outside
+    ///      the Auctioneer contract. By the time this function is called, all
+    ///      the TBTC tokens for the coverage pool auction should be transferred
+    ///      to this contract in order to buy signer bonds.
     /// @param auction Coverage pool auction.
     function onAuctionFullyFilled(Auction auction) internal override {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
@@ -333,10 +342,20 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         delete depositToAuction[address(deposit)];
         delete auctionToDeposit[address(auction)];
 
+        liquidateDeposit(deposit);
+    }
+
+    /// @notice Purchases ETH from signer bonds and swaps obtained funds
+    ///         using the underlying signer bonds swap strategy.
+    /// @dev By the time this function is called, TBTC token balance for this
+    ///      contract should be enough to buy signer bonds.
+    /// @param deposit TBTC deposit which should be liquidated.
+    function liquidateDeposit(IDeposit deposit) internal {
         uint256 approvedAmount = deposit.lotSizeTbtc();
         tbtcToken.safeApprove(address(deposit), approvedAmount);
 
-        // Purchase signers bonds ETH with TBTC acquired from the auction
+        // Purchase signers bonds ETH with TBTC acquired from the auction or
+        // taken from the surplus pool.
         deposit.purchaseSignerBondsAtAuction();
 
         uint256 withdrawableAmount = deposit.withdrawableAmount();
