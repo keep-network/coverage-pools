@@ -15,6 +15,7 @@ describe("Integration", () => {
   let tbtcDeposit
 
   let bidder
+  let thirdParty
 
   beforeEach(async () => {
     const TestToken = await ethers.getContractFactory("TestToken")
@@ -59,7 +60,10 @@ describe("Integration", () => {
     )
 
     bidder = await ethers.getSigner(1)
+    thirdParty = await ethers.getSigner(2)
+
     await tbtcToken.mint(bidder.address, lotSize)
+    await tbtcToken.mint(thirdParty.address, lotSize)
   })
 
   describe("when auction has been fully filled", () => {
@@ -91,12 +95,13 @@ describe("Integration", () => {
     })
   })
 
-  describe("when deposit has changed the state outside the coverage pool during pending coverage pool auction", () => {
+  describe("when deposit has been liquidated by someone else", () => {
     let auction
     beforeEach(async () => {
       auction = await prepareAuction()
       // simulate deposit state change outside Coverage Pools
-      await tbtcDeposit.setStateLiquidated()
+      await tbtcToken.connect(thirdParty).approve(tbtcDeposit.address, lotSize)
+      await tbtcDeposit.connect(thirdParty).purchaseSignerBondsAtAuction()
     })
 
     it("should revert", async () => {
