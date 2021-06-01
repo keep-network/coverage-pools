@@ -38,6 +38,9 @@ describe("RiskManagerV1", () => {
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()
 
+    anotherSignerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+    await anotherSignerBondsSwapStrategy.deployed()
+
     const Auction = await ethers.getContractFactory("Auction")
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
     const coveragePoolStub = await CoveragePoolStub.deploy()
@@ -567,6 +570,143 @@ describe("RiskManagerV1", () => {
           riskManagerV1
             .connect(owner)
             .finalizeCollateralizationThresholdUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+  })
+
+  describe("beginSignerBondsSwapStrategyUpdate", () => {
+    context("when the caller is the owner", () => {
+      let tx
+      beforeEach(async () => {
+        tx = await riskManagerV1
+          .connect(owner)
+          .beginSignerBondsSwapStrategyUpdate(
+            anotherSignerBondsSwapStrategy.address
+          )
+      })
+
+      it("should not update the signer bonds swap strategy", async () => {
+        expect(await riskManagerV1.signerBondsSwapStrategy()).to.be.equal(
+          signerBondsSwapStrategy.address
+        )
+      })
+
+      it("should start the governance delay timer", async () => {
+        expect(
+          await riskManagerV1.getRemainingSignerBondsSwapStrategyChangeTime()
+        ).to.be.equal(43200) // 12h contract governance delay
+      })
+
+      it("should emit the SignerBondsSwapStrategyUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(riskManagerV1, "SignerBondsSwapStrategyUpdateStarted")
+          .withArgs(anotherSignerBondsSwapStrategy.address, blockTimestamp)
+      })
+    })
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(notifier)
+            .beginSignerBondsSwapStrategyUpdate(
+              anotherSignerBondsSwapStrategy.address
+            )
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when signer bonds swap strategy is invalid", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(owner)
+            .beginSignerBondsSwapStrategyUpdate(ZERO_ADDRESS)
+        ).to.be.revertedWith("Invalid signer bonds swap strategy address")
+      })
+    })
+  })
+
+  describe("finalizeSignerBondsSwapStrategyUpdate", () => {
+    context(
+      "when the change process is initialized, governance delay passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await riskManagerV1
+            .connect(owner)
+            .beginSignerBondsSwapStrategyUpdate(
+              anotherSignerBondsSwapStrategy.address
+            )
+
+          await increaseTime(43200) // +12h contract governance delay
+
+          tx = await riskManagerV1
+            .connect(owner)
+            .finalizeSignerBondsSwapStrategyUpdate()
+        })
+
+        it("should update the signer bonds swap strategy", async () => {
+          expect(await riskManagerV1.signerBondsSwapStrategy()).to.be.equal(
+            anotherSignerBondsSwapStrategy.address
+          )
+        })
+
+        it("should emit SignerBondsSwapStrategyUpdated event", async () => {
+          await expect(tx)
+            .to.emit(riskManagerV1, "SignerBondsSwapStrategyUpdated")
+            .withArgs(anotherSignerBondsSwapStrategy.address)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            riskManagerV1.getRemainingSignerBondsSwapStrategyChangeTime()
+          ).to.be.revertedWith("Update not initiated")
+        })
+
+        it("should reset new signer bonds swap strategy", async () => {
+          expect(await riskManagerV1.newSignerBondsSwapStrategy()).to.be.equal(
+            ZERO_ADDRESS
+          )
+        })
+      }
+    )
+
+    context("when the governance delay has not passed", () => {
+      it("should revert", async () => {
+        await riskManagerV1
+          .connect(owner)
+          .beginSignerBondsSwapStrategyUpdate(
+            anotherSignerBondsSwapStrategy.address
+          )
+
+        await increaseTime(39600) // +11h
+
+        await expect(
+          riskManagerV1.connect(owner).finalizeSignerBondsSwapStrategyUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(notifier)
+            .finalizeSignerBondsSwapStrategyUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process is not initialized", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1.connect(owner).finalizeSignerBondsSwapStrategyUpdate()
         ).to.be.revertedWith("Change not initiated")
       })
     })

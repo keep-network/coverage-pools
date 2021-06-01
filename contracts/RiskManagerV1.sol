@@ -68,8 +68,9 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     // tBTC surplus collected from early closed auctions.
     uint256 public tbtcSurplus;
 
-    // TODO: should be possible to change by the governance.
     ISignerBondsSwapStrategy public signerBondsSwapStrategy;
+    ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
+    uint256 public signerBondsSwapStrategyInitiated;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -87,6 +88,14 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         uint256 timestamp
     );
     event CollateralizationThresholdUpdated(uint256 collateralizationThreshold);
+
+    event SignerBondsSwapStrategyUpdateStarted(
+        address indexed signerBondsSwapStrategy,
+        uint256 timestamp
+    );
+    event SignerBondsSwapStrategyUpdated(
+        address indexed signerBondsSwapStrategy
+    );
 
     /// @notice Reverts if called before the delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -225,8 +234,8 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     }
 
     /// @notice Finalizes the auction length update process.
-    /// @dev Can be called only by the contract owner, after the the
-    ///      governance delay elapses.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
     function finalizeAuctionLengthUpdate()
         external
         onlyOwner
@@ -236,6 +245,43 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         emit AuctionLengthUpdated(newAuctionLength);
         newAuctionLength = 0;
         auctionLengthChangeInitiated = 0;
+    }
+
+    /// @notice Begins the signer bonds swap strategy update process.
+    /// @dev Must be followed by a finalizeSignerBondsSwapStrategyUpdate after
+    ///      the governance delay elapses.
+    /// @param _newSignerBondsSwapStrategy The new signer bonds swap strategy.
+    function beginSignerBondsSwapStrategyUpdate(
+        ISignerBondsSwapStrategy _newSignerBondsSwapStrategy
+    ) external onlyOwner {
+        require(
+            address(_newSignerBondsSwapStrategy) != address(0),
+            "Invalid signer bonds swap strategy address"
+        );
+        newSignerBondsSwapStrategy = _newSignerBondsSwapStrategy;
+        /* solhint-disable-next-line not-rely-on-time */
+        signerBondsSwapStrategyInitiated = block.timestamp;
+        emit SignerBondsSwapStrategyUpdateStarted(
+            address(_newSignerBondsSwapStrategy),
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the signer bonds swap strategy update.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeSignerBondsSwapStrategyUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(signerBondsSwapStrategyInitiated)
+    {
+        signerBondsSwapStrategy = newSignerBondsSwapStrategy;
+        emit SignerBondsSwapStrategyUpdated(
+            address(newSignerBondsSwapStrategy)
+        );
+        delete newSignerBondsSwapStrategy;
+        signerBondsSwapStrategyInitiated = 0;
     }
 
     /// @notice Get the time remaining until the collateralization threshold
@@ -264,6 +310,21 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         return
             getRemainingChangeTime(
                 auctionLengthChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the signer bonds swap strategy
+    ///         can be changed.
+    /// @return Remaining time in seconds.
+    function getRemainingSignerBondsSwapStrategyChangeTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                signerBondsSwapStrategyInitiated,
                 GOVERNANCE_TIME_DELAY
             );
     }
