@@ -128,7 +128,8 @@ contract Auctioneer is CloneFactory {
     ///      is no longer needed. Bear in mind that funds from the early closed
     ///      auction last on the auctioneer contract. Calling code should take
     ///      care of them.
-    /// @return Amount of funds transferred to the auction at the time of closing.
+    /// @return Amount of funds transferred to this contract by the Auction
+    ///         being early closed.
     function earlyCloseAuction(Auction auction) internal returns (uint256) {
         address auctionAddress = address(auction);
 
