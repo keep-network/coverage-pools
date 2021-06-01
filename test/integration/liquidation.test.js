@@ -6,6 +6,7 @@ describe("Integration", () => {
   const auctionLength = 86400 // 24h
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
+  const collateralizationThreshold = 101
 
   let tbtcToken
   let signerBondsSwapStrategy
@@ -41,7 +42,8 @@ describe("Integration", () => {
       coveragePool.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
-      auctionLength
+      auctionLength,
+      collateralizationThreshold
     )
     await riskManagerV1.deployed()
 

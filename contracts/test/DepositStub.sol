@@ -36,6 +36,7 @@ contract DepositStub is IDeposit {
     IERC20 public tbtcToken;
     uint256 public override lotSizeTbtc;
     uint256 public override currentState;
+    uint256 public override collateralizationPercentage = 101;
 
     address public buyer;
 
@@ -71,6 +72,10 @@ contract DepositStub is IDeposit {
 
     function setStateLiquidated() external {
         currentState = uint256(States.LIQUIDATED);
+    }
+
+    function notifyRedemptionSignatureTimedOut() external override {
+        currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
 
     function withdrawableAmount() external view override returns (uint256) {
