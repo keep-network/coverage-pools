@@ -261,12 +261,14 @@ contract AssetPool is Ownable {
     }
 
     /// @notice Withdraws collateral tokens to a new Asset Pool which previously
-    ///         was approved by the governance. 
+    ///         was approved by the governance. Old underwriter tokens are burned
+    ///         in favor of new minted tokens that proof share of
+    ///         collateral tokens in a new Asset Pool.
     function withdrawToNewAssetPool() external {
         /* solhint-disable not-rely-on-time */
         require(
             address(newAssetPool) != address(0),
-            "New asset pool must be set"
+            "New asset pool must be assigned"
         );
 
         uint256 covUnderwriterBalance = underwriterToken.balanceOf(msg.sender);
@@ -299,8 +301,7 @@ contract AssetPool is Ownable {
         delete pendingWithdrawal[msg.sender];
 
         underwriterToken.burn(covUnderwriterBalance);
-
-        // TODO: mint newUnderwriterToken and transfer to msg.sender
+        newUnderwriterToken.mint(msg.sender, covUnderwriterBalance);
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
@@ -310,17 +311,23 @@ contract AssetPool is Ownable {
         collateralToken.safeTransfer(recipient, amount);
     }
 
-    // TODO: add newUnderwriterToken as a param for approval
     /// @notice Allows governance to set a new asset pool so the underwriters
-    ///         can move their funds to this new contract.
-    function newAssetPoolApproval(AssetPool _newAssetPool) external onlyOwner {
+    ///         can move their collateral tokens to this new contract.
+    function newAssetPoolApproval(
+        AssetPool _newAssetPool,
+        UnderwriterToken _newUnderwriterToken
+    ) external onlyOwner {
         require(
             address(_newAssetPool) != address(0),
             "New asset pool can't be zero address"
         );
+        require(
+            address(_newUnderwriterToken) != address(0),
+            "New underwriter token can't be zero address"
+        );
         newAssetPool = _newAssetPool;
+        newUnderwriterToken = _newUnderwriterToken;
     }
-
 
     function _deposit(address depositor, uint256 amount) internal {
         rewardsPool.withdraw();
