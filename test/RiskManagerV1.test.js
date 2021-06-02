@@ -89,12 +89,9 @@ describe("RiskManagerV1", () => {
     })
 
     context("when address is a deposit contract", () => {
-      beforeEach(async () => {
-        await mockTbtcDepositToken.mock.exists.returns(true)
-      })
-
       context("when deposit is not in liquidation state", () => {
         it("should revert", async () => {
+          await mockTbtcDepositToken.mock.exists.returns(true)
           await mockIDeposit.mock.currentState.returns(4) // Active state
 
           await expect(
@@ -108,6 +105,7 @@ describe("RiskManagerV1", () => {
           "when deposit is above collateralization threshold level",
           () => {
             it("should revert", async () => {
+              await mockTbtcDepositToken.mock.exists.returns(true)
               await mockIDeposit.mock.currentState.returns(
                 depositLiquidationInProgressState
               )
@@ -742,6 +740,7 @@ describe("RiskManagerV1", () => {
   })
 
   async function notifyLiquidation() {
+    await mockTbtcDepositToken.mock.exists.returns(true)
     await mockIDeposit.mock.currentState.returns(
       depositLiquidationInProgressState
     )
