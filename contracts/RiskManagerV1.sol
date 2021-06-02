@@ -151,7 +151,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             "Deposit is not in liquidation state"
         );
 
-        // TODO: check bondAuctionThreshold
+        require(
+            deposit.auctionValue() >=
+                address(deposit).balance.mul(bondAuctionThreshold).div(100),
+            "Deposit bond auction percentage is below the threshold level"
+        );
 
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();

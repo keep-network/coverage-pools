@@ -51,6 +51,7 @@ describe("Integration", () => {
     const DepositStub = await ethers.getContractFactory("DepositStub")
     tbtcDeposit = await DepositStub.deploy(tbtcToken.address, lotSize)
     await tbtcDeposit.deployed()
+    await tbtcDeposit.setAuctionValue(bondedAmount)
 
     await ethers.getSigner(0).then((s) =>
       s.sendTransaction({

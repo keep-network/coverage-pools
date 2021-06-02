@@ -36,12 +36,14 @@ contract DepositStub is IDeposit {
     IERC20 public tbtcToken;
     uint256 public override lotSizeTbtc;
     uint256 public override currentState;
+    uint256 public override auctionValue;
 
     address public buyer;
 
     constructor(IERC20 _tbtcToken, uint256 _lotSizeTbtc) {
         tbtcToken = _tbtcToken;
         lotSizeTbtc = _lotSizeTbtc;
+        currentState = 4; // active by default
     }
 
     /// @dev Needed to receive ETH bonds at deposit setup.
@@ -75,5 +77,9 @@ contract DepositStub is IDeposit {
 
     function withdrawableAmount() external view override returns (uint256) {
         return address(this).balance;
+    }
+
+    function setAuctionValue(uint256 _auctionValue) external {
+        auctionValue = _auctionValue;
     }
 }

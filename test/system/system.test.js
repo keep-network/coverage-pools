@@ -20,7 +20,7 @@ const describeFn =
 // which is ready to be liquidated at the starting block. The bidder which
 // takes the offer is also a real account with actual tBTC balance. At the
 // end of the scenario, the risk manager should liquidate the deposit successfully,
-// and 66% of the deposit's bonded amount should land on the signer bonds
+// and 75% of the deposit's bonded amount should land on the signer bonds
 // swap strategy contract.
 describeFn("System -- liquidation happy path", () => {
   const startingBlock = 12368838
@@ -29,13 +29,15 @@ describeFn("System -- liquidation happy path", () => {
   const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
   const auctionLength = 86400 // 24h
-  const bondAuctionThreshold = 66 // lets the deposit pass without waiting
+  // Only deposits with at least 75% of bonds offered on bond auction will be
+  // accepted by the risk manager.
+  const bondAuctionThreshold = 75
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
   const bondedAmount = BigNumber.from("290810391624000000000")
-  // 66% of the deposit is exposed on auction in the liquidation moment
-  const bondedAmountPercentage = BigNumber.from("66")
+  // 75% of the deposit is exposed on auction in the liquidation moment
+  const bondedAmountPercentage = BigNumber.from("75")
 
   let tbtcToken
   let underwriterToken
@@ -130,6 +132,22 @@ describeFn("System -- liquidation happy path", () => {
 
     before(async () => {
       await tbtcDeposit.notifyRedemptionSignatureTimedOut()
+
+      // The deposit's auction must offer at least 75% of bonds to be accepted
+      // by the risk manager. At starting block, the deposit's auction exposes
+      // 66% so an immediate `notifyLiquidation` must revert.
+      await expect(
+        riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+      ).to.revertedWith(
+        "Deposit bond auction percentage is below the threshold level"
+      )
+
+      // We need additional 9% to pass the risk manager threshold. To get this
+      // part, we need 22870 seconds to elapse. This is because the auction
+      // length is 86400 seconds (24h) and there is 34% of bonds remaining.
+      // So, additional 9% will be offered after 9/34 * 86400s.
+      await increaseTime(22870)
+
       await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
