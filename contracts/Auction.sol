@@ -113,38 +113,6 @@ contract Auction is IAuction {
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
-    /// @notice Tears down the auction manually, before its entire amount
-    ///         is bought by takers.
-    /// @dev Can be called only by the auctioneer which may decide to early
-    //       close the auction in case it is no longer needed.
-    function earlyClose() external onlyAuctioneer {
-        require(self.amountOutstanding > 0, "Auction must be open");
-
-        harikari();
-    }
-
-    /// @notice How much of the collateral pool can currently be purchased at
-    ///         auction, across all assets.
-    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
-    ///      collateral pool. Ex. if 35% available of the collateral pool,
-    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
-    /// @return the ratio of the collateral pool currently on offer
-    function onOffer() external view override returns (uint256, uint256) {
-        return (_onOffer(), CoveragePoolConstants.FLOATING_POINT_DIVISOR);
-    }
-
-    function amountOutstanding() external view returns (uint256) {
-        return self.amountOutstanding;
-    }
-
-    function amountTransferred() external view returns (uint256) {
-        return self.amountDesired.sub(self.amountOutstanding);
-    }
-
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
-    }
-
     /// @notice Takes an offer from an auction buyer.
     /// @dev There are two possible ways to take an offer from a buyer. The first
     ///      one is to buy entire auction with the amount desired for this auction.
@@ -227,6 +195,38 @@ contract Auction is IAuction {
         if (self.amountOutstanding == 0) {
             harikari();
         }
+    }
+
+    /// @notice Tears down the auction manually, before its entire amount
+    ///         is bought by takers.
+    /// @dev Can be called only by the auctioneer which may decide to early
+    //       close the auction in case it is no longer needed.
+    function earlyClose() external onlyAuctioneer {
+        require(self.amountOutstanding > 0, "Auction must be open");
+
+        harikari();
+    }
+
+    /// @notice How much of the collateral pool can currently be purchased at
+    ///         auction, across all assets.
+    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
+    ///      collateral pool. Ex. if 35% available of the collateral pool,
+    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
+    /// @return the ratio of the collateral pool currently on offer
+    function onOffer() external view override returns (uint256, uint256) {
+        return (_onOffer(), CoveragePoolConstants.FLOATING_POINT_DIVISOR);
+    }
+
+    function amountOutstanding() external view returns (uint256) {
+        return self.amountOutstanding;
+    }
+
+    function amountTransferred() external view returns (uint256) {
+        return self.amountDesired.sub(self.amountOutstanding);
+    }
+
+    function isOpen() external view returns (bool) {
+        return self.amountOutstanding > 0;
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called

@@ -51,21 +51,6 @@ contract CoveragePool is Ownable {
         collateralToken = _assetPool.collateralToken();
     }
 
-    /// @notice Calculates amount of tokens to be seized from the coverage pool.
-    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
-    function amountToSeize(uint256 portionToSeize)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            collateralToken
-                .balanceOf(address(assetPool))
-                .mul(portionToSeize)
-                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
-    }
-
     /// @notice Begins risk manager approval process.
     /// @dev Can be called only by the contract owner. For a risk manager to be
     /// approved, a call to finalizeRiskManagerApproval must follow (after a
@@ -148,5 +133,20 @@ contract CoveragePool is Ownable {
         onlyApprovedRiskManager
     {
         assetPool.claim(recipient, amountToSeize(portionToSeize));
+    }
+
+    /// @notice Calculates amount of tokens to be seized from the coverage pool.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR.
+    function amountToSeize(uint256 portionToSeize)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            collateralToken
+                .balanceOf(address(assetPool))
+                .mul(portionToSeize)
+                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
     }
 }
