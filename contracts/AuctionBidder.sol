@@ -31,8 +31,8 @@ contract AuctionBidder {
         coveragePool = _coveragePool;
     }
 
-    /// @notice Takes an offer from an auction buyer with a minimum required tokens
-    ///         to seize from the coverage pool.
+    /// @notice Takes an offer from an auction buyer with a minimum required amount
+    ///         of tokens to seize from the coverage pool.
     /// @dev 'minAmountToSeize' sets a minimum amount of tokens to seize in this
     ///      transaction. A bidder can call `takeOffer` directly in the Auction
     ///      contract but this function is a recommended way of taking coverage pool
