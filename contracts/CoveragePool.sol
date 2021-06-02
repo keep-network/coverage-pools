@@ -147,8 +147,6 @@ contract CoveragePool is Ownable {
         external
         onlyApprovedRiskManager
     {
-        uint256 amountToSeize = amountToSeize(portionToSeize);
-
-        assetPool.claim(recipient, amountToSeize);
+        assetPool.claim(recipient, amountToSeize(portionToSeize));
     }
 }

@@ -162,7 +162,7 @@ contract Auction is IAuction {
     ///               In the scenario when amount exceeds the outstanding tokens
     ///               for the aution to complete, only the amount outstanding will
     ///               be taken from a caller.
-    function takeOffer(uint256 amount) public override {
+    function takeOffer(uint256 amount) external override {
         require(amount > 0, "Can't pay 0 tokens");
         uint256 amountToTransfer = Math.min(amount, self.amountOutstanding);
         uint256 amountOnOffer = _onOffer();
