@@ -22,7 +22,7 @@ const describeFn =
 // end of the scenario, the risk manager should liquidate the deposit successfully,
 // and 66% of the deposit's bonded amount should land on the signer bonds
 // swap strategy contract.
-describeFn("System -- liquidation happy path", () => {
+describeFn("System -- liquidation", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
   const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"

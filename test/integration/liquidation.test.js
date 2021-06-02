@@ -2,7 +2,7 @@ const { expect } = require("chai")
 const { to1e18 } = require("../helpers/contract-test-helpers")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 
-describe("Integration", () => {
+describe("Integration -- liquidation", () => {
   const auctionLength = 86400 // 24h
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
