@@ -5,11 +5,13 @@ pragma solidity <0.9.0;
 import "../Auctioneer.sol";
 
 contract AuctioneerStub is Auctioneer {
+    event AuctionEarlyClosed(uint256 transferredAmount);
+
     constructor(CoveragePool _coveragePool, address _masterAuction)
         Auctioneer(_coveragePool, _masterAuction)
     {}
 
-    /// @dev This fallback function is needed by the `impersonateContract`
+    /// @dev This fallback function is needed by the `impersonateAccount`
     ///      test helper function.
     receive() external payable {}
 
@@ -22,6 +24,7 @@ contract AuctioneerStub is Auctioneer {
     }
 
     function publicEarlyCloseAuction(Auction auction) public {
-        earlyCloseAuction(auction);
+        uint256 transferredAmount = earlyCloseAuction(auction);
+        emit AuctionEarlyClosed(transferredAmount);
     }
 }

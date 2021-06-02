@@ -6,7 +6,7 @@ const {
   to1e18,
   pastEvents,
   increaseTime,
-  impersonateContract,
+  impersonateAccount,
 } = require("./helpers/contract-test-helpers")
 
 const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
@@ -553,7 +553,7 @@ describe("Auction", () => {
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     beforeEach(async () => {
-      auctioneerSigner = await impersonateContract(auctioneer.address, owner)
+      auctioneerSigner = await impersonateAccount(auctioneer.address, owner)
 
       auction = await createAuction(auctionAmountDesired, auctionLength)
       await approveTestTokenForAuction(auction.address)
@@ -597,6 +597,32 @@ describe("Auction", () => {
         await expect(auction.connect(auctioneerSigner).earlyClose()).to.be
           .reverted
       })
+    })
+  })
+
+  describe("amountTransferred", () => {
+    const auctionLength = 86400 // 24h in sec
+    const auctionAmountDesired = to1ePrecision(10, 16)
+
+    beforeEach(async () => {
+      auction = await createAuction(auctionAmountDesired, auctionLength)
+      await approveTestTokenForAuction(auction.address)
+    })
+
+    it("should return the right amount transferred", async () => {
+      expect(await auction.amountTransferred()).to.be.equal(0)
+
+      await auction.connect(bidder1).takeOffer(to1ePrecision(2, 16))
+
+      expect(await auction.amountTransferred()).to.be.equal(
+        to1ePrecision(2, 16)
+      )
+
+      await auction.connect(bidder1).takeOffer(to1ePrecision(7, 16))
+
+      expect(await auction.amountTransferred()).to.be.equal(
+        to1ePrecision(9, 16)
+      )
     })
   })
 

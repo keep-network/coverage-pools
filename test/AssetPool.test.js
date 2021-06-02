@@ -362,6 +362,27 @@ describe("AssetPool", () => {
           .withArgs(underwriter1.address, amount, await lastBlockTime())
       })
     })
+
+    context(
+      "when there was a pending withdrawal and graceful withdrawal timeout has elapsed",
+      () => {
+        beforeEach(async () => {
+          await assetPool
+            .connect(underwriter1)
+            .initiateWithdrawal(amount.sub(10))
+          // wait for 14 days for withdrawal delay to pass
+          await increaseTime(14 * 24 * 3600)
+        })
+
+        it("should revert", async () => {
+          await expect(
+            assetPool.connect(underwriter1).initiateWithdrawal(10)
+          ).to.be.revertedWith(
+            "Cannot initiate withdrawal after withdrawal delay"
+          )
+        })
+      }
+    )
   })
 
   describe("completeWithdrawal", () => {

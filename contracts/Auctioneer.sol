@@ -1,3 +1,15 @@
+// ▓▓▌ ▓▓ ▐▓▓ ▓▓▓▓▓▓▓▓▓▓▌▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▄
+// ▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▌▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+//   ▓▓▓▓▓▓    ▓▓▓▓▓▓▓▀    ▐▓▓▓▓▓▓    ▐▓▓▓▓▓   ▓▓▓▓▓▓     ▓▓▓▓▓   ▐▓▓▓▓▓▌   ▐▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▄▄▓▓▓▓▓▓▓▀      ▐▓▓▓▓▓▓▄▄▄▄         ▓▓▓▓▓▓▄▄▄▄         ▐▓▓▓▓▓▌   ▐▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▓▓▓▓▓▓▓▀        ▐▓▓▓▓▓▓▓▓▓▓         ▓▓▓▓▓▓▓▓▓▓         ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▀▀▓▓▓▓▓▓▄       ▐▓▓▓▓▓▓▀▀▀▀         ▓▓▓▓▓▓▀▀▀▀         ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▀
+//   ▓▓▓▓▓▓   ▀▓▓▓▓▓▓▄     ▐▓▓▓▓▓▓     ▓▓▓▓▓   ▓▓▓▓▓▓     ▓▓▓▓▓   ▐▓▓▓▓▓▌
+// ▓▓▓▓▓▓▓▓▓▓ █▓▓▓▓▓▓▓▓▓ ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓ ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓
+//
+//                           Trust math, not hardware.
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity <0.9.0;
@@ -80,7 +92,9 @@ contract Auctioneer is CloneFactory {
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
-        if (!auction.isOpen()) {
+        if (auction.isOpen()) {
+            onAuctionPartiallyFilled(auction);
+        } else {
             onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
@@ -125,19 +139,25 @@ contract Auctioneer is CloneFactory {
 
     /// @notice Tears down an open auction with given address immediately.
     /// @dev Can be called by contract owner to early close an auction if it
-    ///      is no longer needed.
-    function earlyCloseAuction(Auction auction) internal {
+    ///      is no longer needed. Bear in mind that funds from the early closed
+    ///      auction last on the auctioneer contract. Calling code should take
+    ///      care of them.
+    /// @return Amount of funds transferred to this contract by the Auction
+    ///         being early closed.
+    function earlyCloseAuction(Auction auction) internal returns (uint256) {
         address auctionAddress = address(auction);
 
         require(openAuctions[auctionAddress], "Address is not an open auction");
 
+        uint256 amountTransferred = auction.amountTransferred();
+
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events
         auction.earlyClose();
 
-        // TODO: what should happen with funds from an early closed auction?
-
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
+
+        return amountTransferred;
     }
 
     /// @notice Auction lifecycle hook allowing to act on auction closed
@@ -146,4 +166,10 @@ contract Auctioneer is CloneFactory {
     ///         already closed and funds from the coverage pool are seized.
     /// @dev Override this function to act on auction closed as fully filled.
     function onAuctionFullyFilled(Auction auction) internal virtual {}
+
+    /// @notice Auction lifecycle hook allowing to act on auction partially
+    ///         filled. This function is not executed when an auction
+    ///         was fully filled.
+    /// @dev Override this function to act on auction partially filled.
+    function onAuctionPartiallyFilled(Auction auction) internal view virtual {}
 }
