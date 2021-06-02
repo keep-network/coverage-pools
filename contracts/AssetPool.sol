@@ -100,8 +100,9 @@ contract AssetPool is Ownable {
         address token,
         bytes calldata
     ) external {
+        require(msg.sender == token, "Only token caller allowed");
         require(
-            IERC20(token) == collateralToken,
+            token == address(collateralToken),
             "Unsupported collateral token"
         );
 
