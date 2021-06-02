@@ -16,7 +16,7 @@ const depositLiquidationInProgressState = 10
 const depositLiquidatedState = 11
 const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
-const collateralizationThreshold = 101
+const bondAuctionThreshold = 100
 
 describe("RiskManagerV1", () => {
   let tbtcToken
@@ -58,7 +58,7 @@ describe("RiskManagerV1", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      collateralizationThreshold
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 
@@ -81,23 +81,20 @@ describe("RiskManagerV1", () => {
     })
 
     context("when deposit is in liquidation state", () => {
-      context("when deposit is above collateralization threshold level", () => {
+      context("when deposit is below bond auction threshold level", () => {
         it("should revert", async () => {
           await mockIDeposit.mock.currentState.returns(
             depositLiquidationInProgressState
           )
-          await mockIDeposit.mock.collateralizationPercentage.returns(
-            collateralizationThreshold + 1
-          )
           await expect(
             riskManagerV1.notifyLiquidation(mockIDeposit.address)
           ).to.be.revertedWith(
-            "Deposit collateralization is above the threshold level"
+            "Deposit bond auction is below the threshold level"
           )
         })
       })
 
-      context("when deposit is at the collateralization threshold", () => {
+      context("when deposit is at the bond auction threshold", () => {
         context("when the surplus pool is empty", () => {
           let notifyLiquidationTx
           let auctionAddress
@@ -453,52 +450,50 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("beginCollateralizationThresholdUpdate", () => {
+  describe("beginBondAuctionThresholdUpdate", () => {
     context("when the caller is the owner", () => {
-      const currentCollateralizationThreshold = collateralizationThreshold
-      const newCollateralizationThreshold = 102
+      const currentBondAuctionThreshold = bondAuctionThreshold
+      const newBondAuctionThreshold = 90
       let tx
 
       beforeEach(async () => {
         tx = await riskManagerV1
           .connect(owner)
-          .beginCollateralizationThresholdUpdate(newCollateralizationThreshold)
+          .beginBondAuctionThresholdUpdate(newBondAuctionThreshold)
       })
 
-      it("should not update collateralization threshold", async () => {
-        expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
-          currentCollateralizationThreshold
+      it("should not update bond auction threshold", async () => {
+        expect(await riskManagerV1.bondAuctionThreshold()).to.be.equal(
+          currentBondAuctionThreshold
         )
       })
 
       it("should start the governance delay timer", async () => {
         expect(
-          await riskManagerV1.getRemainingCollateralizationThresholdUpdateTime()
+          await riskManagerV1.getRemainingBondAuctionThresholdUpdateTime()
         ).to.be.equal(43200) // 12h contract governance delay
       })
 
-      it("should emit the CollateralizationThresholdUpdateStarted event", async () => {
+      it("should emit the BondAuctionThresholdUpdateStarted event", async () => {
         const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
           .timestamp
         await expect(tx)
-          .to.emit(riskManagerV1, "CollateralizationThresholdUpdateStarted")
-          .withArgs(newCollateralizationThreshold, blockTimestamp)
+          .to.emit(riskManagerV1, "BondAuctionThresholdUpdateStarted")
+          .withArgs(newBondAuctionThreshold, blockTimestamp)
       })
     })
 
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(notifier)
-            .beginCollateralizationThresholdUpdate(102)
+          riskManagerV1.connect(notifier).beginBondAuctionThresholdUpdate(90)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
 
-  describe("finalizeCollateralizationThresholdUpdate", () => {
-    const newCollateralizationThreshold = 102
+  describe("finalizeBondAuctionThresholdUpdate", () => {
+    const newBondAuctionThreshold = 90
 
     context(
       "when the update process is initialized, governance delay has passed, " +
@@ -509,32 +504,30 @@ describe("RiskManagerV1", () => {
         beforeEach(async () => {
           await riskManagerV1
             .connect(owner)
-            .beginCollateralizationThresholdUpdate(
-              newCollateralizationThreshold
-            )
+            .beginBondAuctionThresholdUpdate(newBondAuctionThreshold)
 
           await increaseTime(43200) // +12h contract governance delay
 
           tx = await riskManagerV1
             .connect(owner)
-            .finalizeCollateralizationThresholdUpdate()
+            .finalizeBondAuctionThresholdUpdate()
         })
 
-        it("should update the collateralization threshold", async () => {
-          expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
-            newCollateralizationThreshold
+        it("should update the bond auction threshold", async () => {
+          expect(await riskManagerV1.bondAuctionThreshold()).to.be.equal(
+            newBondAuctionThreshold
           )
         })
 
-        it("should emit CollateralizationThresholdUpdated event", async () => {
+        it("should emit BondAuctionThresholdUpdated event", async () => {
           await expect(tx)
-            .to.emit(riskManagerV1, "CollateralizationThresholdUpdated")
-            .withArgs(newCollateralizationThreshold)
+            .to.emit(riskManagerV1, "BondAuctionThresholdUpdated")
+            .withArgs(newBondAuctionThreshold)
         })
 
         it("should reset the governance delay timer", async () => {
           await expect(
-            riskManagerV1.getRemainingCollateralizationThresholdUpdateTime()
+            riskManagerV1.getRemainingBondAuctionThresholdUpdateTime()
           ).to.be.revertedWith("Update not initiated")
         })
       }
@@ -544,14 +537,12 @@ describe("RiskManagerV1", () => {
       it("should revert", async () => {
         await riskManagerV1
           .connect(owner)
-          .beginCollateralizationThresholdUpdate(newCollateralizationThreshold)
+          .beginBondAuctionThresholdUpdate(newBondAuctionThreshold)
 
         await increaseTime(39600) // +11h
 
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeCollateralizationThresholdUpdate()
+          riskManagerV1.connect(owner).finalizeBondAuctionThresholdUpdate()
         ).to.be.revertedWith("Governance delay has not elapsed")
       })
     })
@@ -559,9 +550,7 @@ describe("RiskManagerV1", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(notifier)
-            .finalizeCollateralizationThresholdUpdate()
+          riskManagerV1.connect(notifier).finalizeBondAuctionThresholdUpdate()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -569,9 +558,7 @@ describe("RiskManagerV1", () => {
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeCollateralizationThresholdUpdate()
+          riskManagerV1.connect(owner).finalizeBondAuctionThresholdUpdate()
         ).to.be.revertedWith("Change not initiated")
       })
     })
@@ -719,9 +706,6 @@ describe("RiskManagerV1", () => {
       depositLiquidationInProgressState
     )
     await mockIDeposit.mock.lotSizeTbtc.returns(auctionLotSize)
-    await mockIDeposit.mock.collateralizationPercentage.returns(
-      collateralizationThreshold
-    )
     const tx = await riskManagerV1
       .connect(notifier)
       .notifyLiquidation(mockIDeposit.address)

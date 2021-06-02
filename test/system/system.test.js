@@ -29,7 +29,7 @@ describeFn("System -- liquidation happy path", () => {
   const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
   const auctionLength = 86400 // 24h
-  const collateralizationThreshold = 300
+  const bondAuctionThreshold = 66 // lets the deposit pass without waiting
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
@@ -93,7 +93,7 @@ describeFn("System -- liquidation happy path", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      collateralizationThreshold
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 

@@ -14,7 +14,7 @@ contract RiskManagerV1Stub is RiskManagerV1 {
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength,
-        uint256 _collateralizationThreshold
+        uint256 _bondAuctionThreshold
     )
         RiskManagerV1(
             _tbtcToken,
@@ -22,7 +22,7 @@ contract RiskManagerV1Stub is RiskManagerV1 {
             _signerBondsSwapStrategy,
             _masterAuction,
             _auctionLength,
-            _collateralizationThreshold
+            _bondAuctionThreshold
         )
     {}
 

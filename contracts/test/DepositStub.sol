@@ -36,7 +36,6 @@ contract DepositStub is IDeposit {
     IERC20 public tbtcToken;
     uint256 public override lotSizeTbtc;
     uint256 public override currentState;
-    uint256 public override collateralizationPercentage = 101;
 
     address public buyer;
 
