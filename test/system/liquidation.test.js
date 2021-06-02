@@ -28,6 +28,7 @@ describeFn("System -- liquidation", () => {
   const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
   const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
+  const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
   const collateralizationThreshold = 300
   // deposit lot size is 5 BTC
@@ -89,6 +90,7 @@ describeFn("System -- liquidation", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
+      tbtcDepositTokenAddress,
       coveragePool.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
