@@ -2,7 +2,6 @@
 
 pragma solidity <0.9.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "../SignerBondsUniswapV2.sol";
 
 contract UniswapV2RouterStub is IUniswapV2Router {
