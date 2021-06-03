@@ -24,9 +24,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
-///         contract for tBTC. For more info and function description
-///         please see:
-///         https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
+///      contract from tBTC. For more info and function description
+///      please see:
+///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
     function withdrawFunds() external;
 
@@ -41,6 +41,15 @@ interface IDeposit {
     function withdrawableAmount() external view returns (uint256);
 
     function auctionValue() external view returns (uint256);
+}
+
+/// @notice tBTC v1 deposit token interface.
+/// @dev This is an interface with just a few function signatures of a main
+///      contract from tBTC. For more info and function description
+///      please see:
+///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/system/TBTCDepositToken.sol
+interface ITBTCDepositToken {
+    function exists(uint256 _tokenId) external view returns (bool);
 }
 
 /// @title ISignerBondsSwapStrategy
@@ -77,6 +86,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     uint256 public auctionLengthChangeInitiated;
 
     IERC20 public tbtcToken;
+    ITBTCDepositToken public tbtcDepositToken;
     // tBTC surplus collected from early closed auctions.
     uint256 public tbtcSurplus;
 
@@ -125,6 +135,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     constructor(
         IERC20 _tbtcToken,
+        ITBTCDepositToken _tbtcDepositToken,
         CoveragePool _coveragePool,
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
@@ -132,6 +143,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         uint256 _bondAuctionThreshold
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
+        tbtcDepositToken = _tbtcDepositToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
         bondAuctionThreshold = _bondAuctionThreshold;
@@ -145,6 +157,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @notice Creates an auction for tbtc deposit in liquidation state.
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidation(address depositAddress) external {
+        require(
+            tbtcDepositToken.exists(uint256(depositAddress)),
+            "Address is not a deposit contract"
+        );
+
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
@@ -179,6 +196,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @notice Closes an auction early.
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidated(address depositAddress) external {
+        require(
+            depositToAuction[depositAddress] != address(0),
+            "No auction for given deposit"
+        );
+
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
