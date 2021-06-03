@@ -17,7 +17,7 @@ describe("SignerBondsUniswapV2", () => {
 
   const assetPoolAddress = "0x6e7278c99ac5314e53a3E95b2343D4C57FD46159"
   // Real KEEP token mainnet address in order to get a verifiable pair address.
-  const tokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
+  const collateralTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
 
   beforeEach(async () => {
     governance = await ethers.getSigner(0)
@@ -34,7 +34,7 @@ describe("SignerBondsUniswapV2", () => {
 
     mockCoveragePool = await deployMockContract(governance, CoveragePool.abi)
     await mockCoveragePool.mock.assetPool.returns(assetPoolAddress)
-    await mockCoveragePool.mock.collateralToken.returns(tokenAddress)
+    await mockCoveragePool.mock.collateralToken.returns(collateralTokenAddress)
 
     const SignerBondsUniswapV2 = await ethers.getContractFactory(
       "SignerBondsUniswapV2Stub"
@@ -226,8 +226,11 @@ describe("SignerBondsUniswapV2", () => {
             // tolerance (0.5%) included.
             // In this case its (5*1e18 * 5 * 99.7%) * 99.5%
             "24800375000000000000",
-            // First component is WETH and second is target token.
-            ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", tokenAddress],
+            // First component is WETH and second is collateral token.
+            [
+              "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+              collateralTokenAddress,
+            ],
             // Asset pool should be the recipient.
             assetPoolAddress,
             // Block time plus default deadline value (20 min).
@@ -240,7 +243,7 @@ describe("SignerBondsUniswapV2", () => {
           .to.emit(signerBondsUniswapV2, "UniswapV2SwapExecuted")
           .withArgs([
             "5000000000000000000", // ETH -> WETH
-            "24925000000000000000", // WETH -> TARGET with 0.3% fee included
+            "24925000000000000000", // WETH -> COLLATERAL TOKEN with 0.3% fee included
           ])
       })
     })

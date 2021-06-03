@@ -61,8 +61,8 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     IUniswapV2Router public uniswapRouter;
     IUniswapV2Pair public uniswapPair;
-    address public targetTokenRecipient;
-    address public targetToken;
+    address public assetPool;
+    address public collateralToken;
 
     // Determines the maximum allowed price impact for the swap transaction.
     // If transaction's price impact is higher, transaction will be reverted.
@@ -80,13 +80,13 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     constructor(IUniswapV2Router _uniswapRouter, CoveragePool _coveragePool) {
         uniswapRouter = _uniswapRouter;
-        targetTokenRecipient = address(_coveragePool.assetPool());
-        targetToken = address(_coveragePool.collateralToken());
+        assetPool = address(_coveragePool.assetPool());
+        collateralToken = address(_coveragePool.collateralToken());
         uniswapPair = IUniswapV2Pair(
             computePairAddress(
                 _uniswapRouter.factory(),
                 _uniswapRouter.WETH(),
-                targetToken
+                collateralToken
             )
         );
     }
@@ -147,13 +147,14 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     }
 
     /// @notice Swaps signer bonds on Uniswap v2 exchange.
-    /// @dev Swaps the given ETH amount for the target token using the Uniswap
-    ///      decentralized exchange. The maximum ETH amount is capped by the
+    /// @dev Swaps the given ETH amount for the collateral token using the
+    ///      Uniswap exchange. The maximum ETH amount is capped by the
     ///      contract balance. Some governance parameters are applied on the
     ///      transaction. The swap's price impact must fit within the
     ///      maximum allowed price impact and the transaction is constrained
-    ///      with the slippage tolerance and deadline. Acquired target tokens
-    ///      are sent to the recipient address set during contract construction.
+    ///      with the slippage tolerance and deadline. Acquired collateral
+    ///      tokens are sent to the asset pool address set during
+    ///      contract construction.
     /// @param amount Amount to swap.
     function swapSignerBondsOnUniswapV2(uint256 amount) external {
         require(amount > 0, "Amount must be greater than 0");
@@ -162,7 +163,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         // Setup the swap path. WETH must be the first component.
         address[] memory path = new address[](2);
         path[0] = uniswapRouter.WETH();
-        path[1] = targetToken;
+        path[1] = collateralToken;
 
         // Calculate the maximum output token amount basing on pair reserves.
         // This value will be used as the minimum amount of output tokens that
@@ -191,7 +192,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
             uniswapRouter.swapExactETHForTokens{value: amount}(
                 amountOutMin,
                 path,
-                targetTokenRecipient,
+                assetPool,
                 /* solhint-disable-next-line not-rely-on-time */
                 block.timestamp.add(swapDeadline)
             );
@@ -204,18 +205,18 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @param amount Amount of tokens.
     /// @return True if the price impact is allowed, false otherwise.
     function isAllowedPriceImpact(uint256 amount) internal view returns (bool) {
-        // Get reserve of the target token.
+        // Get reserve of the collateral token.
         address WETH = uniswapRouter.WETH();
-        address token0 = WETH < targetToken ? WETH : targetToken;
+        address token0 = WETH < collateralToken ? WETH : collateralToken;
         (uint256 reserve0, uint256 reserve1, ) = uniswapPair.getReserves();
-        uint256 targetTokenReserve = WETH == token0 ? reserve1 : reserve0;
+        uint256 collateralTokenReserve = WETH == token0 ? reserve1 : reserve0;
 
         // Calculate the price impact. Multiply it by the floating point
         // divisor to avoid float number.
         // slither-disable-next-line divide-before-multiply
         uint256 priceImpact =
             CoveragePoolConstants.FLOATING_POINT_DIVISOR.mul(amount).div(
-                targetTokenReserve
+                collateralTokenReserve
             );
 
         // Calculate the price impact limit. Multiply it by the floating point
