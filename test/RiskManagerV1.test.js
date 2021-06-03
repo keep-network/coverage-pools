@@ -298,7 +298,11 @@ describe("RiskManagerV1", () => {
   describe("notifyLiquidated", () => {
     context("when auction for deposit does not exist", () => {
       it("should revert", async () => {
-        const otherDeposit = await deployMockContract(owner, IDeposit.abi)
+        const DepositStub = await ethers.getContractFactory("DepositStub")
+        const otherDeposit = await DepositStub.deploy(
+          tbtcToken.address,
+          auctionLotSize
+        )
 
         await expect(
           riskManagerV1.notifyLiquidated(otherDeposit.address)
