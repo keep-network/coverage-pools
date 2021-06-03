@@ -235,9 +235,9 @@ collateral ratios and scaling tBTC’s TVL. The coverage pool serves as a buyer
 of last resort. It purchases enough TBTC on auction to make the depositor whole
 in the event of liquidation if the stakers' collateral is not sufficient.
 
-In case of liquidation of a tBTC deposit below a certain collateralization
+In case of liquidation of a tBTC deposit at or above a certain bond auction
 threshold, the risk manager opens an auction to acquire TBTC to purchase signer
-bonds. Collateralization threshold and auction length are governable parameters. 
+bonds. Bond auction threshold and auction length are governable parameters.
 
 ETH purchased by the risk manager from tBTC signer bonds is swapped and
 transferred to the asset pool and there are two strategies for doing that:
@@ -290,9 +290,9 @@ The governance included in the system design follows two principles:
 |Governance can adjust auction length based on coverage pool TVL and the minimum 
 possible auctioned value.
 
-|tBTC deposit collateralization
+|tBTC deposit bond auction threshold
 |12 hours
-|Governance can set the maximum collateralization level of tBTC deposit under
+|Governance can set the minimum bond auction level of tBTC deposit under
 the liquidation the tBTC v1 risk manager is going to open an auction for. The
 risk manager is a buyer of the last resort and should not work with tBTC
 liquidating deposits still attractive for arbitraging bots.

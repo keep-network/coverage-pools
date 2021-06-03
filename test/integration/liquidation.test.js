@@ -8,7 +8,7 @@ describe("Integration -- liquidation", () => {
   const auctionLength = 86400 // 24h
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
-  const collateralizationThreshold = 101
+  const bondAuctionThreshold = 100
 
   let tbtcToken
   let signerBondsSwapStrategy
@@ -60,13 +60,14 @@ describe("Integration -- liquidation", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      collateralizationThreshold
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 
     const DepositStub = await ethers.getContractFactory("DepositStub")
     tbtcDeposit = await DepositStub.deploy(tbtcToken.address, lotSize)
     await tbtcDeposit.deployed()
+    await tbtcDeposit.setAuctionValue(bondedAmount)
 
     await owner.sendTransaction({
       to: tbtcDeposit.address,

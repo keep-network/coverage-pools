@@ -1,5 +1,4 @@
 const chai = require("chai")
-
 const expect = chai.expect
 const {
   to1e18,
@@ -9,15 +8,13 @@ const {
 } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
-const IDeposit = require("../artifacts/contracts/RiskManagerV1.sol/IDeposit.json")
 const ITBTCDepositToken = require("../artifacts/contracts/RiskManagerV1.sol/ITBTCDepositToken.json")
 const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
 
-const depositLiquidationInProgressState = 10
-const depositLiquidatedState = 11
 const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
-const collateralizationThreshold = 101
+const bondAuctionThreshold = 100
+const bondedAmount = to1e18(10)
 
 describe("RiskManagerV1", () => {
   let tbtcToken
@@ -27,7 +24,7 @@ describe("RiskManagerV1", () => {
   let notifier
   let bidder
   let riskManagerV1
-  let mockIDeposit
+  let depositStub
 
   beforeEach(async () => {
     owner = await ethers.getSigner(0)
@@ -70,11 +67,21 @@ describe("RiskManagerV1", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      collateralizationThreshold
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 
-    mockIDeposit = await deployMockContract(owner, IDeposit.abi)
+    const DepositStub = await ethers.getContractFactory("DepositStub")
+    depositStub = await DepositStub.deploy(tbtcToken.address, auctionLotSize)
+    await depositStub.deployed()
+
+    // Transfer some funds to the deposit contract to simulate real bonds.
+    // This is why DepositStub is used instead of simple Waffle mock which
+    // could not receive ETH.
+    await owner.sendTransaction({
+      to: depositStub.address,
+      value: bondedAmount,
+    })
   })
 
   describe("notifyLiquidation", () => {
@@ -83,7 +90,7 @@ describe("RiskManagerV1", () => {
         await mockTbtcDepositToken.mock.exists.returns(false)
 
         await expect(
-          riskManagerV1.notifyLiquidation(mockIDeposit.address)
+          riskManagerV1.notifyLiquidation(depositStub.address)
         ).to.be.revertedWith("Address is not a deposit contract")
       })
     })
@@ -92,36 +99,30 @@ describe("RiskManagerV1", () => {
       context("when deposit is not in liquidation state", () => {
         it("should revert", async () => {
           await mockTbtcDepositToken.mock.exists.returns(true)
-          await mockIDeposit.mock.currentState.returns(4) // Active state
 
           await expect(
-            riskManagerV1.notifyLiquidation(mockIDeposit.address)
+            riskManagerV1.notifyLiquidation(depositStub.address)
           ).to.be.revertedWith("Deposit is not in liquidation state")
         })
       })
 
       context("when deposit is in liquidation state", () => {
-        context(
-          "when deposit is above collateralization threshold level",
-          () => {
-            it("should revert", async () => {
-              await mockTbtcDepositToken.mock.exists.returns(true)
-              await mockIDeposit.mock.currentState.returns(
-                depositLiquidationInProgressState
-              )
-              await mockIDeposit.mock.collateralizationPercentage.returns(
-                collateralizationThreshold + 1
-              )
-              await expect(
-                riskManagerV1.notifyLiquidation(mockIDeposit.address)
-              ).to.be.revertedWith(
-                "Deposit collateralization is above the threshold level"
-              )
-            })
-          }
-        )
+        context("when deposit is below bond auction threshold level", () => {
+          it("should revert", async () => {
+            await mockTbtcDepositToken.mock.exists.returns(true)
+            await depositStub.notifyUndercollateralizedLiquidation()
+            // Bond auction value is 100% so an auction value less than the total
+            // bond amount should cause a revert.
+            await depositStub.setAuctionValue(bondedAmount.sub(1))
+            await expect(
+              riskManagerV1.notifyLiquidation(depositStub.address)
+            ).to.be.revertedWith(
+              "Deposit bond auction percentage is below the threshold level"
+            )
+          })
+        })
 
-        context("when deposit is at the collateralization threshold", () => {
+        context("when deposit is at the bond auction threshold", () => {
           context("when the surplus pool is empty", () => {
             let notifyLiquidationTx
             let auctionAddress
@@ -130,14 +131,14 @@ describe("RiskManagerV1", () => {
               notifyLiquidationTx = await notifyLiquidation()
 
               auctionAddress = await riskManagerV1.depositToAuction(
-                mockIDeposit.address
+                depositStub.address
               )
             })
 
             it("should emit NotifiedLiquidation event", async () => {
               await expect(notifyLiquidationTx)
                 .to.emit(riskManagerV1, "NotifiedLiquidation")
-                .withArgs(mockIDeposit.address, notifier.address)
+                .withArgs(depositStub.address, notifier.address)
             })
 
             it("should create an auction ", async () => {
@@ -167,14 +168,14 @@ describe("RiskManagerV1", () => {
                 notifyLiquidationTx = await notifyLiquidation()
 
                 auctionAddress = await riskManagerV1.depositToAuction(
-                  mockIDeposit.address
+                  depositStub.address
                 )
               })
 
               it("should emit NotifiedLiquidation event", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(riskManagerV1, "NotifiedLiquidation")
-                  .withArgs(mockIDeposit.address, notifier.address)
+                  .withArgs(depositStub.address, notifier.address)
               })
 
               it("should create an auction ", async () => {
@@ -210,21 +211,17 @@ describe("RiskManagerV1", () => {
                   value: ethers.utils.parseEther("10"),
                 })
 
-                await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
-                await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-                await mockIDeposit.mock.withdrawFunds.returns()
-
                 notifyLiquidationTx = await notifyLiquidation()
 
                 auctionAddress = await riskManagerV1.depositToAuction(
-                  mockIDeposit.address
+                  depositStub.address
                 )
               })
 
               it("should emit NotifiedLiquidation event", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(riskManagerV1, "NotifiedLiquidation")
-                  .withArgs(mockIDeposit.address, notifier.address)
+                  .withArgs(depositStub.address, notifier.address)
               })
 
               it("should not create an auction", async () => {
@@ -264,21 +261,17 @@ describe("RiskManagerV1", () => {
                   value: ethers.utils.parseEther("10"),
                 })
 
-                await mockIDeposit.mock.withdrawableAmount.returns(to1e18(10))
-                await mockIDeposit.mock.purchaseSignerBondsAtAuction.returns()
-                await mockIDeposit.mock.withdrawFunds.returns()
-
                 notifyLiquidationTx = await notifyLiquidation()
 
                 auctionAddress = await riskManagerV1.depositToAuction(
-                  mockIDeposit.address
+                  depositStub.address
                 )
               })
 
               it("should emit NotifiedLiquidation event", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(riskManagerV1, "NotifiedLiquidation")
-                  .withArgs(mockIDeposit.address, notifier.address)
+                  .withArgs(depositStub.address, notifier.address)
               })
 
               it("should not create an auction", async () => {
@@ -305,7 +298,11 @@ describe("RiskManagerV1", () => {
   describe("notifyLiquidated", () => {
     context("when auction for deposit does not exist", () => {
       it("should revert", async () => {
-        const otherDeposit = await deployMockContract(owner, IDeposit.abi)
+        const DepositStub = await ethers.getContractFactory("DepositStub")
+        const otherDeposit = await DepositStub.deploy(
+          tbtcToken.address,
+          auctionLotSize
+        )
 
         await expect(
           riskManagerV1.notifyLiquidated(otherDeposit.address)
@@ -318,7 +315,7 @@ describe("RiskManagerV1", () => {
         await notifyLiquidation()
 
         await expect(
-          riskManagerV1.notifyLiquidated(mockIDeposit.address)
+          riskManagerV1.notifyLiquidated(depositStub.address)
         ).to.be.revertedWith("Deposit is not in liquidated state")
       })
     })
@@ -331,31 +328,35 @@ describe("RiskManagerV1", () => {
         await notifyLiquidation()
 
         auctionAddress = await riskManagerV1.depositToAuction(
-          mockIDeposit.address
+          depositStub.address
         )
 
         // Simulate that someone takes a partial offer on the auction.
         await tbtcToken.mint(bidder.address, auctionLotSize)
         await tbtcToken.connect(bidder).approve(auctionAddress, auctionLotSize)
         auction = new ethers.Contract(auctionAddress, Auction.abi, owner)
-        auction.connect(bidder).takeOffer(to1ePrecision(25, 16))
+        await auction.connect(bidder).takeOffer(to1ePrecision(25, 16))
 
         // Simulate that deposit was liquidated by someone else.
-        await mockIDeposit.mock.currentState.returns(depositLiquidatedState)
+        await tbtcToken.connect(owner).mint(owner.address, auctionLotSize)
+        await tbtcToken
+          .connect(owner)
+          .approve(depositStub.address, auctionLotSize)
+        await depositStub.connect(owner).purchaseSignerBondsAtAuction()
       })
 
       it("should emit notified liquidated event", async () => {
         await expect(
-          riskManagerV1.connect(notifier).notifyLiquidated(mockIDeposit.address)
+          riskManagerV1.connect(notifier).notifyLiquidated(depositStub.address)
         )
           .to.emit(riskManagerV1, "NotifiedLiquidated")
-          .withArgs(mockIDeposit.address, notifier.address)
+          .withArgs(depositStub.address, notifier.address)
       })
 
       it("should properly update the surplus pool", async () => {
         await riskManagerV1
           .connect(notifier)
-          .notifyLiquidated(mockIDeposit.address)
+          .notifyLiquidated(depositStub.address)
 
         // Should return the auction's transferred amount (25 * 10^16).
         expect(await riskManagerV1.tbtcSurplus()).to.be.equal(
@@ -366,7 +367,7 @@ describe("RiskManagerV1", () => {
       it("should early close an auction", async () => {
         await riskManagerV1
           .connect(notifier)
-          .notifyLiquidated(mockIDeposit.address)
+          .notifyLiquidated(depositStub.address)
 
         expect(await riskManagerV1.depositToAuction(auctionAddress)).to.equal(
           ZERO_ADDRESS
@@ -488,52 +489,50 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("beginCollateralizationThresholdUpdate", () => {
+  describe("beginBondAuctionThresholdUpdate", () => {
     context("when the caller is the owner", () => {
-      const currentCollateralizationThreshold = collateralizationThreshold
-      const newCollateralizationThreshold = 102
+      const currentBondAuctionThreshold = bondAuctionThreshold
+      const newBondAuctionThreshold = 90
       let tx
 
       beforeEach(async () => {
         tx = await riskManagerV1
           .connect(owner)
-          .beginCollateralizationThresholdUpdate(newCollateralizationThreshold)
+          .beginBondAuctionThresholdUpdate(newBondAuctionThreshold)
       })
 
-      it("should not update collateralization threshold", async () => {
-        expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
-          currentCollateralizationThreshold
+      it("should not update bond auction threshold", async () => {
+        expect(await riskManagerV1.bondAuctionThreshold()).to.be.equal(
+          currentBondAuctionThreshold
         )
       })
 
       it("should start the governance delay timer", async () => {
         expect(
-          await riskManagerV1.getRemainingCollateralizationThresholdUpdateTime()
+          await riskManagerV1.getRemainingBondAuctionThresholdUpdateTime()
         ).to.be.equal(43200) // 12h contract governance delay
       })
 
-      it("should emit the CollateralizationThresholdUpdateStarted event", async () => {
+      it("should emit the BondAuctionThresholdUpdateStarted event", async () => {
         const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
           .timestamp
         await expect(tx)
-          .to.emit(riskManagerV1, "CollateralizationThresholdUpdateStarted")
-          .withArgs(newCollateralizationThreshold, blockTimestamp)
+          .to.emit(riskManagerV1, "BondAuctionThresholdUpdateStarted")
+          .withArgs(newBondAuctionThreshold, blockTimestamp)
       })
     })
 
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(notifier)
-            .beginCollateralizationThresholdUpdate(102)
+          riskManagerV1.connect(notifier).beginBondAuctionThresholdUpdate(90)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
 
-  describe("finalizeCollateralizationThresholdUpdate", () => {
-    const newCollateralizationThreshold = 102
+  describe("finalizeBondAuctionThresholdUpdate", () => {
+    const newBondAuctionThreshold = 90
 
     context(
       "when the update process is initialized, governance delay has passed, " +
@@ -544,32 +543,30 @@ describe("RiskManagerV1", () => {
         beforeEach(async () => {
           await riskManagerV1
             .connect(owner)
-            .beginCollateralizationThresholdUpdate(
-              newCollateralizationThreshold
-            )
+            .beginBondAuctionThresholdUpdate(newBondAuctionThreshold)
 
           await increaseTime(43200) // +12h contract governance delay
 
           tx = await riskManagerV1
             .connect(owner)
-            .finalizeCollateralizationThresholdUpdate()
+            .finalizeBondAuctionThresholdUpdate()
         })
 
-        it("should update the collateralization threshold", async () => {
-          expect(await riskManagerV1.collateralizationThreshold()).to.be.equal(
-            newCollateralizationThreshold
+        it("should update the bond auction threshold", async () => {
+          expect(await riskManagerV1.bondAuctionThreshold()).to.be.equal(
+            newBondAuctionThreshold
           )
         })
 
-        it("should emit CollateralizationThresholdUpdated event", async () => {
+        it("should emit BondAuctionThresholdUpdated event", async () => {
           await expect(tx)
-            .to.emit(riskManagerV1, "CollateralizationThresholdUpdated")
-            .withArgs(newCollateralizationThreshold)
+            .to.emit(riskManagerV1, "BondAuctionThresholdUpdated")
+            .withArgs(newBondAuctionThreshold)
         })
 
         it("should reset the governance delay timer", async () => {
           await expect(
-            riskManagerV1.getRemainingCollateralizationThresholdUpdateTime()
+            riskManagerV1.getRemainingBondAuctionThresholdUpdateTime()
           ).to.be.revertedWith("Update not initiated")
         })
       }
@@ -579,14 +576,12 @@ describe("RiskManagerV1", () => {
       it("should revert", async () => {
         await riskManagerV1
           .connect(owner)
-          .beginCollateralizationThresholdUpdate(newCollateralizationThreshold)
+          .beginBondAuctionThresholdUpdate(newBondAuctionThreshold)
 
         await increaseTime(39600) // +11h
 
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeCollateralizationThresholdUpdate()
+          riskManagerV1.connect(owner).finalizeBondAuctionThresholdUpdate()
         ).to.be.revertedWith("Governance delay has not elapsed")
       })
     })
@@ -594,9 +589,7 @@ describe("RiskManagerV1", () => {
     context("when the caller is not the owner", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(notifier)
-            .finalizeCollateralizationThresholdUpdate()
+          riskManagerV1.connect(notifier).finalizeBondAuctionThresholdUpdate()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -604,9 +597,7 @@ describe("RiskManagerV1", () => {
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeCollateralizationThresholdUpdate()
+          riskManagerV1.connect(owner).finalizeBondAuctionThresholdUpdate()
         ).to.be.revertedWith("Change not initiated")
       })
     })
@@ -751,16 +742,11 @@ describe("RiskManagerV1", () => {
 
   async function notifyLiquidation() {
     await mockTbtcDepositToken.mock.exists.returns(true)
-    await mockIDeposit.mock.currentState.returns(
-      depositLiquidationInProgressState
-    )
-    await mockIDeposit.mock.lotSizeTbtc.returns(auctionLotSize)
-    await mockIDeposit.mock.collateralizationPercentage.returns(
-      collateralizationThreshold
-    )
+    await depositStub.notifyUndercollateralizedLiquidation()
+    await depositStub.setAuctionValue(bondedAmount)
     const tx = await riskManagerV1
       .connect(notifier)
-      .notifyLiquidation(mockIDeposit.address)
+      .notifyLiquidation(depositStub.address)
     return tx
   }
 })
