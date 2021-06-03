@@ -72,17 +72,21 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
       .swapSignerBonds({ value: ethers.utils.parseEther("20") })
   })
 
-  describe("initial state", () => {
-    it("should assert the asset pool has no collateral tokens", async () => {
-      expect(await collateralToken.balanceOf(assetPool.address)).to.equal(0)
+  describe("test initial state", () => {
+    describe("asset pool", () => {
+      it("should not have any collateral tokens", async () => {
+        expect(await collateralToken.balanceOf(assetPool.address)).to.equal(0)
+      })
     })
 
-    it("should assert the signer bonds are deposited on swap strategy", async () => {
-      const balance = await (
-        await ethers.getSigner(signerBondsUniswapV2.address)
-      ).getBalance()
+    describe("swap strategy", () => {
+      it("should have the signer bonds deposited", async () => {
+        const balance = await (
+          await ethers.getSigner(signerBondsUniswapV2.address)
+        ).getBalance()
 
-      expect(balance).to.equal(ethers.utils.parseEther("20"))
+        expect(balance).to.equal(ethers.utils.parseEther("20"))
+      })
     })
   })
 
