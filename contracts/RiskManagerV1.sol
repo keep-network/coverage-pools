@@ -24,7 +24,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
-///      contract for tBTC. For more info and function description
+///      contract from tBTC. For more info and function description
 ///      please see:
 ///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
@@ -45,7 +45,7 @@ interface IDeposit {
 
 /// @notice tBTC v1 deposit token interface.
 /// @dev This is an interface with just a few function signatures of a main
-///      contract for tBTC. For more info and function description
+///      contract from tBTC. For more info and function description
 ///      please see:
 ///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/system/TBTCDepositToken.sol
 interface ITBTCDepositToken {
