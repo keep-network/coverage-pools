@@ -204,7 +204,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///         against the maximum allowed price impact limit.
     /// @param amount Amount of tokens.
     /// @return True if the price impact is allowed, false otherwise.
-    function isAllowedPriceImpact(uint256 amount) internal view returns (bool) {
+    function isAllowedPriceImpact(uint256 amount) public view returns (bool) {
         // Get reserve of the collateral token.
         address WETH = uniswapRouter.WETH();
         address token0 = WETH < collateralToken ? WETH : collateralToken;
