@@ -338,9 +338,11 @@ describe("RiskManagerV1", () => {
         await auction.connect(bidder).takeOffer(to1ePrecision(25, 16))
 
         // Simulate that deposit was liquidated by someone else.
-        await tbtcToken.mint(owner.address, auctionLotSize)
-        await tbtcToken.approve(depositStub.address, auctionLotSize)
-        await depositStub.purchaseSignerBondsAtAuction()
+        await tbtcToken.connect(owner).mint(owner.address, auctionLotSize)
+        await tbtcToken
+          .connect(owner)
+          .approve(depositStub.address, auctionLotSize)
+        await depositStub.connect(owner).purchaseSignerBondsAtAuction()
       })
 
       it("should emit notified liquidated event", async () => {
