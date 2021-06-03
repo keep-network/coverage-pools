@@ -121,7 +121,7 @@ contract Auction is IAuction {
     ///      WARNING: When calling this function directly, it might happen that
     ///      the expected amount of tokens to seize from the coverage pool is
     ///      different from the actual one. There are a couple of reasons for that
-    ///      such asother bids taking this offer, claims or withdrawals on an
+    ///      such another bids taking this offer, claims or withdrawals on an
     ///      Asset Pool that are executed in the same block. The recommended way
     ///      for taking an offer is through 'AuctionBidder' contract with
     ///      'takeOfferWithMin' function, where a caller can specify the minimal
@@ -129,7 +129,7 @@ contract Auction is IAuction {
     ///      of tokenAccepted.
     /// @param amount the amount the taker is paying, denominated in tokenAccepted.
     ///               In the scenario when amount exceeds the outstanding tokens
-    ///               for the aution to complete, only the amount outstanding will
+    ///               for the auction to complete, only the amount outstanding will
     ///               be taken from a caller.
     function takeOffer(uint256 amount) external override {
         require(amount > 0, "Can't pay 0 tokens");
