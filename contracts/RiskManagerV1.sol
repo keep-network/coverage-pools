@@ -195,6 +195,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @notice Closes an auction early.
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidated(address depositAddress) external {
+        require(
+            depositToAuction[depositAddress] != address(0),
+            "No auction for given deposit"
+        );
+
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,

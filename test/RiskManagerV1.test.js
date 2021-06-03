@@ -303,9 +303,19 @@ describe("RiskManagerV1", () => {
   })
 
   describe("notifyLiquidated", () => {
+    context("when auction for deposit does not exist", () => {
+      it("should revert", async () => {
+        const otherDeposit = await deployMockContract(owner, IDeposit.abi)
+
+        await expect(
+          riskManagerV1.notifyLiquidated(otherDeposit.address)
+        ).to.be.revertedWith("No auction for given deposit")
+      })
+    })
+
     context("when deposit is not in liquidated state", () => {
       it("should revert", async () => {
-        await mockIDeposit.mock.currentState.returns(4) // Active state
+        await notifyLiquidation()
 
         await expect(
           riskManagerV1.notifyLiquidated(mockIDeposit.address)
