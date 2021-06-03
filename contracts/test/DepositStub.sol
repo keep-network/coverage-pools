@@ -79,6 +79,10 @@ contract DepositStub is IDeposit {
         return address(this).balance;
     }
 
+    //
+    // Not in tBTC deposit interface, functions below were added just for tests.
+    //
+
     function setAuctionValue(uint256 _auctionValue) external {
         auctionValue = _auctionValue;
     }
