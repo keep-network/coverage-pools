@@ -11,8 +11,6 @@ const { BigNumber } = ethers
 
 describe("AuctionBidder", () => {
   let owner
-
-  let mockAuction
   let mockCoveragePool
   let auctionBidder
 
@@ -22,6 +20,9 @@ describe("AuctionBidder", () => {
 
     mockAuction = await deployMockContract(owner, AuctionJSON.abi)
     mockCoveragePool = await deployMockContract(owner, CoveragePoolJSON.abi)
+
+    const AuctionStub = await ethers.getContractFactory("AuctionStub")
+    auctionStub = await AuctionStub.deploy()
 
     const AuctionBidder = await ethers.getContractFactory("AuctionBidder")
     auctionBidder = await AuctionBidder.deploy(mockCoveragePool.address)
@@ -40,8 +41,9 @@ describe("AuctionBidder", () => {
     const minAmountToSeize = to1ePrecision(5, 10)
 
     beforeEach(async () => {
-      await mockAuction.mock.amountOutstanding.returns(auctionAmountOutstanding)
-      await mockAuction.mock.onOffer.returns(amountOnOffer, divisor) // 10% of the cov pool
+      auctionStub.setDivisor(divisor)
+      auctionStub.setOnOffer(amountOnOffer) // 10% of the cov pool
+      auctionStub.setAmountOutstanding(auctionAmountOutstanding)
     })
 
     context(
@@ -54,19 +56,11 @@ describe("AuctionBidder", () => {
             .withArgs(portionToSeize)
             .returns(amountToSeize)
 
-          // This is a workouround until Hardhat starts supporting Waffle's
-          // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html#called-on-contract
-          // https://github.com/nomiclabs/hardhat/issues/1135
-          await mockAuction.mock.takeOffer
-            .withArgs(amount)
-            .revertsWithReason("takeOffer should be invoked")
+          const tx = await auctionBidder
+            .connect(bidder)
+            .takeOfferWithMin(auctionStub.address, amount, minAmountToSeize)
 
-          // Reverting here is just to check if takeOffer(amount) was called
-          await expect(
-            auctionBidder
-              .connect(bidder)
-              .takeOfferWithMin(mockAuction.address, amount, minAmountToSeize)
-          ).to.be.revertedWith("takeOffer should be invoked")
+          await expect(tx).to.emit(auctionStub, "TakeOffer").withArgs(amount)
         })
       }
     )
@@ -81,19 +75,11 @@ describe("AuctionBidder", () => {
             .withArgs(portionToSeize)
             .returns(amountToSeize)
 
-          // This is a workouround until Hardhat starts supporting Waffle's
-          // https://ethereum-waffle.readthedocs.io/en/latest/matchers.html#called-on-contract
-          // https://github.com/nomiclabs/hardhat/issues/1135
-          await mockAuction.mock.takeOffer
-            .withArgs(amount)
-            .revertsWithReason("takeOffer should be invoked")
+          const tx = await auctionBidder
+            .connect(bidder)
+            .takeOfferWithMin(auctionStub.address, amount, minAmountToSeize)
 
-          // Reverting here is just to check if takeOffer(amount) was called
-          await expect(
-            auctionBidder
-              .connect(bidder)
-              .takeOfferWithMin(mockAuction.address, amount, minAmountToSeize)
-          ).to.be.revertedWith("takeOffer should be invoked")
+          await expect(tx).to.emit(auctionStub, "TakeOffer").withArgs(amount)
         })
       }
     )
@@ -111,7 +97,7 @@ describe("AuctionBidder", () => {
           await expect(
             auctionBidder
               .connect(bidder)
-              .takeOfferWithMin(mockAuction.address, amount, minAmountToSeize)
+              .takeOfferWithMin(auctionStub.address, amount, minAmountToSeize)
           ).to.be.revertedWith(
             "Can't fulfill offer with a minimal amount to seize"
           )
