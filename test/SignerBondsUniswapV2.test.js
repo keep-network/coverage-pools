@@ -1,17 +1,17 @@
 const chai = require("chai")
 const expect = chai.expect
-
+const { BigNumber } = ethers
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const { to1e18, lastBlockTime } = require("./helpers/contract-test-helpers")
 const CoveragePool = require("../artifacts/contracts/CoveragePool.sol/CoveragePool.json")
-const { BigNumber } = ethers
+const IUniswapV2Pair = require("../artifacts/contracts/SignerBondsUniswapV2.sol/IUniswapV2Pair.json")
 
 describe("SignerBondsUniswapV2", () => {
   let governance
   let riskManager
   let other
   let uniswapV2RouterStub
-  let uniswapV2PairStub
+  let mockUniswapV2Pair
   let mockCoveragePool
   let signerBondsUniswapV2
 
@@ -30,11 +30,7 @@ describe("SignerBondsUniswapV2", () => {
     uniswapV2RouterStub = await UniswapV2RouterStub.deploy()
     await uniswapV2RouterStub.deployed()
 
-    const UniswapV2PairStub = await ethers.getContractFactory(
-      "UniswapV2PairStub"
-    )
-    uniswapV2PairStub = await UniswapV2PairStub.deploy()
-    await uniswapV2PairStub.deployed()
+    mockUniswapV2Pair = await deployMockContract(governance, IUniswapV2Pair.abi)
 
     mockCoveragePool = await deployMockContract(governance, CoveragePool.abi)
     await mockCoveragePool.mock.assetPool.returns(assetPoolAddress)
@@ -49,7 +45,7 @@ describe("SignerBondsUniswapV2", () => {
     )
     await signerBondsUniswapV2.deployed()
 
-    // SignerBondsUniswapV2 has to point to the deployed UniswapV2PairStub
+    // SignerBondsUniswapV2 has to point to the deployed UniswapV2Pair mock
     // instance to make tests work. However, before setting the new value
     // via the stub, assert the initial value is correct and the pair
     // address computing logic works well.
@@ -57,7 +53,7 @@ describe("SignerBondsUniswapV2", () => {
       // address of real KEEP/ETH LP pool
       "0xE6f19dAb7d43317344282F803f8E8d240708174a"
     )
-    await signerBondsUniswapV2.setUniswapPair(uniswapV2PairStub.address)
+    await signerBondsUniswapV2.setUniswapPair(mockUniswapV2Pair.address)
   })
 
   describe("swapSignerBonds", () => {
@@ -160,11 +156,12 @@ describe("SignerBondsUniswapV2", () => {
     const exchangeRate = 5 // because one can get 5 tokens for every 1 ETH
 
     beforeEach(async () => {
-      await uniswapV2PairStub.setReserves(
+      await mockUniswapV2Pair.mock.getReserves.returns(
         // Real KEEP token address is smaller than WETH address so
         // token reserves should be set as reserve0.
         to1e18(tokenReserves),
-        to1e18(ethReserves)
+        to1e18(ethReserves),
+        await lastBlockTime()
       )
 
       await uniswapV2RouterStub.setExchangeRate(exchangeRate)
