@@ -112,16 +112,20 @@ describeFn("System -- liquidation", () => {
     bidder = await impersonateAccount(bidderAddress)
   })
 
-  describe("initial state", () => {
-    it("should assert a deposit is in active state", async () => {
-      expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+  describe("test initial state", () => {
+    describe("deposit", () => {
+      it("should be in active state", async () => {
+        expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+      })
     })
 
-    it("should assert an auction does not exist", async () => {
-      const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
-      )
-      expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+    describe("auction", () => {
+      it("should not exist", async () => {
+        const auctionAddress = await riskManagerV1.depositToAuction(
+          tbtcDeposit.address
+        )
+        expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+      })
     })
   })
 

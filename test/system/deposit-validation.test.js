@@ -110,12 +110,14 @@ describeFn("System -- deposit validation", () => {
     await fakeDeposit.deployed()
   })
 
-  describe("initial state", () => {
-    it("should assert the fake deposit's auction does not exist", async () => {
-      const auctionAddress = await riskManagerV1.depositToAuction(
-        fakeDeposit.address
-      )
-      expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+  describe("test initial state", () => {
+    describe("fake deposit's auction", () => {
+      it("should not exist", async () => {
+        const auctionAddress = await riskManagerV1.depositToAuction(
+          fakeDeposit.address
+        )
+        expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+      })
     })
   })
 
