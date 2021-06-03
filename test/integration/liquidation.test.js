@@ -1,8 +1,10 @@
 const { expect } = require("chai")
 const { to1e18 } = require("../helpers/contract-test-helpers")
+const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
+const ITBTCDepositToken = require("../../artifacts/contracts/RiskManagerV1.sol/ITBTCDepositToken.json")
 
-describe("Integration", () => {
+describe("Integration -- liquidation", () => {
   const auctionLength = 86400 // 24h
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
@@ -14,13 +16,26 @@ describe("Integration", () => {
   let riskManagerV1
   let tbtcDeposit
 
+  let owner
   let bidder
   let thirdParty
 
   beforeEach(async () => {
+    owner = await ethers.getSigner(0)
+    bidder = await ethers.getSigner(1)
+    thirdParty = await ethers.getSigner(2)
+
     const TestToken = await ethers.getContractFactory("TestToken")
     tbtcToken = await TestToken.deploy()
     await tbtcToken.deployed()
+
+    // For brevity, use a mock tBTC deposit token contract and simulate
+    // all deposits are legit.
+    const mockTbtcDepositToken = await deployMockContract(
+      owner,
+      ITBTCDepositToken.abi
+    )
+    await mockTbtcDepositToken.mock.exists.returns(true)
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
       "SignerBondsEscrow"
@@ -40,6 +55,7 @@ describe("Integration", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
+      mockTbtcDepositToken.address,
       coveragePool.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
@@ -52,15 +68,10 @@ describe("Integration", () => {
     tbtcDeposit = await DepositStub.deploy(tbtcToken.address, lotSize)
     await tbtcDeposit.deployed()
 
-    await ethers.getSigner(0).then((s) =>
-      s.sendTransaction({
-        to: tbtcDeposit.address,
-        value: bondedAmount,
-      })
-    )
-
-    bidder = await ethers.getSigner(1)
-    thirdParty = await ethers.getSigner(2)
+    await owner.sendTransaction({
+      to: tbtcDeposit.address,
+      value: bondedAmount,
+    })
 
     await tbtcToken.mint(bidder.address, lotSize)
     await tbtcToken.mint(thirdParty.address, lotSize)
