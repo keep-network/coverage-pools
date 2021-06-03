@@ -225,6 +225,67 @@ describe("AssetPool", () => {
     })
   })
 
+  describe("receiveApproval", () => {
+    context("when called directly", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .receiveApproval(
+              underwriter1.address,
+              to1e18(100),
+              collateralToken.address,
+              []
+            )
+        ).to.be.revertedWith("Only token caller allowed")
+      })
+    })
+
+    context("when called for unsupported token", () => {
+      const amount = to1e18(100)
+      let unsupportedToken
+
+      beforeEach(async () => {
+        const TestToken = await ethers.getContractFactory("TestToken")
+        unsupportedToken = await TestToken.deploy()
+        await unsupportedToken.deployed()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          unsupportedToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, [])
+        ).to.be.revertedWith("Unsupported collateral token")
+      })
+    })
+
+    context("when called via approveAndCall", () => {
+      const amount = to1e18(100)
+
+      beforeEach(async () => {
+        await collateralToken
+          .connect(underwriter1)
+          .approveAndCall(assetPool.address, amount, [])
+      })
+
+      it("should mint underwriter tokens to the caller", async () => {
+        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
+          amount
+        )
+      })
+
+      it("should transfer deposited amount to the pool", async () => {
+        expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+          amount
+        )
+        expect(
+          await collateralToken.balanceOf(underwriter1.address)
+        ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+      })
+    })
+  })
+
   describe("claim", () => {
     beforeEach(async () => {
       await assetPool.connect(underwriter1).deposit(to1e18(200))
@@ -362,6 +423,27 @@ describe("AssetPool", () => {
           .withArgs(underwriter1.address, amount, await lastBlockTime())
       })
     })
+
+    context(
+      "when there was a pending withdrawal and graceful withdrawal timeout has elapsed",
+      () => {
+        beforeEach(async () => {
+          await assetPool
+            .connect(underwriter1)
+            .initiateWithdrawal(amount.sub(10))
+          // wait for 14 days for withdrawal delay to pass
+          await increaseTime(14 * 24 * 3600)
+        })
+
+        it("should revert", async () => {
+          await expect(
+            assetPool.connect(underwriter1).initiateWithdrawal(10)
+          ).to.be.revertedWith(
+            "Cannot initiate withdrawal after withdrawal delay"
+          )
+        })
+      }
+    )
   })
 
   describe("completeWithdrawal", () => {

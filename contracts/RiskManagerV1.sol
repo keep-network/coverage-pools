@@ -1,3 +1,15 @@
+// ▓▓▌ ▓▓ ▐▓▓ ▓▓▓▓▓▓▓▓▓▓▌▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▄
+// ▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▌▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+//   ▓▓▓▓▓▓    ▓▓▓▓▓▓▓▀    ▐▓▓▓▓▓▓    ▐▓▓▓▓▓   ▓▓▓▓▓▓     ▓▓▓▓▓   ▐▓▓▓▓▓▌   ▐▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▄▄▓▓▓▓▓▓▓▀      ▐▓▓▓▓▓▓▄▄▄▄         ▓▓▓▓▓▓▄▄▄▄         ▐▓▓▓▓▓▌   ▐▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▓▓▓▓▓▓▓▀        ▐▓▓▓▓▓▓▓▓▓▓         ▓▓▓▓▓▓▓▓▓▓         ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▀▀▓▓▓▓▓▓▄       ▐▓▓▓▓▓▓▀▀▀▀         ▓▓▓▓▓▓▀▀▀▀         ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▀
+//   ▓▓▓▓▓▓   ▀▓▓▓▓▓▓▄     ▐▓▓▓▓▓▓     ▓▓▓▓▓   ▓▓▓▓▓▓     ▓▓▓▓▓   ▐▓▓▓▓▓▌
+// ▓▓▓▓▓▓▓▓▓▓ █▓▓▓▓▓▓▓▓▓ ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓ ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓
+//
+//                           Trust math, not hardware.
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity <0.9.0;
@@ -12,9 +24,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
-///         contract for tBTC. For more info and function description
-///         please see:
-///         https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
+///      contract from tBTC. For more info and function description
+///      please see:
+///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
     function withdrawFunds() external;
 
@@ -26,9 +38,18 @@ interface IDeposit {
 
     function lotSizeTbtc() external view returns (uint256);
 
-    function collateralizationPercentage() external view returns (uint256);
-
     function withdrawableAmount() external view returns (uint256);
+
+    function auctionValue() external view returns (uint256);
+}
+
+/// @notice tBTC v1 deposit token interface.
+/// @dev This is an interface with just a few function signatures of a main
+///      contract from tBTC. For more info and function description
+///      please see:
+///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/system/TBTCDepositToken.sol
+interface ITBTCDepositToken {
+    function exists(uint256 _tokenId) external view returns (bool);
 }
 
 /// @title ISignerBondsSwapStrategy
@@ -49,25 +70,29 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
-    // Auction will not be opened if the deposit collateralization level does not
-    // fall below this collateralization threshold.
+    // Coverage pool auction will not be opened if the deposit's bond auction
+    // offers a bond percentage lower than this threshold.
     // Risk manager should open a coverage pool auction for only those deposits
     // that nobody else is willing to purchase. The default value can be updated
     // by the governance in two steps. First step is to begin the update process
     // with the new value and the second step is to finalize it after
     // GOVERNANCE_TIME_DELAY has passed.
-    uint256 public collateralizationThreshold; // percent
-    uint256 public newCollateralizationThreshold;
-    uint256 public collateralizationThresholdChangeInitiated;
+    uint256 public bondAuctionThreshold; // percent
+    uint256 public newBondAuctionThreshold;
+    uint256 public bondAuctionThresholdChangeInitiated;
 
     uint256 public auctionLength;
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
 
     IERC20 public tbtcToken;
+    ITBTCDepositToken public tbtcDepositToken;
+    // tBTC surplus collected from early closed auctions.
+    uint256 public tbtcSurplus;
 
-    // TODO: should be possible to change by the governance.
     ISignerBondsSwapStrategy public signerBondsSwapStrategy;
+    ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
+    uint256 public signerBondsSwapStrategyInitiated;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -80,11 +105,19 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
     event AuctionLengthUpdated(uint256 auctionLength);
 
-    event CollateralizationThresholdUpdateStarted(
-        uint256 collateralizationThreshold,
+    event BondAuctionThresholdUpdateStarted(
+        uint256 bondAuctionThreshold,
         uint256 timestamp
     );
-    event CollateralizationThresholdUpdated(uint256 collateralizationThreshold);
+    event BondAuctionThresholdUpdated(uint256 bondAuctionThreshold);
+
+    event SignerBondsSwapStrategyUpdateStarted(
+        address indexed signerBondsSwapStrategy,
+        uint256 timestamp
+    );
+    event SignerBondsSwapStrategyUpdated(
+        address indexed signerBondsSwapStrategy
+    );
 
     /// @notice Reverts if called before the delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -102,16 +135,18 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
     constructor(
         IERC20 _tbtcToken,
+        ITBTCDepositToken _tbtcDepositToken,
         CoveragePool _coveragePool,
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength,
-        uint256 _collateralizationThreshold
+        uint256 _bondAuctionThreshold
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
+        tbtcDepositToken = _tbtcDepositToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
-        collateralizationThreshold = _collateralizationThreshold;
+        bondAuctionThreshold = _bondAuctionThreshold;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -122,6 +157,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @notice Creates an auction for tbtc deposit in liquidation state.
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidation(address depositAddress) external {
+        require(
+            tbtcDepositToken.exists(uint256(depositAddress)),
+            "Address is not a deposit contract"
+        );
+
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
@@ -129,14 +169,23 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         );
 
         require(
-            deposit.collateralizationPercentage() <= collateralizationThreshold,
-            "Deposit collateralization is above the threshold level"
+            deposit.auctionValue() >=
+                address(deposit).balance.mul(bondAuctionThreshold).div(100),
+            "Deposit bond auction percentage is below the threshold level"
         );
 
         // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
+
+        // If the surplus can cover the deposit liquidation cost, liquidate
+        // that deposit directly without the auction process.
+        if (tbtcSurplus >= lotSizeTbtc) {
+            tbtcSurplus = tbtcSurplus.sub(lotSizeTbtc);
+            liquidateDeposit(deposit);
+            return;
+        }
 
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
@@ -147,6 +196,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @notice Closes an auction early.
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidated(address depositAddress) external {
+        require(
+            depositToAuction[depositAddress] != address(0),
+            "No auction for given deposit"
+        );
+
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
@@ -154,48 +208,46 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
 
-        // TODO: In case of an auction early close, we might end up having
-        //       TBTC hanging in this contract. Need to decide what to do with
-        //       these tokens.
-
         Auction auction = Auction(depositToAuction[depositAddress]);
 
         delete depositToAuction[depositAddress];
         delete auctionToDeposit[address(auction)];
-        earlyCloseAuction(auction);
+        uint256 amountTransferred = earlyCloseAuction(auction);
+
+        // Add auction's transferred amount to the surplus pool.
+        // slither-disable-next-line reentrancy-benign
+        tbtcSurplus = tbtcSurplus.add(amountTransferred);
     }
 
-    /// @notice Begins the collateralization threshold update process.
-    /// @dev Can be called only by the contract owner. The collateralization
-    ///      threshold should be adjusted by taking into account factors like:
-    ///      tBTC deposit undercollateralized threshold percent, tBTC deposit
-    ///      severely undercollateralized threshold percent, and the gas price.
-    /// @param _newCollateralizationThreshold New collateralization threshold in percent.
-    function beginCollateralizationThresholdUpdate(
-        uint256 _newCollateralizationThreshold
-    ) external onlyOwner {
-        newCollateralizationThreshold = _newCollateralizationThreshold;
+    /// @notice Begins the bond auction threshold update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newBondAuctionThreshold New bond auction threshold in percent.
+    function beginBondAuctionThresholdUpdate(uint256 _newBondAuctionThreshold)
+        external
+        onlyOwner
+    {
+        newBondAuctionThreshold = _newBondAuctionThreshold;
         /* solhint-disable-next-line not-rely-on-time */
-        collateralizationThresholdChangeInitiated = block.timestamp;
+        bondAuctionThresholdChangeInitiated = block.timestamp;
         /* solhint-disable not-rely-on-time */
-        emit CollateralizationThresholdUpdateStarted(
-            _newCollateralizationThreshold,
+        emit BondAuctionThresholdUpdateStarted(
+            _newBondAuctionThreshold,
             block.timestamp
         );
     }
 
-    /// @notice Finalizes the collateralization threshold update process.
+    /// @notice Finalizes the bond auction threshold update process.
     /// @dev Can be called only by the contract owner, after the the
     ///      governance delay elapses.
-    function finalizeCollateralizationThresholdUpdate()
+    function finalizeBondAuctionThresholdUpdate()
         external
         onlyOwner
-        onlyAfterGovernanceDelay(collateralizationThresholdChangeInitiated)
+        onlyAfterGovernanceDelay(bondAuctionThresholdChangeInitiated)
     {
-        collateralizationThreshold = newCollateralizationThreshold;
-        emit CollateralizationThresholdUpdated(collateralizationThreshold);
-        collateralizationThresholdChangeInitiated = 0;
-        newCollateralizationThreshold = 0;
+        bondAuctionThreshold = newBondAuctionThreshold;
+        emit BondAuctionThresholdUpdated(bondAuctionThreshold);
+        bondAuctionThresholdChangeInitiated = 0;
+        newBondAuctionThreshold = 0;
     }
 
     /// @notice Begins the auction length update process.
@@ -215,8 +267,8 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     }
 
     /// @notice Finalizes the auction length update process.
-    /// @dev Can be called only by the contract owner, after the the
-    ///      governance delay elapses.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
     function finalizeAuctionLengthUpdate()
         external
         onlyOwner
@@ -228,17 +280,54 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         auctionLengthChangeInitiated = 0;
     }
 
-    /// @notice Get the time remaining until the collateralization threshold
+    /// @notice Begins the signer bonds swap strategy update process.
+    /// @dev Must be followed by a finalizeSignerBondsSwapStrategyUpdate after
+    ///      the governance delay elapses.
+    /// @param _newSignerBondsSwapStrategy The new signer bonds swap strategy.
+    function beginSignerBondsSwapStrategyUpdate(
+        ISignerBondsSwapStrategy _newSignerBondsSwapStrategy
+    ) external onlyOwner {
+        require(
+            address(_newSignerBondsSwapStrategy) != address(0),
+            "Invalid signer bonds swap strategy address"
+        );
+        newSignerBondsSwapStrategy = _newSignerBondsSwapStrategy;
+        /* solhint-disable-next-line not-rely-on-time */
+        signerBondsSwapStrategyInitiated = block.timestamp;
+        emit SignerBondsSwapStrategyUpdateStarted(
+            address(_newSignerBondsSwapStrategy),
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp
+        );
+    }
+
+    /// @notice Finalizes the signer bonds swap strategy update.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeSignerBondsSwapStrategyUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(signerBondsSwapStrategyInitiated)
+    {
+        signerBondsSwapStrategy = newSignerBondsSwapStrategy;
+        emit SignerBondsSwapStrategyUpdated(
+            address(newSignerBondsSwapStrategy)
+        );
+        delete newSignerBondsSwapStrategy;
+        signerBondsSwapStrategyInitiated = 0;
+    }
+
+    /// @notice Get the time remaining until the bond auction threshold
     ///         can be updated.
     /// @return Remaining time in seconds.
-    function getRemainingCollateralizationThresholdUpdateTime()
+    function getRemainingBondAuctionThresholdUpdateTime()
         external
         view
         returns (uint256)
     {
         return
             getRemainingChangeTime(
-                collateralizationThresholdChangeInitiated,
+                bondAuctionThresholdChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
     }
@@ -258,13 +347,30 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             );
     }
 
-    /// @notice Purchase ETH from signer bonds and withdraw funds to this contract.
-    /// @dev    This function is invoked when Auctioneer determines that an auction
-    ///         is eligible to be closed. It cannot be called on-demand outside
-    ///         the Auctioneer contract.
-    ///         By the time this function is called, all the TBTC tokens for the
-    ///         coverage pool auction should be transferred to this contract in
-    ///         order to buy signer bonds.
+    /// @notice Get the time remaining until the signer bonds swap strategy
+    ///         can be changed.
+    /// @return Remaining time in seconds.
+    function getRemainingSignerBondsSwapStrategyChangeTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                signerBondsSwapStrategyInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Cleans up auction and deposit data and executes deposit liquidation.
+    /// @dev This function is invoked when Auctioneer determines that an auction
+    ///      is eligible to be closed. It cannot be called on-demand outside
+    ///      the Auctioneer contract. By the time this function is called, all
+    ///      the TBTC tokens for the coverage pool auction should be transferred
+    ///      to this contract in order to buy signer bonds.
+    ///      Note: There are checks of the deposit's state performed when
+    ///      the signer bonds are purchased. There is no risk this function
+    ///      succeeds for a deposit liquidated outside of Coverage Pool.
     /// @param auction Coverage pool auction.
     function onAuctionFullyFilled(Auction auction) internal override {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
@@ -272,10 +378,20 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         delete depositToAuction[address(deposit)];
         delete auctionToDeposit[address(auction)];
 
+        liquidateDeposit(deposit);
+    }
+
+    /// @notice Purchases ETH from signer bonds and swaps obtained funds
+    ///         using the underlying signer bonds swap strategy.
+    /// @dev By the time this function is called, TBTC token balance for this
+    ///      contract should be enough to buy signer bonds.
+    /// @param deposit TBTC deposit which should be liquidated.
+    function liquidateDeposit(IDeposit deposit) internal {
         uint256 approvedAmount = deposit.lotSizeTbtc();
         tbtcToken.safeApprove(address(deposit), approvedAmount);
 
-        // Purchase signers bonds ETH with TBTC acquired from the auction
+        // Purchase signers bonds ETH with TBTC acquired from the auction or
+        // taken from the surplus pool.
         deposit.purchaseSignerBondsAtAuction();
 
         uint256 withdrawableAmount = deposit.withdrawableAmount();
@@ -283,6 +399,22 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         // slither-disable-next-line arbitrary-send
         signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
+    }
+
+    /// @notice Reverts if the deposit for which the auction was created is no
+    ///         longer in the liquidation state. This could happen if signer
+    ///         bonds were purchased from tBTC deposit directly, outside of
+    ///         coverage pool auction.
+    /// @dev This function is invoked when the auctioneer is informed about the
+    ///      results of an auction and the auction was partially filled.
+    /// @param auction Address of an auction whose deposit needs to be checked.
+    function onAuctionPartiallyFilled(Auction auction) internal view override {
+        IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+        // Make sure the deposit was not liquidated outside of Coverage Pool
+        require(
+            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            "Deposit liquidation is not in progress"
+        );
     }
 
     /// @notice Get the time remaining until the function parameter timer

@@ -1,3 +1,15 @@
+// ▓▓▌ ▓▓ ▐▓▓ ▓▓▓▓▓▓▓▓▓▓▌▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▄
+// ▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▌▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+//   ▓▓▓▓▓▓    ▓▓▓▓▓▓▓▀    ▐▓▓▓▓▓▓    ▐▓▓▓▓▓   ▓▓▓▓▓▓     ▓▓▓▓▓   ▐▓▓▓▓▓▌   ▐▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▄▄▓▓▓▓▓▓▓▀      ▐▓▓▓▓▓▓▄▄▄▄         ▓▓▓▓▓▓▄▄▄▄         ▐▓▓▓▓▓▌   ▐▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▓▓▓▓▓▓▓▀        ▐▓▓▓▓▓▓▓▓▓▓         ▓▓▓▓▓▓▓▓▓▓         ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+//   ▓▓▓▓▓▓▀▀▓▓▓▓▓▓▄       ▐▓▓▓▓▓▓▀▀▀▀         ▓▓▓▓▓▓▀▀▀▀         ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▀
+//   ▓▓▓▓▓▓   ▀▓▓▓▓▓▓▄     ▐▓▓▓▓▓▓     ▓▓▓▓▓   ▓▓▓▓▓▓     ▓▓▓▓▓   ▐▓▓▓▓▓▌
+// ▓▓▓▓▓▓▓▓▓▓ █▓▓▓▓▓▓▓▓▓ ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓
+// ▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓ ▐▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  ▓▓▓▓▓▓▓▓▓▓
+//
+//                           Trust math, not hardware.
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity <0.9.0;
@@ -44,7 +56,7 @@ contract AssetPool is Ownable {
     // given that the underwriter is earning rewards all the time it has their
     // collateral in the pool, including the time after the withdrawal has been
     // initiated.
-    uint256 public constant gracefulWitdrawalTimeout = 7 days;
+    uint256 public constant gracefulWithdrawalTimeout = 7 days;
     // After the hard withdrawal timeout, 99% of the tokens is seized by the
     // pool and 1% of tokens is sent to the notifier who will complete the
     // withdrawal on behalf of the underwriter. Hard withdrawal timeout starts
@@ -88,8 +100,9 @@ contract AssetPool is Ownable {
         address token,
         bytes calldata
     ) external {
+        require(msg.sender == token, "Only token caller allowed");
         require(
-            IERC20(token) == collateralToken,
+            token == address(collateralToken),
             "Unsupported collateral token"
         );
 
@@ -107,8 +120,14 @@ contract AssetPool is Ownable {
     /// @notice Initiates the withdrawal of collateral and rewards from the pool.
     ///         Accepts the amount of underwriter tokens representing the share
     ///         of the pool that should be withdrawn.
-    ///         Underwriter needs to complete the withdrawal by calling the
-    ///         `completeWithdrawal` function after the withdrawal delay passes
+    ///         Can be called multiple times (without any delay between the
+    ///         calls) if the withdrawal delay has not elapsed yet.
+    ///         Each call increases the share of the pool that will be withdrawn
+    ///         by the specified amount of underwriter tokens and each
+    ///         time the waiting for the withdrawal delay starts over.
+    ///         After the last call to `initiateWithdrawal`, the underwriter
+    ///         needs to complete the withdrawal by calling the
+    ///         `completeWithdrawal` function after the withdrawal delay passes,
     ///         but before the graceful withdrawal timeout ends to avoid part of
     ///         their share being seized by the pool.
     /// @dev Before calling this function, underwriter token needs to have the
@@ -123,10 +142,22 @@ contract AssetPool is Ownable {
             covAmount > 0,
             "Underwriter token amount must be greater than 0"
         );
+        // Ensure withdrawal not initiated or withdrawal delay has not elapsed
+        //slither-disable-next-line incorrect-equality
+        require(
+            withdrawalInitiatedTimestamp[msg.sender] == 0 ||
+                withdrawalInitiatedTimestamp[msg.sender].add(withdrawalDelay) >=
+                /* solhint-disable not-rely-on-time */
+                block.timestamp,
+            "Cannot initiate withdrawal after withdrawal delay"
+        );
 
         pendingWithdrawal[msg.sender] = covAmount.add(
             pendingWithdrawal[msg.sender]
         );
+
+        // Save the withdrawal initiation timestamp (possibly overwriting
+        // previous timestamp)
         /* solhint-disable not-rely-on-time */
         withdrawalInitiatedTimestamp[msg.sender] = block.timestamp;
 
@@ -189,7 +220,7 @@ contract AssetPool is Ownable {
         // When the graceful withdrawal time ends. After this time, part of the
         // collateral and rewards will be seized by the pool.
         uint256 gracefulWithdrawalEndTimestamp =
-            withdrawalDelayEndTimestamp.add(gracefulWitdrawalTimeout);
+            withdrawalDelayEndTimestamp.add(gracefulWithdrawalTimeout);
         // When the time for the withdrawal ends. After this time, 99% of
         // rewards and collateral is seized by the pool and 1% of rewards and
         // collateral is sent to the notifier who completed the withdrawal on
@@ -212,7 +243,7 @@ contract AssetPool is Ownable {
             // the graceful withdrawal timeout.
             uint256 delayRatio =
                 hardWithdrawalEndTimestamp.sub(block.timestamp).mul(1e18).div(
-                    hardWithdrawalTimeout.sub(gracefulWitdrawalTimeout)
+                    hardWithdrawalTimeout.sub(gracefulWithdrawalTimeout)
                 );
             // slither-disable-next-line divide-before-multiply
             uint256 amountToWithdrawReduced =
