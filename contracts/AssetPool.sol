@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./interfaces/IAssetPool.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 
@@ -17,7 +18,7 @@ import "./UnderwriterToken.sol";
 ///         in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
 ///         represent an ownership share in the underlying collateral of the
 ///         Asset Pool.
-contract AssetPool is Ownable {
+contract AssetPool is Ownable, IAssetPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for UnderwriterToken;
     using SafeMath for uint256;
@@ -27,7 +28,8 @@ contract AssetPool is Ownable {
     UnderwriterToken public newUnderwriterToken;
 
     RewardsPool public rewardsPool;
-    AssetPool public newAssetPool;
+
+    IAssetPool public newAssetPool;
 
     mapping(address => uint256) public withdrawalInitiatedTimestamp;
     mapping(address => uint256) public pendingWithdrawal;
@@ -68,9 +70,10 @@ contract AssetPool is Ownable {
         uint256 timestamp
     );
     event WithdrawalTimedOut(address indexed underwriter, uint256 timestamp);
-    event WithdrawalToNewAssetPoolCompleted(
+    event UpgradeToNewAssetPoolCompleted(
         address indexed underwriter,
-        uint256 amount,
+        uint256 collateralAmount,
+        uint256 covAmount,
         uint256 timestamp
     );
 
@@ -107,7 +110,7 @@ contract AssetPool is Ownable {
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external override {
         _deposit(msg.sender, amount);
     }
 
@@ -260,22 +263,36 @@ contract AssetPool is Ownable {
         underwriterToken.burn(covAmount);
     }
 
-    /// @notice Withdraws collateral tokens to a new Asset Pool which previously
-    ///         was approved by the governance. Old underwriter tokens are burned
-    ///         in favor of new minted tokens that proof share of
-    ///         collateral tokens in a new Asset Pool.
-    function withdrawToNewAssetPool() external {
+    /// @notice Transfers collateral tokens to a new Asset Pool which previously
+    ///         was approved by the governance. New underwriter tokens will be
+    ///         received to this contract but immediately forwarded to the right
+    ///         owner - underwriter. Old underwriter tokens are burned in favor
+    ///         of new tokens minted in a new Asset Pool.
+    /// @param covAmount Amount of underwriter tokens used to calculate collateral
+    ///                  tokens which are transferred to a new asset pool.
+    function upgradeToNewAssetPool(uint256 covAmount) external {
         /* solhint-disable not-rely-on-time */
+        require(
+            covAmount > 0,
+            "Underwriter token amount must be greater than 0"
+        );
+
+        uint256 covBalance = underwriterToken.balanceOf(msg.sender);
+        uint256 covPendingWithdrawalAmount = pendingWithdrawal[msg.sender];
+        // check only those tokens that are not waiting to be withdrawn
+        require(
+            covAmount <= covBalance - covPendingWithdrawalAmount,
+            "Underwriter token amount exceeds available balance"
+        );
+
         require(
             address(newAssetPool) != address(0),
             "New asset pool must be assigned"
         );
 
-        uint256 covUnderwriterBalance = underwriterToken.balanceOf(msg.sender);
-
         require(
-            covUnderwriterBalance > 0,
-            "Underwriter's token balance must be greater than 0"
+            address(newUnderwriterToken) != address(0),
+            "New underwriter token must be assigned"
         );
 
         uint256 covSupply = underwriterToken.totalSupply();
@@ -285,36 +302,42 @@ contract AssetPool is Ownable {
 
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
-        uint256 amountToWithdraw =
-            covUnderwriterBalance.mul(collateralBalance).div(covSupply);
+        uint256 collateralAmountToTransfer =
+            covAmount.mul(collateralBalance).div(covSupply);
 
-        collateralToken.safeTransfer(address(newAssetPool), amountToWithdraw);
-        emit WithdrawalToNewAssetPoolCompleted(
+        collateralToken.safeApprove(
+            address(newAssetPool),
+            collateralAmountToTransfer
+        );
+        // collateralAmountToTransfer will be sent to a new AssetPool and new
+        // underwriter tokens will be mint to this contract
+        newAssetPool.deposit(collateralAmountToTransfer);
+
+        uint256 newUnderwriterTokenBalance =
+            newUnderwriterToken.balanceOf(address(this));
+        // underwriter tokens are immidiately transferred to the underwriter who
+        // transferred collateral to a new asset pool
+        newUnderwriterToken.safeTransfer(
             msg.sender,
-            amountToWithdraw,
+            newUnderwriterTokenBalance
+        );
+
+        emit UpgradeToNewAssetPoolCompleted(
+            msg.sender,
+            collateralAmountToTransfer,
+            newUnderwriterTokenBalance,
             block.timestamp
         );
 
-        // mappings cleanup since all the underwriter's funds are transferred to
-        // a new asset pool
-        delete withdrawalInitiatedTimestamp[msg.sender];
-        delete pendingWithdrawal[msg.sender];
-
-        underwriterToken.burn(covUnderwriterBalance);
-        newUnderwriterToken.mint(msg.sender, covUnderwriterBalance);
+        // old underwriter tokens are burned in favor of new minted in a new asset pool
+        underwriterToken.burn(covAmount);
     }
 
-    /// @notice Allows the coverage pool to demand coverage from the asset hold
-    ///         by this pool and send it to the provided recipient address.
-    function claim(address recipient, uint256 amount) external onlyOwner {
-        rewardsPool.withdraw();
-        collateralToken.safeTransfer(recipient, amount);
-    }
-
-    /// @notice Allows governance to set a new asset pool so the underwriters
-    ///         can move their collateral tokens to this new contract.
-    function newAssetPoolApproval(
-        AssetPool _newAssetPool,
+    /// @notice Allows governance to set a new asset pool and a new underwriter
+    ///         token so the underwriters can move their collateral tokens to
+    ///         a new asset pool.
+    function approveNewAssetPoolUpgrade(
+        IAssetPool _newAssetPool,
         UnderwriterToken _newUnderwriterToken
     ) external onlyOwner {
         require(
@@ -325,8 +348,16 @@ contract AssetPool is Ownable {
             address(_newUnderwriterToken) != address(0),
             "New underwriter token can't be zero address"
         );
+
         newAssetPool = _newAssetPool;
         newUnderwriterToken = _newUnderwriterToken;
+    }
+
+    /// @notice Allows the coverage pool to demand coverage from the asset hold
+    ///         by this pool and send it to the provided recipient address.
+    function claim(address recipient, uint256 amount) external onlyOwner {
+        rewardsPool.withdraw();
+        collateralToken.safeTransfer(recipient, amount);
     }
 
     function _deposit(address depositor, uint256 amount) internal {
