@@ -104,7 +104,6 @@ describeFn("System -- liquidation", () => {
     await coveragePool
       .connect(governance)
       .beginRiskManagerApproval(riskManagerV1.address)
-    await increaseTime(2592000) // +30 days
     await coveragePool
       .connect(governance)
       .finalizeRiskManagerApproval(riskManagerV1.address)

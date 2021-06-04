@@ -3,7 +3,6 @@ const {
   to1e18,
   impersonateAccount,
   resetFork,
-  increaseTime,
   ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 
@@ -95,7 +94,6 @@ describeFn("System -- deposit validation", () => {
     await coveragePool
       .connect(governance)
       .beginRiskManagerApproval(riskManagerV1.address)
-    await increaseTime(2592000) // +30 days
     await coveragePool
       .connect(governance)
       .finalizeRiskManagerApproval(riskManagerV1.address)

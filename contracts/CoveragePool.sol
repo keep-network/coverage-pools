@@ -23,15 +23,20 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title CoveragePool
 /// @notice A contract that manages a single asset pool. Handles approving and
-/// unapproving of risk managers and allows them to seize funds from the asset
-/// pool if they are approved.
-/// @dev Coverge pool contract is owned by the governance. Coverage pool is the
-/// owner of the asset pool contract.
+///         unapproving of risk managers and allows them to seize funds from the
+///         asset pool if they are approved.
+/// @dev Coverage pool contract is owned by the governance. Coverage pool is the
+///      owner of the asset pool contract.
 contract CoveragePool is Ownable {
     using SafeMath for uint256;
 
     AssetPool public assetPool;
     IERC20 public collateralToken;
+
+    // Flag indicating whether a risk manager can be approved without delay.
+    // A risk manager can be approved without delay only once (to enable setting
+    // a risk manager after contract deployment)
+    bool public allowFastRiskManagerApproval = true;
 
     // Currently approved risk managers
     mapping(address => bool) public approvedRiskManagers;
@@ -40,7 +45,7 @@ contract CoveragePool is Ownable {
     // Timestamps of risk managers whose unapprovals have been initiated
     mapping(address => uint256) public riskManagerUnapprovalTimestamps;
 
-    /// @notice Throws if called by a risk manager that has not been approved
+    /// @notice Reverts if called by a risk manager that is not approved
     modifier onlyApprovedRiskManager() {
         require(approvedRiskManagers[msg.sender], "Risk manager not approved");
         _;
@@ -53,8 +58,9 @@ contract CoveragePool is Ownable {
 
     /// @notice Begins risk manager approval process.
     /// @dev Can be called only by the contract owner. For a risk manager to be
-    /// approved, a call to finalizeRiskManagerApproval must follow (after a
-    /// governance delay).
+    ///      approved, a call to `finalizeRiskManagerApproval` must follow
+    ///      (without any delay for the first risk manager and with the
+    ///      governance delay for all subsequent risk managers).
     /// @param riskManager Risk manager that will be approved.
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
@@ -62,8 +68,10 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Finalizes risk manager approval process.
-    /// @dev Can be called only by the contract owner. Must be proceded with a
-    /// call to beginRiskManagerApproval and a governance delay must elapse.
+    /// @dev Can be called only by the contract owner. Must be preceded with a
+    ///      call to `beginRiskManagerApproval` and a governance delay must
+    ///      elapse, except for the first risk manager that can be approved
+    ///      without any delay.
     /// @param riskManager Risk manager that will be approved.
     function finalizeRiskManagerApproval(address riskManager)
         external
@@ -73,21 +81,28 @@ contract CoveragePool is Ownable {
             riskManagerApprovalTimestamps[riskManager] > 0,
             "Risk manager approval not initiated"
         );
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(riskManagerApprovalTimestamps[riskManager]) >=
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-            "Risk manager governance delay has not elapsed"
-        );
+
+        if (allowFastRiskManagerApproval) {
+            allowFastRiskManagerApproval = false;
+        } else {
+            require(
+                /* solhint-disable-next-line not-rely-on-time */
+                block.timestamp.sub(
+                    riskManagerApprovalTimestamps[riskManager]
+                ) >= CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
+                "Risk manager governance delay has not elapsed"
+            );
+        }
+
         delete riskManagerApprovalTimestamps[riskManager];
         approvedRiskManagers[riskManager] = true;
     }
 
     /// @notice Begins risk manager unapproval process.
     /// @dev Can be called only by the contract owner. For a risk manager to be
-    /// unapproved, a call to finalizeRiskManagerUnapproval must follow (after
-    /// a governance delay). Can only be called on a risk manager that is
-    /// approved.
+    ///      unapproved, a call to `finalizeRiskManagerUnapproval` must follow
+    ///      (after a governance delay). Can only be called on a risk manager
+    ///      that is approved.
     /// @param riskManager Risk manager that will be unapproved.
     function beginRiskManagerUnapproval(address riskManager)
         external
@@ -99,8 +114,9 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Finalizes risk manager unapproval process.
-    /// @dev Can be called only by the contract owner. Must be proceded with a
-    /// call to beginRiskManagerUnapproval and a governance delay must elapse.
+    /// @dev Can be called only by the contract owner. Must be preceded with a
+    ///      call to `beginRiskManagerUnapproval` and a governance delay must
+    ///      elapse.
     /// @param riskManager Risk manager that will be unapproved.
     function finalizeRiskManagerUnapproval(address riskManager)
         external
@@ -122,12 +138,12 @@ contract CoveragePool is Ownable {
 
     /// @notice Seizes funds from the coverage pool and puts them aside for the
     ///         recipient to withdraw.
-    /// @dev portionToSeize value was multiplied by FLOATING_POINT_DIVISOR for
-    ///      calculation precision purposes. Further calculations in this
+    /// @dev `portionToSeize` value was multiplied by `FLOATING_POINT_DIVISOR`
+    ///      for calculation precision purposes. Further calculations in this
     ///      function will need to take this divisor into account.
     /// @param recipient Address that will receive the pool's seized funds.
     /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
+    ///        multiplied by `FLOATING_POINT_DIVISOR`.
     function seizeFunds(address recipient, uint256 portionToSeize)
         external
         onlyApprovedRiskManager
