@@ -146,8 +146,8 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     /// @notice Sets the deadline for a swap transaction.
     /// @param _swapDeadline Swap deadline in seconds. Value of this parameter
-    ///        should be grater than 0. It should be chosen carefully as
-    ///        transactions with long deadlines may result in poor execution
+    ///        should be equal or greater than 0. It should be chosen carefully
+    ///        as transactions with long deadlines may result in poor execution
     ///        prices. On the other hand, very short deadlines may cause
     ///        transactions to be reverted frequently, especially in a
     ///        gas-expensive environment. Deadline equal to 0 will effectively

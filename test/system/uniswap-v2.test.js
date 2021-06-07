@@ -109,7 +109,9 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     before(async () => {
       tx = await signerBondsUniswapV2
         .connect(thirdParty)
-        .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"))
+        .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"), {
+          gasLimit: 185000,
+        })
     })
 
     it(
@@ -148,7 +150,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(11472000)
+      await expect(parseInt(tx.gasLimit)).to.be.equal(185000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
       await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(165000)
