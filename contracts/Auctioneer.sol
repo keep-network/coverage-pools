@@ -30,6 +30,7 @@ contract Auctioneer is CloneFactory {
     // which will be used as a master contract for cloning.
     address public masterAuction;
     mapping(address => bool) public openAuctions;
+    uint256 public openAuctionsCount;
 
     CoveragePool public coveragePool;
 
@@ -99,6 +100,7 @@ contract Auctioneer is CloneFactory {
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
+            openAuctionsCount--;
         }
     }
 
@@ -127,6 +129,7 @@ contract Auctioneer is CloneFactory {
         );
 
         openAuctions[cloneAddress] = true;
+        openAuctionsCount++;
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -156,6 +159,7 @@ contract Auctioneer is CloneFactory {
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
+        openAuctionsCount--;
 
         return amountTransferred;
     }

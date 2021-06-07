@@ -5,6 +5,7 @@ const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const { to1e18, lastBlockTime } = require("./helpers/contract-test-helpers")
 const CoveragePool = require("../artifacts/contracts/CoveragePool.sol/CoveragePool.json")
 const IUniswapV2Pair = require("../artifacts/contracts/SignerBondsUniswapV2.sol/IUniswapV2Pair.json")
+const Auctioneer = require("../artifacts/contracts/Auctioneer.sol/Auctioneer.json")
 
 describe("SignerBondsUniswapV2", () => {
   let governance
@@ -13,6 +14,7 @@ describe("SignerBondsUniswapV2", () => {
   let uniswapV2RouterStub
   let mockUniswapV2Pair
   let mockCoveragePool
+  let mockAuctioneer
   let signerBondsUniswapV2
 
   const assetPoolAddress = "0x6e7278c99ac5314e53a3E95b2343D4C57FD46159"
@@ -36,12 +38,15 @@ describe("SignerBondsUniswapV2", () => {
     await mockCoveragePool.mock.assetPool.returns(assetPoolAddress)
     await mockCoveragePool.mock.collateralToken.returns(collateralTokenAddress)
 
+    mockAuctioneer = await deployMockContract(governance, Auctioneer.abi)
+
     const SignerBondsUniswapV2 = await ethers.getContractFactory(
       "SignerBondsUniswapV2Stub"
     )
     signerBondsUniswapV2 = await SignerBondsUniswapV2.deploy(
       uniswapV2RouterStub.address,
-      mockCoveragePool.address
+      mockCoveragePool.address,
+      mockAuctioneer.address
     )
     await signerBondsUniswapV2.deployed()
 
@@ -150,12 +155,37 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
+  describe("setOpenAuctionsCheck", () => {
+    context("when the caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(other).setOpenAuctionsCheck(false)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the governance", () => {
+      it("should set the open auctions chec parameter", async () => {
+        await signerBondsUniswapV2
+          .connect(governance)
+          .setOpenAuctionsCheck(false)
+        expect(await signerBondsUniswapV2.openAuctionsCheck()).to.be.equal(
+          false
+        )
+      })
+    })
+  })
+
   describe("swapSignerBondsOnUniswapV2", () => {
     const ethReserves = 1000
     const tokenReserves = 5000
     const exchangeRate = 5 // because one can get 5 tokens for every 1 ETH
 
     beforeEach(async () => {
+      await mockAuctioneer.mock.openAuctionsCount.returns(0)
+
+      await signerBondsUniswapV2.connect(governance).setOpenAuctionsCheck(false)
+
       await mockUniswapV2Pair.mock.getReserves.returns(
         // Real KEEP token address is smaller than WETH address so
         // token reserves should be set as reserve0.
@@ -189,6 +219,38 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
+    context("when there are open auctions", () => {
+      beforeEach(async () => {
+        await mockAuctioneer.mock.openAuctionsCount.returns(1)
+      })
+
+      context("when the open auction check is enabled", () => {
+        it("should revert", async () => {
+          await signerBondsUniswapV2
+            .connect(governance)
+            .setOpenAuctionsCheck(true)
+
+          await expect(
+            signerBondsUniswapV2
+              .connect(other)
+              .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"))
+          ).to.be.revertedWith("There are open auctions")
+        })
+      })
+
+      context("when the open auction check is disabled", () => {
+        it("should not revert", async () => {
+          // Check is disabled by default in the upstream `beforeEach` hook.
+
+          await expect(
+            signerBondsUniswapV2
+              .connect(other)
+              .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"))
+          ).not.to.be.reverted
+        })
+      })
+    })
+
     context("when price impact exceeds allowed limit", () => {
       it("should revert", async () => {
         // Default max allowed price impact is 1%. Such a price impact will
@@ -208,6 +270,8 @@ describe("SignerBondsUniswapV2", () => {
       let tx
 
       beforeEach(async () => {
+        await mockAuctioneer.mock.openAuctionsCount.returns(0)
+
         tx = await signerBondsUniswapV2
           .connect(other)
           .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("5"))

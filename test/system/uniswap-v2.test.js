@@ -14,6 +14,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
   let underwriterToken
   let assetPool
   let coveragePool
+  let auctioneer
   let uniswapV2Router
   let signerBondsUniswapV2
 
@@ -52,6 +53,17 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     await coveragePool.deployed()
     await assetPool.connect(governance).transferOwnership(coveragePool.address)
 
+    const Auction = await ethers.getContractFactory("Auction")
+    const masterAuction = await Auction.deploy()
+    await masterAuction.deployed()
+
+    const Auctioneer = await ethers.getContractFactory("Auctioneer")
+    auctioneer = await Auctioneer.deploy(
+      coveragePool.address,
+      masterAuction.address
+    )
+    await auctioneer.deployed()
+
     uniswapV2Router = await ethers.getContractAt(
       "IUniswapV2Router",
       uniswapV2RouterAddress
@@ -62,7 +74,8 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     )
     signerBondsUniswapV2 = await SignerBondsUniswapV2.deploy(
       uniswapV2Router.address,
-      coveragePool.address
+      coveragePool.address,
+      auctioneer.address
     )
     await signerBondsUniswapV2.deployed()
 
@@ -138,7 +151,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
       await expect(parseInt(tx.gasLimit)).to.be.lessThan(11472000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(156000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(165000)
     })
   })
 })

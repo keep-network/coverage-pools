@@ -63,6 +63,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     IUniswapV2Pair public uniswapPair;
     address public assetPool;
     address public collateralToken;
+    Auctioneer public auctioneer;
 
     // Determines the maximum allowed price impact for the swap transaction.
     // If transaction's price impact is higher, transaction will be reverted.
@@ -75,13 +76,22 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // Determines the deadline in which the swap transaction has to be mined.
     // If that deadline is exceeded, transaction will be reverted.
     uint256 public swapDeadline = 20 minutes;
+    // Determines if the open auctions check should be performed. If true,
+    // swaps cannot be performed if open auctions count is bigger than zero.
+    // If false, open auctions are not taken into account.
+    bool public openAuctionsCheck = true;
 
     event UniswapV2SwapExecuted(uint256[] amounts);
 
-    constructor(IUniswapV2Router _uniswapRouter, CoveragePool _coveragePool) {
+    constructor(
+        IUniswapV2Router _uniswapRouter,
+        CoveragePool _coveragePool,
+        Auctioneer _auctioneer
+    ) {
         uniswapRouter = _uniswapRouter;
         assetPool = address(_coveragePool.assetPool());
         collateralToken = address(_coveragePool.collateralToken());
+        auctioneer = _auctioneer;
         uniswapPair = IUniswapV2Pair(
             computePairAddress(
                 _uniswapRouter.factory(),
@@ -146,6 +156,14 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         swapDeadline = _swapDeadline;
     }
 
+    /// @notice Enables or disables the open auctions check.
+    /// @param _openAuctionsCheck Open auctions check flag. If true, open
+    ///        open auctions check will be performed upon swaps. If false,
+    ///        open auctions won't be taken into account.
+    function setOpenAuctionsCheck(bool _openAuctionsCheck) external onlyOwner {
+        openAuctionsCheck = _openAuctionsCheck;
+    }
+
     /// @notice Swaps signer bonds on Uniswap v2 exchange.
     /// @dev Swaps the given ETH amount for the collateral token using the
     ///      Uniswap exchange. The maximum ETH amount is capped by the
@@ -159,6 +177,13 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     function swapSignerBondsOnUniswapV2(uint256 amount) external {
         require(amount > 0, "Amount must be greater than 0");
         require(amount <= address(this).balance, "Amount exceeds balance");
+
+        if (openAuctionsCheck) {
+            require(
+                auctioneer.openAuctionsCount() == 0,
+                "There are open auctions"
+            );
+        }
 
         // Setup the swap path. WETH must be the first component.
         address[] memory path = new address[](2);
@@ -180,12 +205,6 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         amountOutMin = amountOutMin
             .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
             .div(BASIS_POINTS_DIVISOR);
-
-        // TODO: Do not send acquired tokens to the asset pool in case an
-        //       open auction exists. In that case, additional tokens will
-        //       cause the auction to offer more of the coverage pool value for
-        //       the same price. This is unreasonable in terms of economy.
-        //       Figure out how to address that problem.
 
         // slither-disable-next-line arbitrary-send,reentrancy-events
         uint256[] memory amounts =
