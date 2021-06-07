@@ -278,10 +278,8 @@ contract AssetPool is Ownable, IAssetPool {
         );
 
         uint256 covBalance = underwriterToken.balanceOf(msg.sender);
-        uint256 covPendingWithdrawalAmount = pendingWithdrawal[msg.sender];
-        // check only those tokens that are not waiting to be withdrawn
         require(
-            covAmount <= covBalance - covPendingWithdrawalAmount,
+            covAmount <= covBalance,
             "Underwriter token amount exceeds available balance"
         );
 
@@ -330,7 +328,7 @@ contract AssetPool is Ownable, IAssetPool {
         );
 
         // old underwriter tokens are burned in favor of new minted in a new asset pool
-        underwriterToken.burn(covAmount);
+        underwriterToken.burnFrom(msg.sender, covAmount);
     }
 
     /// @notice Allows governance to set a new asset pool and a new underwriter
