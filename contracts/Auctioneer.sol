@@ -90,7 +90,7 @@ contract Auctioneer is CloneFactory {
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         //
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
         if (auction.isOpen()) {
@@ -154,7 +154,7 @@ contract Auctioneer is CloneFactory {
 
         uint256 amountTransferred = auction.amountTransferred();
 
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         auction.earlyClose();
 
         emit AuctionClosed(auctionAddress);
