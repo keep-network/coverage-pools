@@ -10,19 +10,21 @@ contract RiskManagerV1Stub is RiskManagerV1 {
 
     constructor(
         IERC20 _tbtcToken,
+        ITBTCDepositToken _tbtcDepositToken,
         CoveragePool _coveragePool,
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength,
-        uint256 _collateralizationThreshold
+        uint256 _bondAuctionThreshold
     )
         RiskManagerV1(
             _tbtcToken,
+            _tbtcDepositToken,
             _coveragePool,
             _signerBondsSwapStrategy,
             _masterAuction,
             _auctionLength,
-            _collateralizationThreshold
+            _bondAuctionThreshold
         )
     {}
 

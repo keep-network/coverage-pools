@@ -225,6 +225,67 @@ describe("AssetPool", () => {
     })
   })
 
+  describe("receiveApproval", () => {
+    context("when called directly", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .receiveApproval(
+              underwriter1.address,
+              to1e18(100),
+              collateralToken.address,
+              []
+            )
+        ).to.be.revertedWith("Only token caller allowed")
+      })
+    })
+
+    context("when called for unsupported token", () => {
+      const amount = to1e18(100)
+      let unsupportedToken
+
+      beforeEach(async () => {
+        const TestToken = await ethers.getContractFactory("TestToken")
+        unsupportedToken = await TestToken.deploy()
+        await unsupportedToken.deployed()
+      })
+
+      it("should revert", async () => {
+        await expect(
+          unsupportedToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, [])
+        ).to.be.revertedWith("Unsupported collateral token")
+      })
+    })
+
+    context("when called via approveAndCall", () => {
+      const amount = to1e18(100)
+
+      beforeEach(async () => {
+        await collateralToken
+          .connect(underwriter1)
+          .approveAndCall(assetPool.address, amount, [])
+      })
+
+      it("should mint underwriter tokens to the caller", async () => {
+        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
+          amount
+        )
+      })
+
+      it("should transfer deposited amount to the pool", async () => {
+        expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+          amount
+        )
+        expect(
+          await collateralToken.balanceOf(underwriter1.address)
+        ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+      })
+    })
+  })
+
   describe("claim", () => {
     beforeEach(async () => {
       await assetPool.connect(underwriter1).deposit(to1e18(200))
@@ -829,6 +890,89 @@ describe("AssetPool", () => {
           )
         })
       })
+
+      context(
+        "when there was an arbitrary transfer of collateral tokens",
+        () => {
+          const depositedUnderwriter1 = to1e18(100)
+          const depositedUnderwriter2 = to1e18(50)
+          const depositedUnderwriter3 = to1e18(150)
+          const transferAmount = to1e18(25)
+
+          beforeEach(async () => {
+            await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
+            await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+            await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+
+            await collateralToken.mint(thirdParty.address, transferAmount)
+            await collateralToken
+              .connect(thirdParty)
+              .transfer(assetPool.address, transferAmount)
+
+            const coverageMintedUnderwriter1 = await underwriterToken.balanceOf(
+              underwriter1.address
+            )
+            const coverageMintedUnderwriter2 = await underwriterToken.balanceOf(
+              underwriter2.address
+            )
+            const coverageMintedUnderwriter3 = await underwriterToken.balanceOf(
+              underwriter3.address
+            )
+            await underwriterToken
+              .connect(underwriter1)
+              .approve(assetPool.address, coverageMintedUnderwriter1)
+            await underwriterToken
+              .connect(underwriter2)
+              .approve(assetPool.address, coverageMintedUnderwriter2)
+            await underwriterToken
+              .connect(underwriter3)
+              .approve(assetPool.address, coverageMintedUnderwriter3)
+            await assetPool
+              .connect(underwriter1)
+              .initiateWithdrawal(coverageMintedUnderwriter1)
+            await assetPool
+              .connect(underwriter2)
+              .initiateWithdrawal(coverageMintedUnderwriter2)
+            await assetPool
+              .connect(underwriter3)
+              .initiateWithdrawal(coverageMintedUnderwriter3)
+
+            await increaseTime(14 * 86400) // 14 days
+            await assetPool.completeWithdrawal(underwriter1.address)
+            await assetPool.completeWithdrawal(underwriter2.address)
+            await assetPool.completeWithdrawal(underwriter3.address)
+          })
+
+          it("should add collateral proportionally to underwriter shares", async () => {
+            // underwriter 1 has 100/300 share of the pool
+            // underwriter 2 has 50/300 share of the pool
+            // underwriter 3 has 150/300 share of the pool
+            //
+            // they are supposed to take the gain proportionally:
+            //   underwriter 1: 25 * 100/300 = 8.3(3)
+            //   underwriter 2: 25 * 50/300 = 4.16(6)
+            //   underwriter 3: 25 * 150/300 = 12.5
+            expect(
+              await collateralToken.balanceOf(underwriter1.address)
+            ).to.be.closeTo(
+              underwriterInitialCollateralBalance.add("8333333333333333333"),
+              assertionPrecision
+            )
+            expect(
+              await collateralToken.balanceOf(underwriter2.address)
+            ).to.be.closeTo(
+              underwriterInitialCollateralBalance.add("4166666666666666666"),
+              assertionPrecision
+            )
+            expect(
+              await collateralToken.balanceOf(underwriter3.address)
+            ).to.be.closeTo(
+              underwriterInitialCollateralBalance.add("12500000000000000000"),
+              assertionPrecision
+            )
+          })
+        }
+      )
     })
   })
 

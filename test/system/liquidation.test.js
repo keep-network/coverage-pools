@@ -20,22 +20,25 @@ const describeFn =
 // which is ready to be liquidated at the starting block. The bidder which
 // takes the offer is also a real account with actual tBTC balance. At the
 // end of the scenario, the risk manager should liquidate the deposit successfully,
-// and 66% of the deposit's bonded amount should land on the signer bonds
+// and 75% of the deposit's bonded amount should land on the signer bonds
 // swap strategy contract.
-describeFn("System -- liquidation happy path", () => {
+describeFn("System -- liquidation", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
   const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
   const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
+  const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
-  const collateralizationThreshold = 300
+  // Only deposits with at least 75% of bonds offered on bond auction will be
+  // accepted by the risk manager.
+  const bondAuctionThreshold = 75
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
   const bondedAmount = BigNumber.from("290810391624000000000")
-  // 66% of the deposit is exposed on auction in the liquidation moment
-  const bondedAmountPercentage = BigNumber.from("66")
+  // 75% of the deposit is exposed on auction in the liquidation moment
+  const bondedAmountPercentage = BigNumber.from("75")
 
   let tbtcToken
   let underwriterToken
@@ -89,11 +92,12 @@ describeFn("System -- liquidation happy path", () => {
     const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
     riskManagerV1 = await RiskManagerV1.deploy(
       tbtcToken.address,
+      tbtcDepositTokenAddress,
       coveragePool.address,
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      collateralizationThreshold
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 
@@ -110,16 +114,20 @@ describeFn("System -- liquidation happy path", () => {
     bidder = await impersonateAccount(bidderAddress)
   })
 
-  describe("initial state", () => {
-    it("should assert a deposit is in active state", async () => {
-      expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+  describe("test initial state", () => {
+    describe("deposit", () => {
+      it("should be in active state", async () => {
+        expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+      })
     })
 
-    it("should assert an auction does not exist", async () => {
-      const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
-      )
-      expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+    describe("auction", () => {
+      it("should not exist", async () => {
+        const auctionAddress = await riskManagerV1.depositToAuction(
+          tbtcDeposit.address
+        )
+        expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
+      })
     })
   })
 
@@ -130,6 +138,22 @@ describeFn("System -- liquidation happy path", () => {
 
     before(async () => {
       await tbtcDeposit.notifyRedemptionSignatureTimedOut()
+
+      // The deposit's auction must offer at least 75% of bonds to be accepted
+      // by the risk manager. At starting block, the deposit's auction exposes
+      // 66% so an immediate `notifyLiquidation` must revert.
+      await expect(
+        riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+      ).to.revertedWith(
+        "Deposit bond auction percentage is below the threshold level"
+      )
+
+      // We need additional 9% to pass the risk manager threshold. To get this
+      // part, we need 22870 seconds to elapse. This is because the auction
+      // length is 86400 seconds (24h) and there is 34% of bonds remaining.
+      // So, additional 9% will be offered after 9/34 * 86400s.
+      await increaseTime(22870)
+
       await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
