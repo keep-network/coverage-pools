@@ -42,32 +42,21 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
     mapping(address => uint256) public override balanceOf;
     mapping(address => mapping(address => uint256)) public override allowance;
 
-    bytes32 public override DOMAIN_SEPARATOR;
+    uint256 public cachedChainId;
+    bytes32 public cachedDomainSeparator;
+
     // keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
     bytes32 public constant override PERMIT_TYPEHASH =
         0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+
     mapping(address => uint256) public override nonces;
 
     constructor(string memory _name, string memory _symbol) {
         name = _name;
         symbol = _symbol;
 
-        uint256 chainId;
-        /* solhint-disable-next-line no-inline-assembly */
-        assembly {
-            chainId := chainid()
-        }
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes(name)),
-                keccak256(bytes("1")),
-                chainId,
-                address(this)
-            )
-        );
+        cachedChainId = chainId();
+        cachedDomainSeparator = buildDomainSeparator();
     }
 
     function transfer(address recipient, uint256 amount)
@@ -133,7 +122,7 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
             keccak256(
                 abi.encodePacked(
                     "\x19\x01",
-                    DOMAIN_SEPARATOR,
+                    DOMAIN_SEPARATOR(),
                     keccak256(
                         abi.encode(
                             PERMIT_TYPEHASH,
@@ -177,6 +166,15 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
         _burn(account, amount);
     }
 
+    /* solhint-disable-next-line func-name-mixedcase */
+    function DOMAIN_SEPARATOR() public view override returns (bytes32) {
+        if (chainId() == cachedChainId) {
+            return cachedDomainSeparator;
+        } else {
+            return buildDomainSeparator();
+        }
+    }
+
     function _burn(address account, uint256 amount) internal {
         balanceOf[account] = balanceOf[account].sub(
             amount,
@@ -210,5 +208,27 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
         require(spender != address(0), "Approve to the zero address");
         allowance[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+    }
+
+    function buildDomainSeparator() private view returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    keccak256(
+                        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                    ),
+                    keccak256(bytes(name)),
+                    keccak256(bytes("1")),
+                    chainId(),
+                    address(this)
+                )
+            );
+    }
+
+    function chainId() private pure returns (uint256 id) {
+        /* solhint-disable-next-line no-inline-assembly */
+        assembly {
+            id := chainid()
+        }
     }
 }
