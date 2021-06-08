@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./interfaces/IAssetPool.sol";
+import "./interfaces/IAssetPoolUpgrade.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 
@@ -29,7 +30,7 @@ contract AssetPool is Ownable, IAssetPool {
 
     RewardsPool public rewardsPool;
 
-    IAssetPool public newAssetPool;
+    IAssetPoolUpgrade public newAssetPool;
 
     mapping(address => uint256) public withdrawalInitiatedTimestamp;
     mapping(address => uint256) public pendingWithdrawal;
@@ -70,12 +71,13 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 timestamp
     );
     event WithdrawalTimedOut(address indexed underwriter, uint256 timestamp);
-    event UpgradeToNewAssetPoolCompleted(
+    event AssetPoolUpgraded(
         address indexed underwriter,
         uint256 collateralAmount,
         uint256 covAmount,
         uint256 timestamp
     );
+    event ApprovedAssetPoolUpgrade(address newAssetPool);
 
     constructor(
         IERC20 _collateralToken,
@@ -129,7 +131,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         their share being seized by the pool.
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function initiateWithdrawal(uint256 covAmount) external {
+    function initiateWithdrawal(uint256 covAmount) external override {
         uint256 covBalance = underwriterToken.balanceOf(msg.sender);
         require(
             covAmount <= covBalance,
@@ -180,7 +182,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         over time. After the hard withdrawal timeout, 99% of tokens is
     ///         seized by the pool and 1% of tokens is sent to the notifier who
     ///         completed the withdrawal on behalf of the underwriter.
-    function completeWithdrawal(address underwriter) external {
+    function completeWithdrawal(address underwriter) external override {
         /* solhint-disable not-rely-on-time */
         uint256 initiatedAt = withdrawalInitiatedTimestamp[underwriter];
         require(initiatedAt > 0, "No withdrawal initiated for the underwriter");
@@ -288,11 +290,6 @@ contract AssetPool is Ownable, IAssetPool {
             "New asset pool must be assigned"
         );
 
-        require(
-            address(newUnderwriterToken) != address(0),
-            "New underwriter token must be assigned"
-        );
-
         uint256 covSupply = underwriterToken.totalSupply();
 
         // slither-disable-next-line reentrancy-events
@@ -300,55 +297,43 @@ contract AssetPool is Ownable, IAssetPool {
 
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
-        uint256 collateralAmountToTransfer =
+        uint256 collateralToTransfer =
             covAmount.mul(collateralBalance).div(covSupply);
 
         collateralToken.safeApprove(
             address(newAssetPool),
-            collateralAmountToTransfer
+            collateralToTransfer
         );
-        // collateralAmountToTransfer will be sent to a new AssetPool and new
-        // underwriter tokens will be mint to this contract
-        newAssetPool.deposit(collateralAmountToTransfer);
+        // collateralToTransfer will be sent to a new AssetPool and new
+        // underwriter tokens will be mint and transferred back to the underwriter
+        newAssetPool.depositFor(msg.sender, collateralToTransfer);
 
-        uint256 newUnderwriterTokenBalance =
-            newUnderwriterToken.balanceOf(address(this));
-        // underwriter tokens are immidiately transferred to the underwriter who
-        // transferred collateral to a new asset pool
-        newUnderwriterToken.safeTransfer(
+        emit AssetPoolUpgraded(
             msg.sender,
-            newUnderwriterTokenBalance
-        );
-
-        emit UpgradeToNewAssetPoolCompleted(
-            msg.sender,
-            collateralAmountToTransfer,
-            newUnderwriterTokenBalance,
+            collateralToTransfer,
+            covAmount,
             block.timestamp
         );
 
-        // old underwriter tokens are burned in favor of new minted in a new asset pool
+        // old underwriter tokens are burned in favor of new minted in a new
+        // asset pool
         underwriterToken.burnFrom(msg.sender, covAmount);
     }
 
-    /// @notice Allows governance to set a new asset pool and a new underwriter
-    ///         token so the underwriters can move their collateral tokens to
-    ///         a new asset pool.
-    function approveNewAssetPoolUpgrade(
-        IAssetPool _newAssetPool,
-        UnderwriterToken _newUnderwriterToken
-    ) external onlyOwner {
+    /// @notice Allows governance to set a new asset pool so the underwriters
+    ///         can move their collateral tokens to a new asset pool.
+    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
+        external
+        onlyOwner
+    {
         require(
             address(_newAssetPool) != address(0),
             "New asset pool can't be zero address"
         );
-        require(
-            address(_newUnderwriterToken) != address(0),
-            "New underwriter token can't be zero address"
-        );
 
         newAssetPool = _newAssetPool;
-        newUnderwriterToken = _newUnderwriterToken;
+
+        emit ApprovedAssetPoolUpgrade(address(_newAssetPool));
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold

@@ -8,4 +8,13 @@ interface IAssetPool {
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     function deposit(uint256 amount) external;
+
+    /// @notice Initiates the withdrawal of collateral and rewards from the pool.
+    /// @dev Before calling this function, underwriter token needs to have the
+    ///      required amount accepted to transfer to the asset pool.
+    function initiateWithdrawal(uint256 covAmount) external;
+
+    /// @notice Completes the previously initiated withdrawal for the
+    ///         underwriter.
+    function completeWithdrawal(address underwriter) external;
 }
