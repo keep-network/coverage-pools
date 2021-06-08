@@ -835,7 +835,7 @@ describe("AssetPool", () => {
   describe("approveNewAssetPoolUpgrade", () => {
     let newAssetPool
 
-    before(async () => {
+    beforeEach(async () => {
       const NewUnderwriterToken = await ethers.getContractFactory(
         "UnderwriterToken"
       )
@@ -860,6 +860,16 @@ describe("AssetPool", () => {
           .approveNewAssetPoolUpgrade(newAssetPool.address)
 
         expect(await assetPool.newAssetPool()).to.equal(newAssetPool.address)
+      })
+
+      it("should emit ApprovedAssetPoolUpgrade event", async () => {
+        const tx = await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
+
+        expect(tx)
+          .to.emit(assetPool, "ApprovedAssetPoolUpgrade")
+          .withArgs(newAssetPool.address)
       })
     })
 

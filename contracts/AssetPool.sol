@@ -266,10 +266,10 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Transfers collateral tokens to a new Asset Pool which previously
-    ///         was approved by the governance. New underwriter tokens will be
-    ///         received to this contract but immediately forwarded to the right
-    ///         owner - underwriter. Old underwriter tokens are burned in favor
-    ///         of new tokens minted in a new Asset Pool.
+    ///         was approved by the governance.
+    ///         Old underwriter tokens are burned in favor of new tokens minted
+    ///         in a new Asset Pool. New tokens are sent directly to the
+    ///         underwriter from a new Asset Pool.
     /// @param covAmount Amount of underwriter tokens used to calculate collateral
     ///                  tokens which are transferred to a new asset pool.
     function upgradeToNewAssetPool(uint256 covAmount) external {
@@ -305,7 +305,7 @@ contract AssetPool is Ownable, IAssetPool {
             collateralToTransfer
         );
         // collateralToTransfer will be sent to a new AssetPool and new
-        // underwriter tokens will be mint and transferred back to the underwriter
+        // underwriter tokens will be minted and transferred back to the underwriter
         newAssetPool.depositFor(msg.sender, collateralToTransfer);
 
         emit AssetPoolUpgraded(
