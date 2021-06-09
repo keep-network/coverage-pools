@@ -38,7 +38,6 @@ contract AssetPool is Ownable, IAssetPool {
 
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
-    UnderwriterToken public newUnderwriterToken;
 
     RewardsPool public rewardsPool;
 
