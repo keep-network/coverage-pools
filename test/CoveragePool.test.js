@@ -12,6 +12,7 @@ describe("CoveragePool", () => {
   let underwriter
   let recipient
   let riskManager
+  let anotherRiskManager
   let thirdParty
 
   beforeEach(async () => {
@@ -24,11 +25,11 @@ describe("CoveragePool", () => {
     // The main risk manager
     riskManager = await ethers.getSigner(4)
     // Another risk manager
-    anotherRiskManager = await ethers.getSigner(4)
+    anotherRiskManager = await ethers.getSigner(5)
     // Account that is not authorized to call functions on Coverage Pool
-    thirdParty = await ethers.getSigner(5)
+    thirdParty = await ethers.getSigner(6)
     // Account funding Asset Pool with rewards
-    const rewardsManager = await ethers.getSigner(6)
+    const rewardsManager = await ethers.getSigner(7)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     testToken = await TestToken.deploy()
@@ -61,6 +62,51 @@ describe("CoveragePool", () => {
     await testToken.mint(underwriter.address, to1e18(400))
     await testToken.connect(underwriter).approve(assetPool.address, to1e18(400))
     await assetPool.connect(underwriter).deposit(to1e18(400))
+  })
+
+  describe("approveFirstRiskManager", () => {
+    context("when caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(thirdParty)
+            .approveFirstRiskManager(riskManager.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the first risk manager has not been approved so far", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(riskManager.address)
+      })
+
+      it("should approve risk manager", async () => {
+        expect(await coveragePool.approvedRiskManagers(riskManager.address)).to
+          .be.true
+      })
+
+      it("should set first risk manager flag to false", async () => {
+        expect(await coveragePool.firstRiskManagerApproved()).to.be.true
+      })
+    })
+
+    context("when the first risk manager has already been approved", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(riskManager.address)
+      })
+
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .approveFirstRiskManager(anotherRiskManager.address)
+        ).to.be.revertedWith("The first risk manager is already approved")
+      })
+    })
   })
 
   describe("beginRiskManagerApproval", () => {
@@ -115,46 +161,11 @@ describe("CoveragePool", () => {
       })
     })
 
-    context("when no risk managers approved so far", () => {
+    context("when approval was initiated", () => {
       beforeEach(async () => {
         await coveragePool
           .connect(governance)
           .beginRiskManagerApproval(riskManager.address)
-        // do not wait for governance delay
-        await coveragePool
-          .connect(governance)
-          .finalizeRiskManagerApproval(riskManager.address)
-      })
-
-      it("should remove approval process begin timestamp", async () => {
-        expect(
-          await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
-        ).to.be.equal(0)
-      })
-
-      it("should approve risk manager", async () => {
-        expect(await coveragePool.approvedRiskManagers(riskManager.address)).to
-          .be.true
-      })
-
-      it("should not allow further fast risk manager approvals", async () => {
-        expect(await coveragePool.allowFastRiskManagerApproval()).to.be.false
-      })
-    })
-
-    context("when another risk manager is already approved", () => {
-      beforeEach(async () => {
-        // approve the first risk manager
-        await coveragePool
-          .connect(governance)
-          .beginRiskManagerApproval(riskManager.address)
-        await coveragePool
-          .connect(governance)
-          .finalizeRiskManagerApproval(riskManager.address)
-        // begin approval of another risk manager
-        await coveragePool
-          .connect(governance)
-          .beginRiskManagerApproval(anotherRiskManager.address)
       })
 
       context("when approval delay has not elapsed", () => {
@@ -167,7 +178,7 @@ describe("CoveragePool", () => {
           await expect(
             coveragePool
               .connect(governance)
-              .finalizeRiskManagerApproval(anotherRiskManager.address)
+              .finalizeRiskManagerApproval(riskManager.address)
           ).to.be.revertedWith("Risk manager governance delay has not elapsed")
         })
       })
@@ -179,24 +190,18 @@ describe("CoveragePool", () => {
 
           await coveragePool
             .connect(governance)
-            .finalizeRiskManagerApproval(anotherRiskManager.address)
+            .finalizeRiskManagerApproval(riskManager.address)
         })
 
         it("should remove approval process begin timestamp", async () => {
           expect(
             await coveragePool.riskManagerApprovalTimestamps(
-              anotherRiskManager.address
+              riskManager.address
             )
           ).to.be.equal(0)
         })
 
         it("should approve risk manager", async () => {
-          expect(
-            await coveragePool.approvedRiskManagers(anotherRiskManager.address)
-          ).to.be.true
-        })
-
-        it("should not unapprove the previous risk manager", async () => {
           expect(await coveragePool.approvedRiskManagers(riskManager.address))
             .to.be.true
         })

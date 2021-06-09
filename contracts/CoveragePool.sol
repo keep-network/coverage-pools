@@ -33,10 +33,7 @@ contract CoveragePool is Ownable {
     AssetPool public assetPool;
     IERC20 public collateralToken;
 
-    // Flag indicating whether a risk manager can be approved without delay.
-    // A risk manager can be approved without delay only once (to enable setting
-    // a risk manager after contract deployment)
-    bool public allowFastRiskManagerApproval = true;
+    bool public firstRiskManagerApproved = false;
 
     // Currently approved risk managers
     mapping(address => bool) public approvedRiskManagers;
@@ -56,11 +53,23 @@ contract CoveragePool is Ownable {
         collateralToken = _assetPool.collateralToken();
     }
 
+    /// @notice Approves the first risk manager
+    /// @dev Can be called only by the contract owner. Can be called only once.
+    ///      Does not require any further calls to any functions.
+    /// @param riskManager Risk manager that will be approved.
+    function approveFirstRiskManager(address riskManager) external onlyOwner {
+        require(
+            !firstRiskManagerApproved,
+            "The first risk manager is already approved"
+        );
+        approvedRiskManagers[riskManager] = true;
+        firstRiskManagerApproved = true;
+    }
+
     /// @notice Begins risk manager approval process.
     /// @dev Can be called only by the contract owner. For a risk manager to be
     ///      approved, a call to `finalizeRiskManagerApproval` must follow
-    ///      (without any delay for the first risk manager and with the
-    ///      governance delay for all subsequent risk managers).
+    ///      (after a governance delay).
     /// @param riskManager Risk manager that will be approved.
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
@@ -69,9 +78,7 @@ contract CoveragePool is Ownable {
 
     /// @notice Finalizes risk manager approval process.
     /// @dev Can be called only by the contract owner. Must be preceded with a
-    ///      call to `beginRiskManagerApproval` and a governance delay must
-    ///      elapse, except for the first risk manager that can be approved
-    ///      without any delay.
+    ///      call to beginRiskManagerApproval and a governance delay must elapse.
     /// @param riskManager Risk manager that will be approved.
     function finalizeRiskManagerApproval(address riskManager)
         external
@@ -81,19 +88,12 @@ contract CoveragePool is Ownable {
             riskManagerApprovalTimestamps[riskManager] > 0,
             "Risk manager approval not initiated"
         );
-
-        if (allowFastRiskManagerApproval) {
-            allowFastRiskManagerApproval = false;
-        } else {
-            require(
-                /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp.sub(
-                    riskManagerApprovalTimestamps[riskManager]
-                ) >= CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-                "Risk manager governance delay has not elapsed"
-            );
-        }
-
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp.sub(riskManagerApprovalTimestamps[riskManager]) >=
+                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
+            "Risk manager governance delay has not elapsed"
+        );
         delete riskManagerApprovalTimestamps[riskManager];
         approvedRiskManagers[riskManager] = true;
     }

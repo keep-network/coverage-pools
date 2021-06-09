@@ -100,16 +100,11 @@ describeFn("System -- liquidation", () => {
       bondAuctionThreshold
     )
     await riskManagerV1.deployed()
-
     await coveragePool
       .connect(governance)
-      .beginRiskManagerApproval(riskManagerV1.address)
-    await coveragePool
-      .connect(governance)
-      .finalizeRiskManagerApproval(riskManagerV1.address)
+      .approveFirstRiskManager(riskManagerV1.address)
 
     tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
-
     bidder = await impersonateAccount(bidderAddress)
   })
 
