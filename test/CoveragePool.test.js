@@ -121,8 +121,9 @@ describe("CoveragePool", () => {
     })
 
     context("when caller is the governance", () => {
+      let tx
       beforeEach(async () => {
-        await coveragePool
+        tx = await coveragePool
           .connect(governance)
           .beginRiskManagerApproval(riskManager.address)
       })
@@ -136,6 +137,20 @@ describe("CoveragePool", () => {
         expect(
           await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
         ).to.be.above(0)
+      })
+
+      it("should emit RiskManagerApprovalStarted event", async () => {
+        await expect(tx)
+          .to.emit(coveragePool, "RiskManagerApprovalStarted")
+          .withArgs(riskManager.address)
+      })
+
+      it("should start the governance delay timer", async () => {
+        expect(
+          await coveragePool.getRemainingRiskManagerApprovalTime(
+            riskManager.address
+          )
+        ).to.be.equal(30 * 24 * 3600) // 30 days delay
       })
     })
   })
@@ -184,11 +199,12 @@ describe("CoveragePool", () => {
       })
 
       context("when approval delay has passed", () => {
+        let tx
         beforeEach(async () => {
           // wait for the risk manager governance delay
           await increaseTime(30 * 24 * 3600)
 
-          await coveragePool
+          tx = await coveragePool
             .connect(governance)
             .finalizeRiskManagerApproval(riskManager.address)
         })
@@ -204,6 +220,20 @@ describe("CoveragePool", () => {
         it("should approve risk manager", async () => {
           expect(await coveragePool.approvedRiskManagers(riskManager.address))
             .to.be.true
+        })
+
+        it("should emit RiskManagerApprovalCompleted event", async () => {
+          await expect(tx)
+            .to.emit(coveragePool, "RiskManagerApprovalCompleted")
+            .withArgs(riskManager.address)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            coveragePool.getRemainingRiskManagerApprovalTime(
+              riskManager.address
+            )
+          ).to.be.revertedWith("Risk manager approval not initiated")
         })
       })
     })

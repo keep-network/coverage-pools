@@ -42,6 +42,9 @@ contract CoveragePool is Ownable {
     // Timestamps of risk managers whose unapprovals have been initiated
     mapping(address => uint256) public riskManagerUnapprovalTimestamps;
 
+    event RiskManagerApprovalStarted(address indexed riskManager);
+    event RiskManagerApprovalCompleted(address indexed riskManager);
+
     /// @notice Reverts if called by a risk manager that is not approved
     modifier onlyApprovedRiskManager() {
         require(approvedRiskManagers[msg.sender], "Risk manager not approved");
@@ -74,6 +77,7 @@ contract CoveragePool is Ownable {
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
+        emit RiskManagerApprovalStarted(riskManager);
     }
 
     /// @notice Finalizes risk manager approval process.
@@ -94,8 +98,9 @@ contract CoveragePool is Ownable {
                 CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
             "Risk manager governance delay has not elapsed"
         );
-        delete riskManagerApprovalTimestamps[riskManager];
         approvedRiskManagers[riskManager] = true;
+        emit RiskManagerApprovalCompleted(riskManager);
+        delete riskManagerApprovalTimestamps[riskManager];
     }
 
     /// @notice Begins risk manager unapproval process.
@@ -155,5 +160,27 @@ contract CoveragePool is Ownable {
                 .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
 
         assetPool.claim(recipient, amountToSeize);
+    }
+
+    function getRemainingRiskManagerApprovalTime(address riskManager)
+        external
+        view
+        returns (uint256)
+    {
+        require(
+            riskManagerApprovalTimestamps[riskManager] > 0,
+            "Risk manager approval not initiated"
+        );
+        uint256 elapsed =
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp.sub(riskManagerApprovalTimestamps[riskManager]);
+        if (elapsed >= CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY) {
+            return 0;
+        } else {
+            return
+                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY.sub(
+                    elapsed
+                );
+        }
     }
 }
