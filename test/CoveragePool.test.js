@@ -3,6 +3,7 @@ const {
   to1e18,
   to1ePrecision,
   increaseTime,
+  lastBlockTime,
 } = require("./helpers/contract-test-helpers")
 
 describe("CoveragePool", () => {
@@ -104,7 +105,7 @@ describe("CoveragePool", () => {
           coveragePool
             .connect(governance)
             .approveFirstRiskManager(anotherRiskManager.address)
-        ).to.be.revertedWith("The first risk manager is already approved")
+        ).to.be.revertedWith("The first risk manager was approved")
       })
     })
   })
@@ -142,7 +143,7 @@ describe("CoveragePool", () => {
       it("should emit RiskManagerApprovalStarted event", async () => {
         await expect(tx)
           .to.emit(coveragePool, "RiskManagerApprovalStarted")
-          .withArgs(riskManager.address)
+          .withArgs(riskManager.address, await lastBlockTime())
       })
 
       it("should start the governance delay timer", async () => {
@@ -225,7 +226,7 @@ describe("CoveragePool", () => {
         it("should emit RiskManagerApprovalCompleted event", async () => {
           await expect(tx)
             .to.emit(coveragePool, "RiskManagerApprovalCompleted")
-            .withArgs(riskManager.address)
+            .withArgs(riskManager.address, await lastBlockTime())
         })
 
         it("should reset the governance delay timer", async () => {
@@ -252,7 +253,7 @@ describe("CoveragePool", () => {
 
     context("when risk manager is approved", () => {
       beforeEach(async () => {
-        // aprove risk manager
+        // approve risk manager
         await coveragePool
           .connect(governance)
           .beginRiskManagerApproval(riskManager.address)
@@ -273,8 +274,9 @@ describe("CoveragePool", () => {
       })
 
       context("when caller is the governance", () => {
+        let tx
         beforeEach(async () => {
-          await coveragePool
+          tx = await coveragePool
             .connect(governance)
             .beginRiskManagerUnapproval(riskManager.address)
         })
@@ -290,6 +292,20 @@ describe("CoveragePool", () => {
               riskManager.address
             )
           ).to.be.above(0)
+        })
+
+        it("should emit RiskManagerApprovalStarted event", async () => {
+          await expect(tx)
+            .to.emit(coveragePool, "RiskManagerUnapprovalStarted")
+            .withArgs(riskManager.address, await lastBlockTime())
+        })
+
+        it("should start the governance delay timer", async () => {
+          expect(
+            await coveragePool.getRemainingRiskManagerUnapprovalTime(
+              riskManager.address
+            )
+          ).to.be.equal(30 * 24 * 3600) // 30 days delay
         })
       })
     })
@@ -350,11 +366,12 @@ describe("CoveragePool", () => {
       })
 
       context("when approval delay has passed", () => {
+        let tx
         beforeEach(async () => {
           // wait for the risk manager governance delay
           await increaseTime(30 * 24 * 3600)
 
-          await coveragePool
+          tx = await coveragePool
             .connect(governance)
             .finalizeRiskManagerUnapproval(riskManager.address)
         })
@@ -370,6 +387,20 @@ describe("CoveragePool", () => {
         it("should unapprove risk manager", async () => {
           expect(await coveragePool.approvedRiskManagers(riskManager.address))
             .to.be.false
+        })
+
+        it("should emit RiskManagerUnapprovalCompleted event", async () => {
+          await expect(tx)
+            .to.emit(coveragePool, "RiskManagerUnapprovalCompleted")
+            .withArgs(riskManager.address, await lastBlockTime())
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            coveragePool.getRemainingRiskManagerUnapprovalTime(
+              riskManager.address
+            )
+          ).to.be.revertedWith("Risk manager unapproval not initiated")
         })
       })
     })
