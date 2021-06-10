@@ -19,18 +19,6 @@ contract NewAssetPoolStub is IAssetPoolUpgrade {
         newUnderwriterToken = _newUnderwriterToken;
     }
 
-    function deposit(uint256 collateralAmount) external override {
-        // noop
-    }
-
-    function initiateWithdrawal(uint256 covAmount) external override {
-        // noop
-    }
-
-    function completeWithdrawal(address underwriter) external override {
-        // noop
-    }
-
     function depositFor(address underwriter, uint256 collateralAmount)
         external
         override
