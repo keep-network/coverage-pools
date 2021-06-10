@@ -9,7 +9,7 @@ const {
 
 const RewardsPoolJSON = require("../artifacts/contracts/RewardsPool.sol/RewardsPool.json")
 
-describe("AssetPool", () => {
+describe.only("AssetPool", () => {
   let assetPool
   let coveragePool
   let rewardsPool
@@ -194,6 +194,8 @@ describe("AssetPool", () => {
       const allocatedReward = to1e18(70)
 
       beforeEach(async () => {
+        await increaseTime(86400) // 1 day
+
         await collateralToken
           .connect(rewardManager)
           .approve(rewardsPool.address, allocatedReward)
@@ -1184,11 +1186,12 @@ describe("AssetPool", () => {
           await assetPool
             .connect(coveragePool)
             .claim(coveragePool.address, claim)
+
+          await increaseTime(86400) // 1 day
+
           await underwriterToken
             .connect(underwriter1)
             .approve(assetPool.address, amountToUpgrade)
-
-          await increaseTime(86400) // 1 day
 
           await assetPool
             .connect(underwriter1)
@@ -1225,11 +1228,11 @@ describe("AssetPool", () => {
 
           await assetPool.connect(underwriter1).deposit(amountToDeposit)
 
+          await increaseTime(86400) // 1 day
+
           await underwriterToken
             .connect(underwriter1)
             .approve(assetPool.address, amountToUpgrade)
-
-          await increaseTime(86400) // 1 day
 
           await assetPool
             .connect(underwriter1)
