@@ -286,13 +286,15 @@ contract AssetPool is Ownable, IAssetPool {
     ///                  tokens which are transferred to a new asset pool.
     /// @param _newAssetPool New Asset Pool address to check validity with the one
     ///                      that was approved by the governance.
-    function upgradeToNewAssetPool(uint256 covAmount, address _newAssetPool) external {
+    function upgradeToNewAssetPool(uint256 covAmount, address _newAssetPool)
+        external
+    {
         /* solhint-disable not-rely-on-time */
         require(
             address(newAssetPool) != address(0),
             "New asset pool must be assigned"
         );
-        
+
         require(
             address(newAssetPool) == _newAssetPool,
             "Addresses of a new asset pool must match"

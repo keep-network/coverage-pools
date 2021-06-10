@@ -1096,7 +1096,6 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
 
         const amountToUpgrade = to1e18(101)
-
         await expect(
           assetPool
             .connect(underwriter1)
@@ -1191,6 +1190,8 @@ describe("AssetPool", () => {
           await underwriterToken
             .connect(underwriter1)
             .approve(assetPool.address, amountToUpgrade)
+
+          await increaseTime(86400) // 1 day
 
           await assetPool
             .connect(underwriter1)
