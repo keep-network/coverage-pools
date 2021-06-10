@@ -206,12 +206,6 @@ describe("RiskManagerV1", () => {
                   .approve(riskManagerV1.address, surplus)
                 await riskManagerV1.fundTbtcSurplus(surplus)
 
-                // Just to make the `swapSignerBonds` call possible.
-                await owner.sendTransaction({
-                  to: riskManagerV1.address,
-                  value: ethers.utils.parseEther("10"),
-                })
-
                 notifyLiquidationTx = await notifyLiquidation()
 
                 auctionAddress = await riskManagerV1.depositToAuction(
@@ -255,12 +249,6 @@ describe("RiskManagerV1", () => {
                   .connect(owner)
                   .approve(riskManagerV1.address, surplus)
                 await riskManagerV1.fundTbtcSurplus(surplus)
-
-                // Just to make the `swapSignerBonds` call possible.
-                await owner.sendTransaction({
-                  to: riskManagerV1.address,
-                  value: ethers.utils.parseEther("10"),
-                })
 
                 notifyLiquidationTx = await notifyLiquidation()
 
