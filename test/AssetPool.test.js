@@ -9,7 +9,7 @@ const {
 
 const RewardsPoolJSON = require("../artifacts/contracts/RewardsPool.sol/RewardsPool.json")
 
-describe.only("AssetPool", () => {
+describe("AssetPool", () => {
   let assetPool
   let coveragePool
   let rewardsPool
