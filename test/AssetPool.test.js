@@ -989,15 +989,17 @@ describe("AssetPool", () => {
       )
       await newUnderwriterToken.deployed()
 
-      const NewAssetPool = await ethers.getContractFactory("NewAssetPoolStub")
-      newAssetPool = await NewAssetPool.deploy(
+      const NewAssetPoolStub = await ethers.getContractFactory(
+        "NewAssetPoolStub"
+      )
+      newAssetPool = await NewAssetPoolStub.deploy(
         collateralToken.address,
         newUnderwriterToken.address
       )
       await newAssetPool.deployed()
     })
 
-    context("when upgrading to a new asset pool as an owner", () => {
+    context("when called by the governance", () => {
       it("should approve new asset pool", async () => {
         await assetPool
           .connect(coveragePool)
@@ -1017,7 +1019,7 @@ describe("AssetPool", () => {
       })
     })
 
-    context("when upgrading to a new asset pool as a non-owner", () => {
+    context("when called not by the governance", () => {
       it("should revert", async () => {
         await expect(
           assetPool
@@ -1081,7 +1083,7 @@ describe("AssetPool", () => {
       })
     })
 
-    context("when upgrading with amount less than available", () => {
+    context("when upgrading with amount greater than available", () => {
       it("should revert", async () => {
         await assetPool
           .connect(coveragePool)
@@ -1137,7 +1139,7 @@ describe("AssetPool", () => {
           await assetPool.connect(underwriter1).deposit(amountToDeposit)
           await underwriterToken
             .connect(underwriter1)
-            .approve(assetPool.address, amountToDeposit)
+            .approve(assetPool.address, amountToUpgrade)
 
           tx = await assetPool
             .connect(underwriter1)
@@ -1174,6 +1176,7 @@ describe("AssetPool", () => {
             )
         })
       })
+
       context("when there was a claim", () => {
         const claim = to1e18(25)
 
@@ -1187,7 +1190,7 @@ describe("AssetPool", () => {
             .claim(coveragePool.address, claim)
           await underwriterToken
             .connect(underwriter1)
-            .approve(assetPool.address, amountToDeposit)
+            .approve(assetPool.address, amountToUpgrade)
 
           await assetPool
             .connect(underwriter1)
@@ -1226,7 +1229,7 @@ describe("AssetPool", () => {
 
           await underwriterToken
             .connect(underwriter1)
-            .approve(assetPool.address, amountToDeposit)
+            .approve(assetPool.address, amountToUpgrade)
 
           await increaseTime(86400) // 1 day
 
