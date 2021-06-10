@@ -1053,22 +1053,19 @@ describe("AssetPool", () => {
       await newUnderwriterToken.transferOwnership(newAssetPool.address)
     })
 
-    context(
-      "when a governance was compromised and it approved a fake new asset pool",
-      () => {
-        it("should revert", async () => {
-          const fakeAssetPool = await ethers.getSigner(5)
-          await assetPool
-            .connect(coveragePool)
-            .approveNewAssetPoolUpgrade(fakeAssetPool.address)
-          await expect(
-            assetPool
-              .connect(underwriter1)
-              .upgradeToNewAssetPool(0, newAssetPool.address)
-          ).to.be.revertedWith("Addresses of a new asset pool must match")
-        })
-      }
-    )
+    context("when a new asset pool address does not match", () => {
+      it("should revert", async () => {
+        const fakeAssetPool = await ethers.getSigner(5)
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(fakeAssetPool.address)
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(0, newAssetPool.address)
+        ).to.be.revertedWith("Addresses of a new asset pool must match")
+      })
+    })
 
     context("when upgrading with zero underwriter tokens", () => {
       it("should revert", async () => {
