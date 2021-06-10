@@ -21,6 +21,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "./interfaces/IAssetPoolUpgrade.sol";
+
 /// @title CoveragePool
 /// @notice A contract that manages a single asset pool. Handles approving and
 ///         unapproving of risk managers and allows them to seize funds from the
@@ -180,6 +182,15 @@ contract CoveragePool is Ownable {
                 .balanceOf(address(assetPool))
                 .mul(portionToSeize)
                 .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
+    }
+
+    /// @notice Approves upgradeability of a new asset pool.
+    /// @param _newAssetPool New asset pool
+    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
+        external
+        onlyOwner
+    {
+        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
     }
 
     /// @notice Returns the time remaining until the risk manager approval
