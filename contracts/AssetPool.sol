@@ -284,8 +284,20 @@ contract AssetPool is Ownable, IAssetPool {
     ///         underwriter from a new Asset Pool.
     /// @param covAmount Amount of underwriter tokens used to calculate collateral
     ///                  tokens which are transferred to a new asset pool.
-    function upgradeToNewAssetPool(uint256 covAmount) external {
+    /// @param _newAssetPool New Asset Pool address to check validity with the one
+    ///                      that was approved by the governance.
+    function upgradeToNewAssetPool(uint256 covAmount, address _newAssetPool) external {
         /* solhint-disable not-rely-on-time */
+        require(
+            address(newAssetPool) != address(0),
+            "New asset pool must be assigned"
+        );
+        
+        require(
+            address(newAssetPool) == _newAssetPool,
+            "Addresses of a new asset pool must match"
+        );
+
         require(
             covAmount > 0,
             "Underwriter token amount must be greater than 0"
@@ -295,11 +307,6 @@ contract AssetPool is Ownable, IAssetPool {
         require(
             covAmount <= covBalance,
             "Underwriter token amount exceeds available balance"
-        );
-
-        require(
-            address(newAssetPool) != address(0),
-            "New asset pool must be assigned"
         );
 
         uint256 covSupply = underwriterToken.totalSupply();

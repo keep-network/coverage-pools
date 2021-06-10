@@ -1051,16 +1051,42 @@ describe("AssetPool", () => {
       await newUnderwriterToken.transferOwnership(newAssetPool.address)
     })
 
+    context(
+      "when a governance was compromised and it approved a fake new asset pool",
+      () => {
+        it("should revert", async () => {
+          const fakeAssetPool = await ethers.getSigner(5)
+          await assetPool
+            .connect(coveragePool)
+            .approveNewAssetPoolUpgrade(fakeAssetPool.address)
+          await expect(
+            assetPool
+              .connect(underwriter1)
+              .upgradeToNewAssetPool(0, newAssetPool.address)
+          ).to.be.revertedWith("Addresses of a new asset pool must match")
+        })
+      }
+    )
+
     context("when upgrading with zero underwriter tokens", () => {
       it("should revert", async () => {
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
         await expect(
-          assetPool.connect(underwriter1).upgradeToNewAssetPool(0)
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(0, newAssetPool.address)
         ).to.be.revertedWith("Underwriter token amount must be greater than 0")
       })
     })
 
     context("when upgrading with amount less than available", () => {
       it("should revert", async () => {
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
+
         const amount = to1e18(100)
         await assetPool.connect(underwriter1).deposit(amount)
         await underwriterToken
@@ -1068,8 +1094,11 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
 
         const amountToUpgrade = to1e18(101)
+
         await expect(
-          assetPool.connect(underwriter1).upgradeToNewAssetPool(amountToUpgrade)
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
         ).to.be.revertedWith(
           "Underwriter token amount exceeds available balance"
         )
@@ -1086,7 +1115,9 @@ describe("AssetPool", () => {
 
         const amountToUpgrade = to1e18(99)
         await expect(
-          assetPool.connect(underwriter1).upgradeToNewAssetPool(amountToUpgrade)
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
         ).to.be.revertedWith("New asset pool must be assigned")
       })
     })
@@ -1110,7 +1141,7 @@ describe("AssetPool", () => {
 
           tx = await assetPool
             .connect(underwriter1)
-            .upgradeToNewAssetPool(amountToUpgrade)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
         })
 
         it("should transfer collateral tokens to the new asset pool", async () => {
@@ -1160,7 +1191,7 @@ describe("AssetPool", () => {
 
           await assetPool
             .connect(underwriter1)
-            .upgradeToNewAssetPool(amountToUpgrade)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
         })
 
         it("should transfer collateral proportionally after the claim", async () => {
@@ -1201,7 +1232,7 @@ describe("AssetPool", () => {
 
           await assetPool
             .connect(underwriter1)
-            .upgradeToNewAssetPool(amountToUpgrade)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
         })
 
         it("should transfer collateral proportionally after rewards allocation", async () => {
