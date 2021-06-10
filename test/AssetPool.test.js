@@ -194,8 +194,6 @@ describe("AssetPool", () => {
       const allocatedReward = to1e18(70)
 
       beforeEach(async () => {
-        await increaseTime(86400) // 1 day
-
         await collateralToken
           .connect(rewardManager)
           .approve(rewardsPool.address, allocatedReward)
