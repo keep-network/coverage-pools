@@ -104,6 +104,11 @@ contract Auctioneer is CloneFactory {
         }
     }
 
+    /// @return True if there are open auctions, false otherwise.
+    function hasOpenAuctions() external view returns (bool) {
+        return openAuctionsCount > 0;
+    }
+
     /// @notice Opens a new auction against the coverage pool. The auction
     ///         will remain open until filled.
     /// @dev Calls `Auction.initialize` to initialize the instance.

@@ -5,17 +5,15 @@ const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const { to1e18, lastBlockTime } = require("./helpers/contract-test-helpers")
 const CoveragePool = require("../artifacts/contracts/CoveragePool.sol/CoveragePool.json")
 const IUniswapV2Pair = require("../artifacts/contracts/SignerBondsUniswapV2.sol/IUniswapV2Pair.json")
-const Auctioneer = require("../artifacts/contracts/Auctioneer.sol/Auctioneer.json")
 
 describe("SignerBondsUniswapV2", () => {
   let governance
-  let riskManager
   let other
   let uniswapV2RouterStub
   let mockUniswapV2Pair
   let mockCoveragePool
-  let mockAuctioneer
   let signerBondsUniswapV2
+  let riskManagerV1
 
   const assetPoolAddress = "0x6e7278c99ac5314e53a3E95b2343D4C57FD46159"
   // Real KEEP token mainnet address in order to get a verifiable pair address.
@@ -23,8 +21,7 @@ describe("SignerBondsUniswapV2", () => {
 
   beforeEach(async () => {
     governance = await ethers.getSigner(0)
-    riskManager = await ethers.getSigner(1)
-    other = await ethers.getSigner(2)
+    other = await ethers.getSigner(1)
 
     const UniswapV2RouterStub = await ethers.getContractFactory(
       "UniswapV2RouterStub"
@@ -38,17 +35,38 @@ describe("SignerBondsUniswapV2", () => {
     await mockCoveragePool.mock.assetPool.returns(assetPoolAddress)
     await mockCoveragePool.mock.collateralToken.returns(collateralTokenAddress)
 
-    mockAuctioneer = await deployMockContract(governance, Auctioneer.abi)
-
     const SignerBondsUniswapV2 = await ethers.getContractFactory(
       "SignerBondsUniswapV2Stub"
     )
     signerBondsUniswapV2 = await SignerBondsUniswapV2.deploy(
       uniswapV2RouterStub.address,
-      mockCoveragePool.address,
-      mockAuctioneer.address
+      mockCoveragePool.address
     )
     await signerBondsUniswapV2.deployed()
+
+    // We must use a contract where `withdrawSignerBonds` method exists and
+    // sends real funds to the strategy contract. Constructor parameters
+    // are not relevant at all.
+    const fakeAddress = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    const RiskManagerV1Stub = await ethers.getContractFactory(
+      "RiskManagerV1Stub"
+    )
+    riskManagerV1 = await RiskManagerV1Stub.deploy(
+      fakeAddress,
+      fakeAddress,
+      fakeAddress,
+      signerBondsUniswapV2.address,
+      fakeAddress,
+      86400,
+      75
+    )
+    await riskManagerV1.deployed()
+
+    // Simulate that risk manager has withdrawable signer bonds.
+    await governance.sendTransaction({
+      to: riskManagerV1.address,
+      value: ethers.utils.parseEther("20"),
+    })
 
     // SignerBondsUniswapV2 has to point to the deployed UniswapV2Pair mock
     // instance to make tests work. However, before setting the new value
@@ -59,23 +77,6 @@ describe("SignerBondsUniswapV2", () => {
       "0xE6f19dAb7d43317344282F803f8E8d240708174a"
     )
     await signerBondsUniswapV2.setUniswapPair(mockUniswapV2Pair.address)
-  })
-
-  describe("swapSignerBonds", () => {
-    let tx
-
-    beforeEach(async () => {
-      tx = await signerBondsUniswapV2
-        .connect(riskManager)
-        .swapSignerBonds({ value: ethers.utils.parseEther("10") })
-    })
-
-    it("should add the processed signer bonds to the contract balance", async () => {
-      await expect(tx).to.changeEtherBalance(
-        signerBondsUniswapV2,
-        ethers.utils.parseEther("10")
-      )
-    })
   })
 
   describe("setMaxAllowedPriceImpact", () => {
@@ -176,14 +177,12 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  describe("swapSignerBondsOnUniswapV2", () => {
+  describe("swapSignerBonds", () => {
     const ethReserves = 1000
     const tokenReserves = 5000
     const exchangeRate = 5 // because one can get 5 tokens for every 1 ETH
 
     beforeEach(async () => {
-      await mockAuctioneer.mock.openAuctionsCount.returns(0)
-
       await signerBondsUniswapV2.connect(governance).setOpenAuctionsCheck(false)
 
       await mockUniswapV2Pair.mock.getReserves.returns(
@@ -195,16 +194,14 @@ describe("SignerBondsUniswapV2", () => {
       )
 
       await uniswapV2RouterStub.setExchangeRate(exchangeRate)
-
-      await signerBondsUniswapV2
-        .connect(riskManager)
-        .swapSignerBonds({ value: ethers.utils.parseEther("20") })
     })
 
     context("when amount is zero", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsUniswapV2.connect(other).swapSignerBondsOnUniswapV2(0)
+          signerBondsUniswapV2
+            .connect(other)
+            .swapSignerBonds(riskManagerV1.address, 0)
         ).to.be.revertedWith("Amount must be greater than 0")
       })
     })
@@ -214,14 +211,17 @@ describe("SignerBondsUniswapV2", () => {
         await expect(
           signerBondsUniswapV2
             .connect(other)
-            .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("21"))
-        ).to.be.revertedWith("Amount exceeds balance")
+            .swapSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("21")
+            )
+        ).to.be.revertedWith("Failed to send Ether")
       })
     })
 
     context("when there are open auctions", () => {
       beforeEach(async () => {
-        await mockAuctioneer.mock.openAuctionsCount.returns(1)
+        await riskManagerV1.setOpenAuctionsCount(1)
       })
 
       context("when the open auction check is enabled", () => {
@@ -233,7 +233,10 @@ describe("SignerBondsUniswapV2", () => {
           await expect(
             signerBondsUniswapV2
               .connect(other)
-              .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"))
+              .swapSignerBonds(
+                riskManagerV1.address,
+                ethers.utils.parseEther("10")
+              )
           ).to.be.revertedWith("There are open auctions")
         })
       })
@@ -245,7 +248,10 @@ describe("SignerBondsUniswapV2", () => {
           await expect(
             signerBondsUniswapV2
               .connect(other)
-              .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"))
+              .swapSignerBonds(
+                riskManagerV1.address,
+                ethers.utils.parseEther("10")
+              )
           ).not.to.be.reverted
         })
       })
@@ -261,7 +267,10 @@ describe("SignerBondsUniswapV2", () => {
         await expect(
           signerBondsUniswapV2
             .connect(other)
-            .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10.031"))
+            .swapSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("10.031")
+            )
         ).to.be.revertedWith("Price impact exceeds allowed limit")
       })
     })
@@ -270,16 +279,16 @@ describe("SignerBondsUniswapV2", () => {
       let tx
 
       beforeEach(async () => {
-        await mockAuctioneer.mock.openAuctionsCount.returns(0)
+        await riskManagerV1.setOpenAuctionsCount(0)
 
         tx = await signerBondsUniswapV2
           .connect(other)
-          .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("5"))
+          .swapSignerBonds(riskManagerV1.address, ethers.utils.parseEther("5"))
       })
 
       it("should swap exact ETH for tokens on Uniswap", async () => {
         await expect(tx).to.changeEtherBalance(
-          signerBondsUniswapV2,
+          riskManagerV1,
           ethers.utils.parseEther("-5")
         )
 

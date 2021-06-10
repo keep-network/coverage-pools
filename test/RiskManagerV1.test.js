@@ -5,6 +5,7 @@ const {
   to1ePrecision,
   ZERO_ADDRESS,
   increaseTime,
+  impersonateAccount,
 } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
@@ -234,7 +235,7 @@ describe("RiskManagerV1", () => {
 
               it("should liquidate the deposit directly", async () => {
                 await expect(notifyLiquidationTx).to.changeEtherBalance(
-                  signerBondsSwapStrategy,
+                  riskManagerV1,
                   to1e18(10)
                 )
               })
@@ -284,7 +285,7 @@ describe("RiskManagerV1", () => {
 
               it("should liquidate the deposit directly", async () => {
                 await expect(notifyLiquidationTx).to.changeEtherBalance(
-                  signerBondsSwapStrategy,
+                  riskManagerV1,
                   to1e18(10)
                 )
               })
@@ -736,6 +737,64 @@ describe("RiskManagerV1", () => {
         await expect(
           riskManagerV1.connect(owner).finalizeSignerBondsSwapStrategyUpdate()
         ).to.be.revertedWith("Change not initiated")
+      })
+    })
+  })
+
+  describe("withdrawSignerBonds", () => {
+    beforeEach(async () => {
+      // Set the risk manager contract balance
+      await owner.sendTransaction({
+        to: riskManagerV1.address,
+        value: ethers.utils.parseEther("10"),
+      })
+    })
+
+    context("when the caller is not the signer bonds swap strategy", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1
+            .connect(bidder)
+            .withdrawSignerBonds(ethers.utils.parseEther("10"))
+        ).to.be.revertedWith("Caller is not the signer bonds swap strategy")
+      })
+    })
+
+    context("when the caller is the signer bonds swap strategy", () => {
+      let signerBondsSwapStrategySigner
+
+      beforeEach(async () => {
+        signerBondsSwapStrategySigner = await impersonateAccount(
+          signerBondsSwapStrategy.address,
+          owner
+        )
+      })
+
+      context("when amount exceeds balance", () => {
+        it("should revert", async () => {
+          await expect(
+            riskManagerV1
+              .connect(signerBondsSwapStrategySigner)
+              .withdrawSignerBonds(ethers.utils.parseEther("11"))
+          ).to.be.revertedWith("Failed to send Ether")
+        })
+      })
+
+      context("when amount does not exceed balance", () => {
+        it("should withdraw signer bonds to the swap strategy contract", async () => {
+          const tx = await riskManagerV1
+            .connect(signerBondsSwapStrategySigner)
+            .withdrawSignerBonds(ethers.utils.parseEther("10"))
+
+          await expect(tx).to.changeEtherBalance(
+            riskManagerV1,
+            ethers.utils.parseEther("-10")
+          )
+          await expect(tx).to.changeEtherBalance(
+            signerBondsSwapStrategy,
+            ethers.utils.parseEther("10")
+          )
+        })
       })
     })
   })

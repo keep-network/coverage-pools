@@ -28,9 +28,19 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///         signer bonds so that governance can later swap them manually and
 ///         deposit as coverage pool collateral.
 contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
-    /// @notice Swaps signer bonds.
+    /// @notice Receive ETH upon withdrawal of risk manager's signer bonds.
+    receive() external payable {}
+
+    /// @notice Swaps the given signer bonds amount from the given risk manager.
     /// @dev Adds incoming bonds to the overall contract balance.
-    function swapSignerBonds() external payable override {}
+    /// @param riskManager Address of the risk manager
+    /// @param amount Amount of signer bonds being swapped.
+    function swapSignerBonds(RiskManagerV1 riskManager, uint256 amount)
+        external
+        override
+    {
+        riskManager.withdrawSignerBonds(amount);
+    }
 
     /// @notice Withdraws collected bonds to the given target address.
     /// @dev Can be called by the governance only.

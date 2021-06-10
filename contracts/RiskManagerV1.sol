@@ -57,8 +57,11 @@ interface ITBTCDepositToken {
 /// @dev This interface is meant to abstract the underlying signer bonds
 ///      swap strategy and make it interchangeable for the governance.
 interface ISignerBondsSwapStrategy {
-    /// @notice Swaps signer bonds.
-    function swapSignerBonds() external payable;
+    /// @notice Swaps the given signer bonds amount from the given risk manager.
+    /// @param riskManager Address of the risk manager
+    /// @param amount Amount of signer bonds being swapped.
+    function swapSignerBonds(RiskManagerV1 riskManager, uint256 amount)
+        external;
 }
 
 /// @title RiskManagerV1 for tBTCv1
@@ -129,6 +132,16 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             block.timestamp.sub(changeInitiatedTimestamp) >=
                 GOVERNANCE_TIME_DELAY,
             "Governance delay has not elapsed"
+        );
+        _;
+    }
+
+    /// @notice Reverts if called by any account other than the signer bonds
+    ///         swap strategy.
+    modifier onlySignerBondsSwapStrategy() {
+        require(
+            msg.sender == address(signerBondsSwapStrategy),
+            "Caller is not the signer bonds swap strategy"
         );
         _;
     }
@@ -317,6 +330,25 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         signerBondsSwapStrategyInitiated = 0;
     }
 
+    /// @notice Withdraws the given amount to the signer bonds swap strategy
+    ///         address.
+    /// @dev Can be called only by the signer bonds swap strategy itself.
+    ///      This method should typically be used as part of the swap logic.
+    ///      Third-party calls may block funds on the strategy contract in case
+    ///      that strategy is not able to perform the swap.
+    /// @param amount Amount of signer bonds being withdrawn.
+    function withdrawSignerBonds(uint256 amount)
+        external
+        onlySignerBondsSwapStrategy
+    {
+        /* solhint-disable avoid-low-level-calls */
+        // slither-disable-next-line low-level-calls
+        (bool success, ) =
+            address(signerBondsSwapStrategy).call{value: amount}("");
+        require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
+    }
+
     /// @notice Get the time remaining until the bond auction threshold
     ///         can be updated.
     /// @return Remaining time in seconds.
@@ -394,11 +426,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         // taken from the surplus pool.
         deposit.purchaseSignerBondsAtAuction();
 
-        uint256 withdrawableAmount = deposit.withdrawableAmount();
         deposit.withdrawFunds();
-
-        // slither-disable-next-line arbitrary-send
-        signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
     }
 
     /// @notice Reverts if the deposit for which the auction was created is no

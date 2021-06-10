@@ -63,7 +63,6 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     IUniswapV2Pair public uniswapPair;
     address public assetPool;
     address public collateralToken;
-    Auctioneer public auctioneer;
 
     // Determines the maximum allowed price impact for the swap transaction.
     // If transaction's price impact is higher, transaction will be reverted.
@@ -83,15 +82,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
     event UniswapV2SwapExecuted(uint256[] amounts);
 
-    constructor(
-        IUniswapV2Router _uniswapRouter,
-        CoveragePool _coveragePool,
-        Auctioneer _auctioneer
-    ) {
+    constructor(IUniswapV2Router _uniswapRouter, CoveragePool _coveragePool) {
         uniswapRouter = _uniswapRouter;
         assetPool = address(_coveragePool.assetPool());
         collateralToken = address(_coveragePool.collateralToken());
-        auctioneer = _auctioneer;
         uniswapPair = IUniswapV2Pair(
             computePairAddress(
                 _uniswapRouter.factory(),
@@ -101,9 +95,21 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         );
     }
 
-    /// @notice Swaps signer bonds.
-    /// @dev Adds incoming bonds to the overall contract balance.
-    function swapSignerBonds() external payable override {}
+    /// @notice Receive ETH upon withdrawal of risk manager's signer bonds.
+    /// @dev Do not send arbitrary funds. They will be locked forever.
+    receive() external payable {}
+
+    /// @notice Swaps the given signer bonds amount from the given risk manager.
+    /// @dev Swaps incoming signer bonds on Uniswap V2.
+    /// @param riskManager Address of the risk manager
+    /// @param amount Amount of signer bonds being swapped.
+    function swapSignerBonds(RiskManagerV1 riskManager, uint256 amount)
+        external
+        override
+    {
+        riskManager.withdrawSignerBonds(amount);
+        swapSignerBondsOnUniswapV2(riskManager, amount);
+    }
 
     /// @notice Sets the maximum price impact allowed for a swap transaction.
     /// @param _maxAllowedPriceImpact Maximum allowed price impact specified
@@ -174,15 +180,15 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///      tokens are sent to the asset pool address set during
     ///      contract construction.
     /// @param amount Amount to swap.
-    function swapSignerBondsOnUniswapV2(uint256 amount) external {
+    function swapSignerBondsOnUniswapV2(
+        RiskManagerV1 riskManager,
+        uint256 amount
+    ) internal {
         require(amount > 0, "Amount must be greater than 0");
         require(amount <= address(this).balance, "Amount exceeds balance");
 
         if (openAuctionsCheck) {
-            require(
-                auctioneer.openAuctionsCount() == 0,
-                "There are open auctions"
-            );
+            require(!riskManager.hasOpenAuctions(), "There are open auctions");
         }
 
         // Setup the swap path. WETH must be the first component.

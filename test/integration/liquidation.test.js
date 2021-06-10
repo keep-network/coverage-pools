@@ -96,14 +96,8 @@ describe("Integration -- liquidation", () => {
       expect(await tbtcToken.balanceOf(bidder.address)).to.equal(0)
       // Deposit has been liquidated
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
-    })
-
-    it("should swap signer bonds", async () => {
-      await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
-      await expect(tx).to.changeEtherBalance(
-        signerBondsSwapStrategy,
-        bondedAmount
-      )
+      // Signer bonds should land on risk manager contract
+      await expect(tx).to.changeEtherBalance(riskManagerV1, bondedAmount)
     })
   })
 

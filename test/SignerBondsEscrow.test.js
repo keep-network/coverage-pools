@@ -5,18 +5,43 @@ const { ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 describe("SignerBondsEscrow", () => {
   let governance
-  let riskManager
+  let recipient
   let signerBondsEscrow
+  let riskManagerV1
 
   beforeEach(async () => {
     governance = await ethers.getSigner(0)
-    riskManager = await ethers.getSigner(1)
+    recipient = await ethers.getSigner(1)
 
     const SignerBondsEscrow = await ethers.getContractFactory(
       "SignerBondsEscrow"
     )
     signerBondsEscrow = await SignerBondsEscrow.deploy()
     await signerBondsEscrow.deployed()
+
+    // We must use a contract where `withdrawSignerBonds` method exists and
+    // sends real funds to the strategy contract. Constructor parameters
+    // are not relevant at all.
+    const fakeAddress = "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    const RiskManagerV1Stub = await ethers.getContractFactory(
+      "RiskManagerV1Stub"
+    )
+    riskManagerV1 = await RiskManagerV1Stub.deploy(
+      fakeAddress,
+      fakeAddress,
+      fakeAddress,
+      signerBondsEscrow.address,
+      fakeAddress,
+      86400,
+      75
+    )
+    await riskManagerV1.deployed()
+
+    // Simulate that risk manager has withdrawable signer bonds.
+    await governance.sendTransaction({
+      to: riskManagerV1.address,
+      value: ethers.utils.parseEther("20"),
+    })
   })
 
   describe("swapSignerBonds", () => {
@@ -24,8 +49,8 @@ describe("SignerBondsEscrow", () => {
 
     beforeEach(async () => {
       tx = await signerBondsEscrow
-        .connect(riskManager)
-        .swapSignerBonds({ value: ethers.utils.parseEther("10") })
+        .connect(governance)
+        .swapSignerBonds(riskManagerV1.address, ethers.utils.parseEther("10"))
     })
 
     it("should add the processed signer bonds to the contract balance", async () => {
@@ -45,21 +70,24 @@ describe("SignerBondsEscrow", () => {
 
         beforeEach(async () => {
           await signerBondsEscrow
-            .connect(riskManager)
-            .swapSignerBonds({ value: ethers.utils.parseEther("10") })
+            .connect(governance)
+            .swapSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("10")
+            )
 
           tx = await signerBondsEscrow
             .connect(governance)
-            .withdraw(riskManager.address)
+            .withdraw(recipient.address)
         })
 
-        it("transfer all funds to the target account", async () => {
+        it("transfer all funds to the recipient account", async () => {
           await expect(tx).to.changeEtherBalance(
             signerBondsEscrow,
             ethers.utils.parseEther("10").mul(-1)
           )
           await expect(tx).to.changeEtherBalance(
-            riskManager,
+            recipient,
             ethers.utils.parseEther("10")
           )
         })
@@ -69,7 +97,7 @@ describe("SignerBondsEscrow", () => {
     context("when the caller is not the governance", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow.connect(riskManager).withdraw(riskManager.address)
+          signerBondsEscrow.connect(recipient).withdraw(recipient.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -86,9 +114,9 @@ describe("SignerBondsEscrow", () => {
       it("should not transfer any funds", async () => {
         const tx = await signerBondsEscrow
           .connect(governance)
-          .withdraw(riskManager.address)
+          .withdraw(recipient.address)
         await expect(tx).to.changeEtherBalance(signerBondsEscrow, 0)
-        await expect(tx).to.changeEtherBalance(riskManager, 0)
+        await expect(tx).to.changeEtherBalance(recipient, 0)
       })
     })
   })
