@@ -365,6 +365,8 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     function _deposit(address depositor, uint256 amount) internal {
+        require(depositor != address(this), "Self-deposit not allowed");
+
         rewardsPool.withdraw();
 
         uint256 covSupply = underwriterToken.totalSupply();
