@@ -294,7 +294,7 @@ describe("CoveragePool", () => {
           ).to.be.above(0)
         })
 
-        it("should emit RiskManagerApprovalStarted event", async () => {
+        it("should emit RiskManagerUnapprovalStarted event", async () => {
           await expect(tx)
             .to.emit(coveragePool, "RiskManagerUnapprovalStarted")
             .withArgs(riskManager.address, await lastBlockTime())
