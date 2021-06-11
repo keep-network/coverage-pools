@@ -10,16 +10,18 @@ const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
-// This system test scenario checks the liquidation happy path. It is meant
-// to be executed on Hardhat Network with mainnet forking enabled. At the start,
-// the fork is being reset to the specific starting block which determines the
-// initial test state. This test uses the real tBTC token contract and a
-// deposit (https://allthekeeps.com/deposit/0x55d8b1dd88e60d12c81b5479186c15d07555db9d)
-// which is ready to be liquidated at the starting block. The bidder which
-// takes the offer is also a real account with actual tBTC balance. At the
-// end of the scenario, the risk manager should liquidate the deposit successfully,
-// and 75% of the deposit's bonded amount should land on the signer bonds
-// swap strategy contract.
+// This system test checks the scenario where we create a cov pool auction for a
+// deposit being under liquidation. There are two bidders come into the picture,
+// where the first one partially takes an offer and the second one buys the same
+// deposit outside the coverage pool. Next step is notifying the risk manager
+// about liquidated deposit so it can early close the auction.
+// All the tests below are executed on Hardhat Network with mainnet forking enabled.
+// At the start, the fork is being reset to the specific starting block which
+// determines the initial test state. This test uses the real tBTC token contract
+// and a deposit (https://allthekeeps.com/deposit/0x55d8b1dd88e60d12c81b5479186c15d07555db9d)
+// which is ready to be liquidated at the starting block. All the bidders are also
+// real accounts with actual TBTC balance. At the end of the scenario, the risk
+// manager should early close the cov pool auction and keep the surplus of TBTC.
 describeFn("System -- notify liquidated", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
@@ -98,11 +100,7 @@ describeFn("System -- notify liquidated", () => {
 
     await coveragePool
       .connect(governance)
-      .beginRiskManagerApproval(riskManagerV1.address)
-    await increaseTime(2592000) // +30 days
-    await coveragePool
-      .connect(governance)
-      .finalizeRiskManagerApproval(riskManagerV1.address)
+      .approveFirstRiskManager(riskManagerV1.address)
 
     tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
 
