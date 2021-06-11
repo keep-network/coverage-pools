@@ -162,6 +162,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             "Address is not a deposit contract"
         );
 
+        require(
+            depositToAuction[depositAddress] == address(0),
+            "Already notified about the deposit"
+        );
+
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
@@ -187,6 +192,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             return;
         }
 
+        // slither-disable-next-line reentrancy-no-eth
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
