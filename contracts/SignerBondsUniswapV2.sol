@@ -183,6 +183,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///      with the slippage tolerance and deadline. Acquired collateral
     ///      tokens are sent to the asset pool address set during
     ///      contract construction.
+    /// @param riskManager Address of the risk manager which holds the bonds.
     /// @param amount Amount to swap.
     function swapSignerBondsOnUniswapV2(
         RiskManagerV1 riskManager,
