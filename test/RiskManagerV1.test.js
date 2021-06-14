@@ -42,7 +42,7 @@ describe("RiskManagerV1", () => {
     )
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+      "SignerBondsManualSwap"
     )
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()

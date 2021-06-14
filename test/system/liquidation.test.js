@@ -74,7 +74,7 @@ describeFn("System -- liquidation", () => {
     await underwriterToken.transferOwnership(assetPool.address)
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+      "SignerBondsManualSwap"
     )
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()

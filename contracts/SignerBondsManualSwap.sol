@@ -17,17 +17,12 @@ pragma solidity <0.9.0;
 import "./RiskManagerV1.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title SignerBondsEscrow
+/// @title SignerBondsManualSwap
 /// @notice ETH purchased by the risk manager from tBTC signer bonds needs to be
 ///         swapped and deposited back to the coverage pool as collateral.
-///         In the case it can not be done automatically, the governance has
-///         the power to ask the risk manager to deposit ETH from purchased
-///         signer bonds into an escrow the governance can later withdraw from
-///         and do the swap manually. SignerBondsEscrow is a simple escrow
-///         implementation allowing the risk manager to store purchased ETH
-///         signer bonds so that governance can later swap them manually and
-///         deposit as coverage pool collateral.
-contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
+///         SignerBondsManualSwap strategy allows the governance to withdraw
+///         the bonds from the risk manager and do the swap manually.
+contract SignerBondsManualSwap is ISignerBondsSwapStrategy, Ownable {
     /// @notice Receive ETH upon withdrawal of risk manager's signer bonds.
     receive() external payable {}
 

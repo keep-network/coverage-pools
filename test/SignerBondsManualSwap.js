@@ -3,21 +3,21 @@ const expect = chai.expect
 
 const { ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
-describe("SignerBondsEscrow", () => {
+describe("SignerBondsManualSwap", () => {
   let governance
   let recipient
-  let signerBondsEscrow
+  let signerBondsManualSwap
   let riskManagerV1
 
   beforeEach(async () => {
     governance = await ethers.getSigner(0)
     recipient = await ethers.getSigner(1)
 
-    const SignerBondsEscrow = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+    const SignerBondsManualSwap = await ethers.getContractFactory(
+      "SignerBondsManualSwap"
     )
-    signerBondsEscrow = await SignerBondsEscrow.deploy()
-    await signerBondsEscrow.deployed()
+    signerBondsManualSwap = await SignerBondsManualSwap.deploy()
+    await signerBondsManualSwap.deployed()
 
     // We must use a contract where `withdrawSignerBonds` method exists and
     // sends real funds to the strategy contract. Constructor parameters
@@ -30,7 +30,7 @@ describe("SignerBondsEscrow", () => {
       fakeAddress,
       fakeAddress,
       fakeAddress,
-      signerBondsEscrow.address,
+      signerBondsManualSwap.address,
       fakeAddress,
       86400,
       75
@@ -52,7 +52,7 @@ describe("SignerBondsEscrow", () => {
         let tx
 
         beforeEach(async () => {
-          tx = await signerBondsEscrow
+          tx = await signerBondsManualSwap
             .connect(governance)
             .withdrawSignerBonds(
               riskManagerV1.address,
@@ -77,7 +77,7 @@ describe("SignerBondsEscrow", () => {
     context("when the caller is not the governance", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow
+          signerBondsManualSwap
             .connect(recipient)
             .withdrawSignerBonds(
               riskManagerV1.address,
@@ -91,7 +91,7 @@ describe("SignerBondsEscrow", () => {
     context("when amount is zero", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow
+          signerBondsManualSwap
             .connect(governance)
             .withdrawSignerBonds(riskManagerV1.address, 0, recipient.address)
         ).to.be.revertedWith("Amount must be greater than 0")
@@ -101,7 +101,7 @@ describe("SignerBondsEscrow", () => {
     context("when amount exceeds the risk manager balance", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow
+          signerBondsManualSwap
             .connect(governance)
             .withdrawSignerBonds(
               riskManagerV1.address,
@@ -115,7 +115,7 @@ describe("SignerBondsEscrow", () => {
     context("when the recipient address is zero", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow
+          signerBondsManualSwap
             .connect(governance)
             .withdrawSignerBonds(
               riskManagerV1.address,

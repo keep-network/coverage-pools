@@ -38,7 +38,7 @@ describe("Integration -- liquidation", () => {
     await mockTbtcDepositToken.mock.exists.returns(true)
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+      "SignerBondsManualSwap"
     )
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()
