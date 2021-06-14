@@ -123,6 +123,22 @@ describe("RiskManagerV1", () => {
         })
 
         context("when deposit is at the bond auction threshold", () => {
+          context("when already notified about the deposit", () => {
+            beforeEach(async () => {
+              await notifyLiquidation()
+            })
+
+            it("should revert", async () => {
+              await expect(
+                riskManagerV1
+                  .connect(notifier)
+                  .notifyLiquidation(depositStub.address)
+              ).to.be.revertedWith(
+                "Already notified on the deposit in liquidation"
+              )
+            })
+          })
+
           context("when the surplus pool is empty", () => {
             let notifyLiquidationTx
             let auctionAddress

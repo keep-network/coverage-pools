@@ -169,6 +169,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         );
 
         require(
+            depositToAuction[depositAddress] == address(0),
+            "Already notified on the deposit in liquidation"
+        );
+
+        require(
             deposit.auctionValue() >=
                 address(deposit).balance.mul(bondAuctionThreshold).div(100),
             "Deposit bond auction percentage is below the threshold level"
@@ -187,6 +192,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             return;
         }
 
+        // slither-disable-next-line reentrancy-no-eth
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
