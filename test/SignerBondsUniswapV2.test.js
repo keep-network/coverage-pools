@@ -166,7 +166,7 @@ describe("SignerBondsUniswapV2", () => {
     })
 
     context("when the caller is the governance", () => {
-      it("should set the open auctions chec parameter", async () => {
+      it("should set the open auctions check parameter", async () => {
         await signerBondsUniswapV2
           .connect(governance)
           .setOpenAuctionsCheck(false)

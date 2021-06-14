@@ -127,16 +127,12 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
         )
     })
 
-    it(
-      "should take the swapped amount from the risk manager " +
-        "contract balance",
-      async () => {
-        await expect(tx).to.changeEtherBalance(
-          riskManagerV1,
-          ethers.utils.parseEther("-10")
-        )
-      }
-    )
+    it("should take the swapped amount from the risk manager contract balance", async () => {
+      await expect(tx).to.changeEtherBalance(
+        riskManagerV1,
+        ethers.utils.parseEther("-10")
+      )
+    })
 
     it("should send acquired tokens to the asset pool", async () => {
       // WETH_in = 10000000000000000000 (10 ETH)
