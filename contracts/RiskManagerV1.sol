@@ -164,7 +164,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         require(
             depositToAuction[depositAddress] == address(0),
-            "Already notified about the deposit"
+            "Already notified on the deposit in liquidation"
         );
 
         IDeposit deposit = IDeposit(depositAddress);

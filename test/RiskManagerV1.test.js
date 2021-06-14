@@ -133,7 +133,7 @@ describe("RiskManagerV1", () => {
                 riskManagerV1
                   .connect(notifier)
                   .notifyLiquidation(depositStub.address)
-              ).to.be.revertedWith("Already notified about the deposit")
+              ).to.be.revertedWith("Already notified on the deposit in liquidation")
             })
           })
 
