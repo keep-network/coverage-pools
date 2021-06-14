@@ -162,15 +162,15 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             "Address is not a deposit contract"
         );
 
-        require(
-            depositToAuction[depositAddress] == address(0),
-            "Already notified on the deposit in liquidation"
-        );
-
         IDeposit deposit = IDeposit(depositAddress);
         require(
             deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
             "Deposit is not in liquidation state"
+        );
+
+        require(
+            depositToAuction[depositAddress] == address(0),
+            "Already notified on the deposit in liquidation"
         );
 
         require(
