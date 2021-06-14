@@ -31,27 +31,32 @@ contract SignerBondsEscrow is ISignerBondsSwapStrategy, Ownable {
     /// @notice Receive ETH upon withdrawal of risk manager's signer bonds.
     receive() external payable {}
 
-    /// @notice Swaps the given signer bonds amount from the given risk manager.
-    /// @dev Adds incoming bonds to the overall contract balance.
-    /// @param riskManager Address of the risk manager
-    /// @param amount Amount of signer bonds being swapped.
-    function swapSignerBonds(RiskManagerV1 riskManager, uint256 amount)
-        external
-        override
-    {
-        riskManager.withdrawSignerBonds(amount);
-    }
+    /// @notice Notifies the strategy about signer bonds purchase.
+    /// @param amount Amount of purchased signer bonds.
+    function onSignerBondsPurchased(uint256 amount) external override {}
 
     /// @notice Withdraws collected bonds to the given target address.
     /// @dev Can be called by the governance only.
     /// @param recipient Arbitrary recipient address chosen by the governance
     ///        that will be responsible for swapping ETH and depositing
     ///        collateral to the coverage pool.
-    function withdraw(address payable recipient) external onlyOwner {
+    function withdrawSignerBonds(
+        RiskManagerV1 riskManager,
+        uint256 amount,
+        address payable recipient
+    ) external onlyOwner {
+        require(amount > 0, "Amount must be greater than 0");
+        require(
+            amount <= address(riskManager).balance,
+            "Amount exceeds risk manager balance"
+        );
         require(recipient != address(0), "Invalid recipient address");
+
+        riskManager.withdrawSignerBonds(amount);
+
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls,arbitrary-send
-        (bool success, ) = recipient.call{value: address(this).balance}("");
+        (bool success, ) = recipient.call{value: amount}("");
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */
     }

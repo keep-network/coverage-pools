@@ -99,17 +99,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @dev Do not send arbitrary funds. They will be locked forever.
     receive() external payable {}
 
-    /// @notice Swaps the given signer bonds amount from the given risk manager.
-    /// @dev Swaps incoming signer bonds on Uniswap V2.
-    /// @param riskManager Address of the risk manager
-    /// @param amount Amount of signer bonds being swapped.
-    function swapSignerBonds(RiskManagerV1 riskManager, uint256 amount)
-        external
-        override
-    {
-        riskManager.withdrawSignerBonds(amount);
-        swapSignerBondsOnUniswapV2(riskManager, amount);
-    }
+    /// @notice Notifies the strategy about signer bonds purchase.
+    /// @param amount Amount of purchased signer bonds.
+    function onSignerBondsPurchased(uint256 amount) external override {}
 
     /// @notice Sets the maximum price impact allowed for a swap transaction.
     /// @param _maxAllowedPriceImpact Maximum allowed price impact specified
@@ -183,13 +175,18 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     function swapSignerBondsOnUniswapV2(
         RiskManagerV1 riskManager,
         uint256 amount
-    ) internal {
+    ) external {
         require(amount > 0, "Amount must be greater than 0");
-        require(amount <= address(this).balance, "Amount exceeds balance");
+        require(
+            amount <= address(riskManager).balance,
+            "Amount exceeds risk manager balance"
+        );
 
         if (openAuctionsCheck) {
             require(!riskManager.hasOpenAuctions(), "There are open auctions");
         }
+
+        riskManager.withdrawSignerBonds(amount);
 
         // Setup the swap path. WETH must be the first component.
         address[] memory path = new address[](2);

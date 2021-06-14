@@ -177,7 +177,7 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  describe("swapSignerBonds", () => {
+  describe("swapSignerBondsOnUniswapV2", () => {
     const ethReserves = 1000
     const tokenReserves = 5000
     const exchangeRate = 5 // because one can get 5 tokens for every 1 ETH
@@ -201,21 +201,21 @@ describe("SignerBondsUniswapV2", () => {
         await expect(
           signerBondsUniswapV2
             .connect(other)
-            .swapSignerBonds(riskManagerV1.address, 0)
+            .swapSignerBondsOnUniswapV2(riskManagerV1.address, 0)
         ).to.be.revertedWith("Amount must be greater than 0")
       })
     })
 
-    context("when amount exceeds balance", () => {
+    context("when amount exceeds risk manager balance", () => {
       it("should revert", async () => {
         await expect(
           signerBondsUniswapV2
             .connect(other)
-            .swapSignerBonds(
+            .swapSignerBondsOnUniswapV2(
               riskManagerV1.address,
               ethers.utils.parseEther("21")
             )
-        ).to.be.revertedWith("Failed to send Ether")
+        ).to.be.revertedWith("Amount exceeds risk manager balance")
       })
     })
 
@@ -233,7 +233,7 @@ describe("SignerBondsUniswapV2", () => {
           await expect(
             signerBondsUniswapV2
               .connect(other)
-              .swapSignerBonds(
+              .swapSignerBondsOnUniswapV2(
                 riskManagerV1.address,
                 ethers.utils.parseEther("10")
               )
@@ -248,7 +248,7 @@ describe("SignerBondsUniswapV2", () => {
           await expect(
             signerBondsUniswapV2
               .connect(other)
-              .swapSignerBonds(
+              .swapSignerBondsOnUniswapV2(
                 riskManagerV1.address,
                 ethers.utils.parseEther("10")
               )
@@ -267,7 +267,7 @@ describe("SignerBondsUniswapV2", () => {
         await expect(
           signerBondsUniswapV2
             .connect(other)
-            .swapSignerBonds(
+            .swapSignerBondsOnUniswapV2(
               riskManagerV1.address,
               ethers.utils.parseEther("10.031")
             )
@@ -283,7 +283,10 @@ describe("SignerBondsUniswapV2", () => {
 
         tx = await signerBondsUniswapV2
           .connect(other)
-          .swapSignerBonds(riskManagerV1.address, ethers.utils.parseEther("5"))
+          .swapSignerBondsOnUniswapV2(
+            riskManagerV1.address,
+            ethers.utils.parseEther("5")
+          )
       })
 
       it("should swap exact ETH for tokens on Uniswap", async () => {

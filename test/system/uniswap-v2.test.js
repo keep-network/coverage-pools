@@ -118,9 +118,13 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     before(async () => {
       tx = await signerBondsUniswapV2
         .connect(thirdParty)
-        .swapSignerBonds(riskManagerV1.address, ethers.utils.parseEther("10"), {
-          gasLimit: 200000,
-        })
+        .swapSignerBondsOnUniswapV2(
+          riskManagerV1.address,
+          ethers.utils.parseEther("10"),
+          {
+            gasLimit: 200000,
+          }
+        )
     })
 
     it(

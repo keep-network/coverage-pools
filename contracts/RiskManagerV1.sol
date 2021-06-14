@@ -57,11 +57,9 @@ interface ITBTCDepositToken {
 /// @dev This interface is meant to abstract the underlying signer bonds
 ///      swap strategy and make it interchangeable for the governance.
 interface ISignerBondsSwapStrategy {
-    /// @notice Swaps the given signer bonds amount from the given risk manager.
-    /// @param riskManager Address of the risk manager
-    /// @param amount Amount of signer bonds being swapped.
-    function swapSignerBonds(RiskManagerV1 riskManager, uint256 amount)
-        external;
+    /// @notice Notifies the strategy about signer bonds purchase.
+    /// @param amount Amount of purchased signer bonds.
+    function onSignerBondsPurchased(uint256 amount) external;
 }
 
 /// @title RiskManagerV1 for tBTCv1
@@ -426,7 +424,10 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         // taken from the surplus pool.
         deposit.purchaseSignerBondsAtAuction();
 
+        uint256 withdrawableAmount = deposit.withdrawableAmount();
         deposit.withdrawFunds();
+
+        signerBondsSwapStrategy.onSignerBondsPurchased(withdrawableAmount);
     }
 
     /// @notice Reverts if the deposit for which the auction was created is no

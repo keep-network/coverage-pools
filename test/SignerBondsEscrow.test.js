@@ -44,46 +44,26 @@ describe("SignerBondsEscrow", () => {
     })
   })
 
-  describe("swapSignerBonds", () => {
-    let tx
-
-    beforeEach(async () => {
-      tx = await signerBondsEscrow
-        .connect(governance)
-        .swapSignerBonds(riskManagerV1.address, ethers.utils.parseEther("10"))
-    })
-
-    it("should add the processed signer bonds to the contract balance", async () => {
-      await expect(tx).to.changeEtherBalance(
-        signerBondsEscrow,
-        ethers.utils.parseEther("10")
-      )
-    })
-  })
-
-  describe("withdraw", () => {
+  describe("withdrawSignerBonds", () => {
     context(
-      "when the caller is the governance, target address is non-zero, " +
-        "and there are available funds",
+      "when the caller is the governance, recipient address is non-zero, " +
+        "and amount is correct",
       () => {
         let tx
 
         beforeEach(async () => {
-          await signerBondsEscrow
-            .connect(governance)
-            .swapSignerBonds(
-              riskManagerV1.address,
-              ethers.utils.parseEther("10")
-            )
-
           tx = await signerBondsEscrow
             .connect(governance)
-            .withdraw(recipient.address)
+            .withdrawSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("10"),
+              recipient.address
+            )
         })
 
         it("transfer all funds to the recipient account", async () => {
           await expect(tx).to.changeEtherBalance(
-            signerBondsEscrow,
+            riskManagerV1,
             ethers.utils.parseEther("10").mul(-1)
           )
           await expect(tx).to.changeEtherBalance(
@@ -97,26 +77,52 @@ describe("SignerBondsEscrow", () => {
     context("when the caller is not the governance", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow.connect(recipient).withdraw(recipient.address)
+          signerBondsEscrow
+            .connect(recipient)
+            .withdrawSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("10"),
+              recipient.address
+            )
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
-    context("when the target address is zero", () => {
+    context("when amount is zero", () => {
       it("should revert", async () => {
         await expect(
-          signerBondsEscrow.connect(governance).withdraw(ZERO_ADDRESS)
-        ).to.be.revertedWith("Invalid recipient address")
+          signerBondsEscrow
+            .connect(governance)
+            .withdrawSignerBonds(riskManagerV1.address, 0, recipient.address)
+        ).to.be.revertedWith("Amount must be greater than 0")
       })
     })
 
-    context("when there are no available funds", () => {
-      it("should not transfer any funds", async () => {
-        const tx = await signerBondsEscrow
-          .connect(governance)
-          .withdraw(recipient.address)
-        await expect(tx).to.changeEtherBalance(signerBondsEscrow, 0)
-        await expect(tx).to.changeEtherBalance(recipient, 0)
+    context("when amount exceeds the risk manager balance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsEscrow
+            .connect(governance)
+            .withdrawSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("25"),
+              recipient.address
+            )
+        ).to.be.revertedWith("Amount exceeds risk manager balance")
+      })
+    })
+
+    context("when the recipient address is zero", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsEscrow
+            .connect(governance)
+            .withdrawSignerBonds(
+              riskManagerV1.address,
+              ethers.utils.parseEther("10"),
+              ZERO_ADDRESS
+            )
+        ).to.be.revertedWith("Invalid recipient address")
       })
     })
   })
