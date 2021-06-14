@@ -975,4 +975,276 @@ describe("AssetPool", () => {
       )
     })
   })
+
+  describe("approveNewAssetPoolUpgrade", () => {
+    let newAssetPool
+
+    beforeEach(async () => {
+      const NewUnderwriterToken = await ethers.getContractFactory(
+        "UnderwriterToken"
+      )
+      newUnderwriterToken = await NewUnderwriterToken.deploy(
+        "New Underwriter Token",
+        "newCOV"
+      )
+      await newUnderwriterToken.deployed()
+
+      const NewAssetPoolStub = await ethers.getContractFactory(
+        "NewAssetPoolStub"
+      )
+      newAssetPool = await NewAssetPoolStub.deploy(
+        collateralToken.address,
+        newUnderwriterToken.address
+      )
+      await newAssetPool.deployed()
+    })
+
+    context("when called by the governance", () => {
+      it("should approve new asset pool", async () => {
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
+
+        expect(await assetPool.newAssetPool()).to.equal(newAssetPool.address)
+      })
+
+      it("should emit ApprovedAssetPoolUpgrade event", async () => {
+        const tx = await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
+
+        expect(tx)
+          .to.emit(assetPool, "ApprovedAssetPoolUpgrade")
+          .withArgs(newAssetPool.address)
+      })
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(thirdParty)
+            .approveNewAssetPoolUpgrade(newAssetPool.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("upgradeToNewAssetPool", () => {
+    let newAssetPool
+    let newUnderwriterToken
+
+    beforeEach(async () => {
+      const NewUnderwriterToken = await ethers.getContractFactory(
+        "UnderwriterToken"
+      )
+      newUnderwriterToken = await NewUnderwriterToken.deploy(
+        "New Underwriter Token",
+        "newCOV"
+      )
+      await newUnderwriterToken.deployed()
+
+      const NewAssetPool = await ethers.getContractFactory("NewAssetPoolStub")
+      newAssetPool = await NewAssetPool.deploy(
+        collateralToken.address,
+        newUnderwriterToken.address
+      )
+      await newAssetPool.deployed()
+      await newUnderwriterToken.transferOwnership(newAssetPool.address)
+    })
+
+    context("when a new asset pool address does not match", () => {
+      it("should revert", async () => {
+        const fakeAssetPool = await ethers.getSigner(5)
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(fakeAssetPool.address)
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(0, newAssetPool.address)
+        ).to.be.revertedWith("Addresses of a new asset pool must match")
+      })
+    })
+
+    context("when upgrading with zero underwriter tokens", () => {
+      it("should revert", async () => {
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(0, newAssetPool.address)
+        ).to.be.revertedWith("Underwriter token amount must be greater than 0")
+      })
+    })
+
+    context("when upgrading with amount greater than available", () => {
+      it("should revert", async () => {
+        await assetPool
+          .connect(coveragePool)
+          .approveNewAssetPoolUpgrade(newAssetPool.address)
+
+        const amount = to1e18(100)
+        await assetPool.connect(underwriter1).deposit(amount)
+        await underwriterToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+
+        const amountToUpgrade = to1e18(101)
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
+        ).to.be.revertedWith(
+          "Underwriter token amount exceeds available balance"
+        )
+      })
+    })
+
+    context("when governance hasn't upgraded to a new pool yet", () => {
+      it("should revert", async () => {
+        const amount = to1e18(100)
+        await assetPool.connect(underwriter1).deposit(amount)
+        await underwriterToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+
+        const amountToUpgrade = to1e18(99)
+        await expect(
+          assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
+        ).to.be.revertedWith("New asset pool must be assigned")
+      })
+    })
+
+    context("when governance upgraded to a new pool", () => {
+      const amountToDeposit = to1e18(100)
+      const amountToUpgrade = to1e18(40)
+
+      context("when no collateral tokens were claimed by the pool", () => {
+        let tx
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .approveNewAssetPoolUpgrade(newAssetPool.address)
+
+          await assetPool.connect(underwriter1).deposit(amountToDeposit)
+          await underwriterToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amountToUpgrade)
+
+          tx = await assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
+        })
+
+        it("should transfer collateral tokens to the new asset pool", async () => {
+          expect(
+            await collateralToken.balanceOf(newAssetPool.address)
+          ).to.equal(amountToUpgrade)
+        })
+
+        it("should transfer new underwriter tokens to the underwriter", async () => {
+          expect(
+            await newUnderwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amountToUpgrade)
+        })
+
+        it("should burn old underwriter tokens from the underwriter", async () => {
+          // 100 - 40 = 60
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amountToDeposit.sub(amountToUpgrade))
+        })
+
+        it("should emit AssetPoolUpgraded event", async () => {
+          expect(tx)
+            .to.emit(assetPool, "AssetPoolUpgraded")
+            .withArgs(
+              underwriter1.address,
+              amountToUpgrade,
+              amountToUpgrade,
+              await lastBlockTime()
+            )
+        })
+      })
+
+      context("when there was a claim", () => {
+        const claim = to1e18(25)
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .approveNewAssetPoolUpgrade(newAssetPool.address)
+          await assetPool.connect(underwriter1).deposit(amountToDeposit)
+          await assetPool
+            .connect(coveragePool)
+            .claim(coveragePool.address, claim)
+
+          await increaseTime(86400) // 1 day
+
+          await underwriterToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amountToUpgrade)
+
+          await assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
+        })
+
+        it("should transfer collateral proportionally after the claim", async () => {
+          // underwriter 1 has 100/100 share of the pool
+          // claimed by the coverage pool: 25 which is 25%
+          // 40 * 75 / 100 = 30
+          expect(
+            await collateralToken.balanceOf(newAssetPool.address)
+          ).to.equal(to1e18(30))
+        })
+
+        it("should not change the underwriter's tokens to burn", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amountToDeposit.sub(amountToUpgrade))
+        })
+      })
+
+      context("when rewards were allocated", () => {
+        const allocatedReward = to1e18(70)
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .approveNewAssetPoolUpgrade(newAssetPool.address)
+          await collateralToken
+            .connect(rewardManager)
+            .approve(rewardsPool.address, allocatedReward)
+          await rewardsPool.connect(rewardManager).topUpReward(allocatedReward)
+
+          await assetPool.connect(underwriter1).deposit(amountToDeposit)
+
+          await increaseTime(86400) // 1 day
+
+          await underwriterToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amountToUpgrade)
+
+          await assetPool
+            .connect(underwriter1)
+            .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
+        })
+
+        it("should transfer collateral proportionally after rewards allocation", async () => {
+          // +10 tokens to underwriter 1
+          // 40 / 110 * 100 = 44
+          expect(
+            await collateralToken.balanceOf(newAssetPool.address)
+          ).to.be.closeTo(to1e18(44), assertionPrecision)
+        })
+      })
+    })
+  })
 })
