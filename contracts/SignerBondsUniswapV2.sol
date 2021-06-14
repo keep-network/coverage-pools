@@ -87,10 +87,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // Determines the deadline in which the swap transaction has to be mined.
     // If that deadline is exceeded, transaction will be reverted.
     uint256 public swapDeadline = 20 minutes;
-    // Determines if the open auctions check should be performed. If true,
-    // swaps cannot be performed if open auctions count is bigger than zero.
+    // Determines if the swap should revert when open auctions exists. If true,
+    // swaps cannot be performed if there is at least one open auction.
     // If false, open auctions are not taken into account.
-    bool public openAuctionsCheck = true;
+    bool public revertIfAuctionOpen = true;
 
     event UniswapV2SwapExecuted(uint256[] amounts);
 
@@ -166,12 +166,16 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         swapDeadline = _swapDeadline;
     }
 
-    /// @notice Enables or disables the open auctions check.
-    /// @param _openAuctionsCheck Open auctions check flag. If true, open
-    ///        open auctions check will be performed upon swaps. If false,
-    ///        open auctions won't be taken into account.
-    function setOpenAuctionsCheck(bool _openAuctionsCheck) external onlyOwner {
-        openAuctionsCheck = _openAuctionsCheck;
+    /// @notice Sets whether a swap should revert if at least one
+    ///         open auction exists.
+    /// @param _revertIfAuctionOpen If true, revert the swap if there is at
+    ///        least one open auction. If false, open auctions won't be taken
+    ///        into account.
+    function setRevertIfAuctionOpen(bool _revertIfAuctionOpen)
+        external
+        onlyOwner
+    {
+        revertIfAuctionOpen = _revertIfAuctionOpen;
     }
 
     /// @notice Swaps signer bonds on Uniswap v2 exchange.
@@ -195,7 +199,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
             "Amount exceeds risk manager balance"
         );
 
-        if (openAuctionsCheck) {
+        if (revertIfAuctionOpen) {
             require(!riskManager.hasOpenAuctions(), "There are open auctions");
         }
 
