@@ -71,11 +71,7 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 amount,
         uint256 timestamp
     );
-    event GracefulWithdrawalTimedOut(
-        address indexed underwriter,
-        uint256 timestamp
-    );
-    event WithdrawalTimedOut(address indexed underwriter, uint256 timestamp);
+
     event AssetPoolUpgraded(
         address indexed underwriter,
         uint256 collateralAmount,
