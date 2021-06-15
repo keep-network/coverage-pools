@@ -11,20 +11,24 @@ const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
-// This system test checks a scenario where we create a cov pool auction for the
-// deposits being under liquidation. There are two bidders come into the picture,
-// where the first one partially takes an offer and the second one buys the same
-// deposit outside the coverage pool. Next step is notifying the risk manager
-// about liquidated deposit so it can early close the auction.
 // All the tests below are executed on Hardhat Network with mainnet forking enabled.
 // At the start, the fork is being reset to the specific starting block which
-// determines the initial test state. This test uses the real tBTC token contract
+// determines the initial test state. These tests use the real tBTC token contract
 // and two deposits:
 // https://allthekeeps.com/deposit/0x8495732aecd7f132eaab61f64858ccc73475973f 5 TBTC
 // https://allthekeeps.com/deposit/0xfc9c50fd44879bd7085edd311bc8e2b7d3e41595 1 TBTC
 // which are ready to be liquidated at the starting block. All the bidders are also
-// real accounts with actual TBTC balance. At the end of the scenario, the risk
-// manager should early close the cov pool auction and keep the surplus of TBTC.
+// real accounts with actual TBTC balance.
+//
+// These system tests check a scenario where we create a cov pool auction for the
+// deposits being under liquidation. There are two bidders come into the picture,
+// where the first one partially takes an offer and the second one buys the same
+// deposit 0x849.. outside the coverage pool. Next step is notifying the risk manager
+// about liquidated deposit 0x849.. so it can early close the opened auction. The
+// second deposit 0xfc9.. is bought with surplus TBTC from the auction that put
+// on offer deposit 0x849.. A new auction for deposit 0xfc9.. will not be opened.
+// At the end of the scenario, the risk manager should keep the surplus of TBTC
+// for potential next deposit buy outs.
 
 describeFn("System -- buying a deposit with surplus", () => {
   const startingBlock = 11536431
