@@ -21,11 +21,13 @@
   "name": "@keep-network/coverage-pool",
   "scripts": {
     "build": "hardhat compile",
+    "deploy": "hardhat run migrations/deploy_contracts.js",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix:js": "eslint . --fix",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
     "lint:js": "eslint . ",
     "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "predeploy": "hardhat compile",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js"
   }
