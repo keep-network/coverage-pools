@@ -3,7 +3,6 @@ const {
   to1e18,
   impersonateAccount,
   resetFork,
-  increaseTime,
   ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 
@@ -91,14 +90,9 @@ describeFn("System -- deposit validation", () => {
       collateralizationThreshold
     )
     await riskManagerV1.deployed()
-
     await coveragePool
       .connect(governance)
-      .beginRiskManagerApproval(riskManagerV1.address)
-    await increaseTime(2592000) // +30 days
-    await coveragePool
-      .connect(governance)
-      .finalizeRiskManagerApproval(riskManagerV1.address)
+      .approveFirstRiskManager(riskManagerV1.address)
 
     // Suppose a third party deploys an arbitrary deposit contract.
     // For simplicity, let's say it's just the DepositStub.
