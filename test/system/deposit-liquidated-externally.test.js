@@ -99,14 +99,9 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
 
     await coveragePool
       .connect(governance)
-      .beginRiskManagerApproval(riskManagerV1.address)
-    await increaseTime(2592000) // +30 days
-    await coveragePool
-      .connect(governance)
-      .finalizeRiskManagerApproval(riskManagerV1.address)
+      .approveFirstRiskManager(riskManagerV1.address)
 
     tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
-
     bidder = await impersonateAccount(bidderAddress)
   })
 
@@ -145,7 +140,6 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
       )
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
-      bidderInitialBalance = await tbtcToken.balanceOf(bidder.address)
 
       // Simulate purchase of signer bonds outside Coverage Pools
       await tbtcToken.connect(bidder).approve(tbtcDeposit.address, lotSize)
