@@ -1,17 +1,17 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const keepTokenAddress = process.env.KEEP_TOKEN_ADDRESS
+  const tbtcTokenAddress = process.env.TBTC_TOKEN_ADDRESS
   const { deploy, save, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  if (keepTokenAddress) {
-    log(`using externally provided KeepToken address ${keepTokenAddress}`)
+  if (tbtcTokenAddress) {
+    log(`using externally provided TBTCToken address ${tbtcTokenAddress}`)
 
     // Save as simple deployment just to make it accessible for next scripts.
-    await save("KeepToken", { address: keepTokenAddress })
+    await save("TBTCToken", { address: tbtcTokenAddress })
   } else {
-    log(`using KeepToken stub`)
+    log(`using TBTCToken stub`)
 
-    await deploy("KeepToken", {
+    await deploy("TBTCToken", {
       contract: "TestToken",
       from: deployer,
       log: true,
@@ -19,4 +19,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   }
 }
 
-module.exports.tags = ["KeepToken"]
+module.exports.tags = ["TBTCToken"]
