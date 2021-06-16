@@ -43,15 +43,14 @@ contract AssetPool is Ownable, IAssetPool {
 
     IAssetPoolUpgrade public newAssetPool;
 
-    mapping(address => uint256) public withdrawalInitiatedTimestamp;
-    mapping(address => uint256) public pendingWithdrawal;
-
     // The time it takes the underwriter to withdraw their collateral
     // and rewards from the pool. This is the time that needs to pass between
     // initiating and completing the withdrawal. During that time, underwriter
     // is still earning rewards and their share of the pool is still a subject
     // of a possible coverage claim.
-    uint256 public constant withdrawalDelay = 14 days; // TODO: make governable
+    uint256 public withdrawalDelay = 14 days;
+    uint256 public newWithdrawalDelay;
+    uint256 public withdrawalDelayChangeInitiated;
     // The time the underwriter has after the withdrawal delay passed to
     // complete the withdrawal. During that time, underwriter is still earning
     // rewards and their share of the pool is still a subject of a possible
@@ -59,7 +58,12 @@ contract AssetPool is Ownable, IAssetPool {
     // After the withdrawal timeout elapses, tokens stay in the pool
     // and the underwriters has to initiate the withdrawal again and wait for
     // the full withdrawal delay to complete the withdrawal.
-    uint256 public constant withdrawalTimeout = 2 days; // TODO: make governable
+    uint256 public withdrawalTimeout = 2 days;
+    uint256 public newWithdrawalTimeout;
+    uint256 public withdrawalTimeoutChangeInitiated;
+
+    mapping(address => uint256) public withdrawalInitiatedTimestamp;
+    mapping(address => uint256) public pendingWithdrawal;
 
     event WithdrawalInitiated(
         address indexed underwriter,
@@ -79,6 +83,30 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 timestamp
     );
     event ApprovedAssetPoolUpgrade(address newAssetPool);
+
+    event WithdrawalDelayUpdateStarted(
+        uint256 withdrawalDelay,
+        uint256 timestamp
+    );
+    event WithdrawalDelayUpdated(uint256 withdrawalDelay);
+    event WithdrawalTimeoutUpdateStarted(
+        uint256 withdrawalTimeout,
+        uint256 timestamp
+    );
+    event WithdrawalTimeoutUpdated(uint256 withdrawalTimeout);
+
+    modifier onlyAfterWithdrawalGovernanceDelay(
+        uint256 changeInitiatedTimestamp
+    ) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp.sub(changeInitiatedTimestamp) >=
+                withdrawalGovernanceDelay(),
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
 
     constructor(
         IERC20 _collateralToken,
@@ -296,6 +324,80 @@ contract AssetPool is Ownable, IAssetPool {
         collateralToken.safeTransfer(recipient, amount);
     }
 
+    function beginWithdrawalDelayUpdate(uint256 _newWithdrawalDelay)
+        external
+        onlyOwner
+    {
+        newWithdrawalDelay = _newWithdrawalDelay;
+        withdrawalDelayChangeInitiated = block.timestamp;
+        emit WithdrawalDelayUpdateStarted(_newWithdrawalDelay, block.timestamp);
+    }
+
+    function finalizeWithdrawalDelayUpdate()
+        external
+        onlyOwner
+        onlyAfterWithdrawalGovernanceDelay(withdrawalDelayChangeInitiated)
+    {
+        withdrawalDelay = newWithdrawalDelay;
+        emit WithdrawalDelayUpdated(withdrawalDelay);
+        newWithdrawalDelay = 0;
+        withdrawalDelayChangeInitiated = 0;
+    }
+
+    function beginWithdrawalTimeoutUpdate(uint256 _newWithdrawalTimeout)
+        external
+        onlyOwner
+    {
+        newWithdrawalTimeout = _newWithdrawalTimeout;
+        withdrawalTimeoutChangeInitiated = block.timestamp;
+        emit WithdrawalTimeoutUpdateStarted(
+            _newWithdrawalTimeout,
+            block.timestamp
+        );
+    }
+
+    function finalizeWithdrawalTimeoutUpdate()
+        external
+        onlyOwner
+        onlyAfterWithdrawalGovernanceDelay(withdrawalTimeoutChangeInitiated)
+    {
+        withdrawalTimeout = newWithdrawalTimeout;
+        emit WithdrawalTimeoutUpdated(withdrawalTimeout);
+        newWithdrawalTimeout = 0;
+        withdrawalTimeoutChangeInitiated = 0;
+    }
+
+    function getRemainingWithdrawalDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                withdrawalDelayChangeInitiated,
+                withdrawalGovernanceDelay()
+            );
+    }
+
+    function getRemainingWithdrawalTimeoutUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            getRemainingChangeTime(
+                withdrawalTimeoutChangeInitiated,
+                withdrawalGovernanceDelay()
+            );
+    }
+
+    /// @notice The time it takes to initiate and complete the withdrawal from
+    ///         the pool plus 2 days. This governance delay should be used for
+    ///         all changes directly affecting underwriter positions.
+    function withdrawalGovernanceDelay() public view returns (uint256) {
+        return withdrawalDelay.add(withdrawalTimeout).add(2 days);
+    }
+
     function _deposit(address depositor, uint256 amount) internal {
         require(depositor != address(this), "Self-deposit not allowed");
 
@@ -312,5 +414,20 @@ contract AssetPool is Ownable, IAssetPool {
         }
         underwriterToken.mint(depositor, toMint);
         collateralToken.safeTransferFrom(depositor, address(this), amount);
+    }
+
+    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+        returns (uint256)
+    {
+        require(changeTimestamp > 0, "Update not initiated");
+        /* solhint-disable-next-line not-rely-on-time */
+        uint256 elapsed = block.timestamp.sub(changeTimestamp);
+        if (elapsed >= delay) {
+            return 0;
+        } else {
+            return delay.sub(elapsed);
+        }
     }
 }
