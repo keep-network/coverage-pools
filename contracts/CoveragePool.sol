@@ -146,12 +146,34 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Approves upgradeability of a new asset pool.
-    /// @param _newAssetPool New asset pool
-    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
+    /// @param newAssetPool New asset pool
+    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade newAssetPool)
         external
         onlyOwner
     {
-        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
+        assetPool.approveNewAssetPoolUpgrade(newAssetPool);
+    }
+
+    function beginWithdrawalDelayUpdate(uint256 newWithdrawalDelay)
+        external
+        onlyOwner
+    {
+        assetPool.beginWithdrawalDelayUpdate(newWithdrawalDelay);
+    }
+
+    function finalizeWithdrawalDelayUpdate() external onlyOwner {
+        assetPool.finalizeWithdrawalDelayUpdate();
+    }
+
+    function beginWithdrawalTimeoutUpdate(uint256 newWithdrawalTimeout)
+        external
+        onlyOwner
+    {
+        assetPool.beginWithdrawalTimeoutUpdate(newWithdrawalTimeout);
+    }
+
+    function finalizeWithdrawalTimeoutUpdate() external onlyOwner {
+        assetPool.finalizeWithdrawalTimeoutUpdate();
     }
 
     /// @notice Returns the time remaining until the risk manager approval
