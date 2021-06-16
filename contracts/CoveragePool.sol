@@ -41,16 +41,10 @@ contract CoveragePool is Ownable {
     mapping(address => bool) public approvedRiskManagers;
     // Timestamps of risk managers whose approvals have been initiated
     mapping(address => uint256) public riskManagerApprovalTimestamps;
-    // Timestamps of risk managers whose unapprovals have been initiated
-    mapping(address => uint256) public riskManagerUnapprovalTimestamps;
 
     event RiskManagerApprovalStarted(address riskManager, uint256 timestamp);
     event RiskManagerApprovalCompleted(address riskManager, uint256 timestamp);
-    event RiskManagerUnapprovalStarted(address riskManager, uint256 timestamp);
-    event RiskManagerUnapprovalCompleted(
-        address riskManager,
-        uint256 timestamp
-    );
+    event RiskManagerUnapproved(address riskManager, uint256 timestamp);
 
     /// @notice Reverts if called by a risk manager that is not approved
     modifier onlyApprovedRiskManager() {
@@ -112,45 +106,12 @@ contract CoveragePool is Ownable {
         delete riskManagerApprovalTimestamps[riskManager];
     }
 
-    /// @notice Begins risk manager unapproval process.
-    /// @dev Can be called only by the contract owner. For a risk manager to be
-    ///      unapproved, a call to `finalizeRiskManagerUnapproval` must follow
-    ///      (after a governance delay). Can only be called on a risk manager
-    ///      that is approved.
+    /// @notice Unapproves the risk manager. The change takes effect immediately.
+    /// @dev Can be called only by the contract owner.
     /// @param riskManager Risk manager that will be unapproved.
-    function beginRiskManagerUnapproval(address riskManager)
-        external
-        onlyOwner
-    {
-        require(approvedRiskManagers[riskManager], "Risk manager not approved");
+    function unapproveRiskManager(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
-        riskManagerUnapprovalTimestamps[riskManager] = block.timestamp;
-        /* solhint-disable-next-line not-rely-on-time */
-        emit RiskManagerUnapprovalStarted(riskManager, block.timestamp);
-    }
-
-    /// @notice Finalizes risk manager unapproval process.
-    /// @dev Can be called only by the contract owner. Must be preceded with a
-    ///      call to `beginRiskManagerUnapproval` and a governance delay must
-    ///      elapse.
-    /// @param riskManager Risk manager that will be unapproved.
-    function finalizeRiskManagerUnapproval(address riskManager)
-        external
-        onlyOwner
-    {
-        require(
-            riskManagerUnapprovalTimestamps[riskManager] > 0,
-            "Risk manager unapproval not initiated"
-        );
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(riskManagerUnapprovalTimestamps[riskManager]) >=
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-            "Risk manager governance delay has not elapsed"
-        );
-        /* solhint-disable-next-line not-rely-on-time */
-        emit RiskManagerUnapprovalCompleted(riskManager, block.timestamp);
-        delete riskManagerUnapprovalTimestamps[riskManager];
+        emit RiskManagerUnapproved(riskManager, block.timestamp);
         delete approvedRiskManagers[riskManager];
     }
 
@@ -205,25 +166,7 @@ contract CoveragePool is Ownable {
         return
             getRemainingChangeTime(
                 riskManagerApprovalTimestamps[riskManager],
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-                "Risk manager approval not initiated"
-            );
-    }
-
-    /// @notice Returns the time remaining until the risk manager unapproval
-    ///         process can be finalized
-    /// @param riskManager Risk manager in the process of unapproval
-    /// @return Remaining time in seconds.
-    function getRemainingRiskManagerUnapprovalTime(address riskManager)
-        external
-        view
-        returns (uint256)
-    {
-        return
-            getRemainingChangeTime(
-                riskManagerUnapprovalTimestamps[riskManager],
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-                "Risk manager unapproval not initiated"
+                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY
             );
     }
 
@@ -231,14 +174,13 @@ contract CoveragePool is Ownable {
     ///         value can be updated.
     /// @param changeTimestamp Timestamp indicating the beginning of the change.
     /// @param delay Governance delay.
-    /// @param errorMsg Revert message when change not initiated
     /// @return Remaining time in seconds.
-    function getRemainingChangeTime(
-        uint256 changeTimestamp,
-        uint256 delay,
-        string memory errorMsg
-    ) internal view returns (uint256) {
-        require(changeTimestamp > 0, errorMsg);
+    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+        returns (uint256)
+    {
+        require(changeTimestamp > 0, "Change not initiated");
         /* solhint-disable-next-line not-rely-on-time */
         uint256 elapsed = block.timestamp.sub(changeTimestamp);
         if (elapsed >= delay) {
