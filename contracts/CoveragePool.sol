@@ -97,7 +97,7 @@ contract CoveragePool is Ownable {
         require(
             /* solhint-disable-next-line not-rely-on-time */
             block.timestamp.sub(riskManagerApprovalTimestamps[riskManager]) >=
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
+                assetPool.withdrawalGovernanceDelay(),
             "Risk manager governance delay has not elapsed"
         );
         approvedRiskManagers[riskManager] = true;
@@ -166,7 +166,7 @@ contract CoveragePool is Ownable {
         return
             getRemainingChangeTime(
                 riskManagerApprovalTimestamps[riskManager],
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY
+                assetPool.withdrawalGovernanceDelay()
             );
     }
 

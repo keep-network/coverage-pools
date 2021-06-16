@@ -8,7 +8,9 @@ const {
 
 describe("CoveragePool", () => {
   let coveragePool
+  let assetPool
   let testToken
+
   let governance
   let underwriter
   let recipient
@@ -44,7 +46,7 @@ describe("CoveragePool", () => {
     await underwriterToken.deployed()
 
     const AssetPool = await ethers.getContractFactory("AssetPool")
-    const assetPool = await AssetPool.deploy(
+    assetPool = await AssetPool.deploy(
       testToken.address,
       underwriterToken.address,
       rewardsManager.address
@@ -147,11 +149,12 @@ describe("CoveragePool", () => {
       })
 
       it("should start the governance delay timer", async () => {
+        const governanceDelay = await assetPool.withdrawalGovernanceDelay()
         expect(
           await coveragePool.getRemainingRiskManagerApprovalTime(
             riskManager.address
           )
-        ).to.be.equal(30 * 24 * 3600) // 30 days delay
+        ).to.be.equal(governanceDelay)
       })
     })
   })
@@ -186,8 +189,8 @@ describe("CoveragePool", () => {
 
       context("when approval delay has not elapsed", () => {
         beforeEach(async () => {
-          // wait for less than the risk manager governance delay
-          await increaseTime(29 * 24 * 3600)
+          const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+          await increaseTime(governanceDelay.sub(60).toNumber()) // - 1 minute
         })
 
         it("should revert", async () => {
