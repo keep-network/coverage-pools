@@ -119,7 +119,7 @@ describeFn("System -- buying a deposit with surplus", () => {
     bidder1 = await impersonateAccount(bidderAddress1)
   })
 
-  describe("when bying auction with surplus TBTC funds", () => {
+  describe("when buying auction with surplus TBTC funds", () => {
     let surplusTx
 
     before(async () => {
@@ -168,7 +168,7 @@ describeFn("System -- buying a deposit with surplus", () => {
       )
       expect(auctionAddress).to.equal(ZERO_ADDRESS)
 
-      // 1.5 TBTC should be left on Risk Manager after puchasing 0xfc9..
+      // 1.5 TBTC should be left on Risk Manager after purchasing 0xfc9..
       // deposit with surplus funds
       const tbtcSurplus = await tbtcToken.balanceOf(riskManagerV1.address)
       expect(tbtcSurplus).to.be.equal(to1ePrecision(15, 17))
