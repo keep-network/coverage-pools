@@ -11,6 +11,7 @@
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.0.32",
     "hardhat": "^2.1.1",
+    "hardhat-deploy": "^0.8.6",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.2 ",
@@ -21,13 +22,12 @@
   "name": "@keep-network/coverage-pool",
   "scripts": {
     "build": "hardhat compile",
-    "deploy": "hardhat run migrations/deploy_contracts.js",
+    "deploy": "hardhat deploy",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix:js": "eslint . --fix",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
     "lint:js": "eslint . ",
     "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
-    "predeploy": "hardhat compile",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js"
   }

@@ -1,5 +1,6 @@
 require("@nomiclabs/hardhat-waffle")
 require("hardhat-gas-reporter")
+require("hardhat-deploy")
 
 module.exports = {
   solidity: {
@@ -17,6 +18,15 @@ module.exports = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
+    },
+  },
+
+  namedAccounts: {
+    deployer: {
+      default: 0, // take the first account as deployer
+    },
+    rewardManager: {
+      default: 1,
     },
   },
 }
