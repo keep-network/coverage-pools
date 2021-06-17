@@ -32,8 +32,4 @@ contract RiskManagerV1Stub is RiskManagerV1 {
         tbtcToken.safeTransferFrom(msg.sender, address(this), amount);
         tbtcSurplus = tbtcSurplus.add(amount);
     }
-
-    function setOpenAuctionsCount(uint256 _openAuctionsCount) external {
-        openAuctionsCount = _openAuctionsCount;
-    }
 }
