@@ -14,6 +14,7 @@
 
 pragma solidity <0.9.0;
 
+import "./interfaces/IRiskManager.sol";
 import "./RiskManagerV1.sol";
 import "./CoveragePool.sol";
 import "./CoveragePoolConstants.sol";
@@ -190,7 +191,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @param riskManager Address of the risk manager which holds the bonds.
     /// @param amount Amount to swap.
     function swapSignerBondsOnUniswapV2(
-        RiskManagerV1 riskManager,
+        IRiskManager riskManager,
         uint256 amount
     ) external {
         require(amount > 0, "Amount must be greater than 0");

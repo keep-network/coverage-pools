@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IRiskManager.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -63,7 +64,7 @@ interface ISignerBondsSwapStrategy {
 }
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 is Auctioneer, Ownable {
+contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -328,8 +329,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         signerBondsSwapStrategyInitiated = 0;
     }
 
-    /// @notice Withdraws the given amount to the signer bonds swap strategy
-    ///         address.
+    /// @notice Withdraws the given amount of accumulated signer bonds.
     /// @dev Can be called only by the signer bonds swap strategy itself.
     ///      This method should typically be used as part of the swap logic.
     ///      Third-party calls may block funds on the strategy contract in case
@@ -337,6 +337,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     /// @param amount Amount of signer bonds being withdrawn.
     function withdrawSignerBonds(uint256 amount)
         external
+        override
         onlySignerBondsSwapStrategy
     {
         /* solhint-disable avoid-low-level-calls */
@@ -390,6 +391,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
                 signerBondsSwapStrategyInitiated,
                 GOVERNANCE_TIME_DELAY
             );
+    }
+
+    /// @return True if there are open auctions managed by the risk manager.
+    ///         Returns false otherwise.
+    function hasOpenAuctions() external view override returns (bool) {
+        return openAuctionsCount > 0;
     }
 
     /// @notice Cleans up auction and deposit data and executes deposit liquidation.
