@@ -60,7 +60,7 @@ interface IUniswapV2Pair {
 /// @title SignerBondsUniswapV2
 /// @notice ETH purchased by the risk manager from tBTC signer bonds needs to be
 ///         swapped and deposited back to the coverage pool as collateral.
-///         SignerBondsManualSwap is a swap strategy implementation which
+///         SignerBondsUniswapV2 is a swap strategy implementation which
 ///         can withdraw the given bonds amount from the risk manager, swap them
 ///         on Uniswap v2 exchange and deposit as coverage pool collateral.
 ///         The governance can set crucial swap parameters: max allowed
