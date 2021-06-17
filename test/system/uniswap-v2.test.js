@@ -9,17 +9,22 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
   const startingBlock = 12521265
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
   const uniswapV2RouterAddress = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+  const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
+  const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
+  const auctionLength = 86400 // 24h
+  const bondAuctionThreshold = 75
 
+  let tbtcToken
   let collateralToken
   let underwriterToken
   let assetPool
   let coveragePool
   let uniswapV2Router
   let signerBondsUniswapV2
+  let riskManagerV1
 
   let governance
   let rewardsManager
-  let riskManager
   let thirdParty
 
   before(async () => {
@@ -27,9 +32,9 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
 
     governance = await ethers.getSigner(0)
     rewardsManager = await ethers.getSigner(1)
-    riskManager = await ethers.getSigner(2)
-    thirdParty = await ethers.getSigner(3)
+    thirdParty = await ethers.getSigner(2)
 
+    tbtcToken = await ethers.getContractAt("IERC20", tbtcTokenAddress)
     collateralToken = await ethers.getContractAt("IERC20", keepTokenAddress)
 
     const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
@@ -52,6 +57,10 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     await coveragePool.deployed()
     await assetPool.connect(governance).transferOwnership(coveragePool.address)
 
+    const Auction = await ethers.getContractFactory("Auction")
+    const masterAuction = await Auction.deploy()
+    await masterAuction.deployed()
+
     uniswapV2Router = await ethers.getContractAt(
       "IUniswapV2Router",
       uniswapV2RouterAddress
@@ -66,10 +75,23 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     )
     await signerBondsUniswapV2.deployed()
 
-    // Simulate that risk manager deposits signer bonds on the Uniswap strategy.
-    await signerBondsUniswapV2
-      .connect(riskManager)
-      .swapSignerBonds({ value: ethers.utils.parseEther("20") })
+    const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
+    riskManagerV1 = await RiskManagerV1.deploy(
+      tbtcToken.address,
+      tbtcDepositTokenAddress,
+      coveragePool.address,
+      signerBondsUniswapV2.address,
+      masterAuction.address,
+      auctionLength,
+      bondAuctionThreshold
+    )
+    await riskManagerV1.deployed()
+
+    // Simulate that risk manager has withdrawable signer bonds.
+    await governance.sendTransaction({
+      to: riskManagerV1.address,
+      value: ethers.utils.parseEther("20"),
+    })
   })
 
   describe("test initial state", () => {
@@ -79,10 +101,10 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
       })
     })
 
-    describe("swap strategy", () => {
+    describe("risk manager", () => {
       it("should have the signer bonds deposited", async () => {
         const balance = await (
-          await ethers.getSigner(signerBondsUniswapV2.address)
+          await ethers.getSigner(riskManagerV1.address)
         ).getBalance()
 
         expect(balance).to.equal(ethers.utils.parseEther("20"))
@@ -96,21 +118,21 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     before(async () => {
       tx = await signerBondsUniswapV2
         .connect(thirdParty)
-        .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"), {
-          gasLimit: 185000,
-        })
+        .swapSignerBondsOnUniswapV2(
+          riskManagerV1.address,
+          ethers.utils.parseEther("10"),
+          {
+            gasLimit: 200000,
+          }
+        )
     })
 
-    it(
-      "should take the swapped amount from the swap strategy " +
-        "contract balance",
-      async () => {
-        await expect(tx).to.changeEtherBalance(
-          signerBondsUniswapV2,
-          ethers.utils.parseEther("-10")
-        )
-      }
-    )
+    it("should take the swapped amount from the risk manager contract balance", async () => {
+      await expect(tx).to.changeEtherBalance(
+        riskManagerV1,
+        ethers.utils.parseEther("-10")
+      )
+    })
 
     it("should send acquired tokens to the asset pool", async () => {
       // WETH_in = 10000000000000000000 (10 ETH)
@@ -137,10 +159,10 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.equal(185000)
+      await expect(parseInt(tx.gasLimit)).to.be.equal(200000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(160000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(175000)
     })
   })
 })

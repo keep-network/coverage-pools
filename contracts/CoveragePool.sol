@@ -127,6 +127,12 @@ contract CoveragePool is Ownable {
         external
         onlyApprovedRiskManager
     {
+        require(
+            portionToSeize > 0 &&
+                portionToSeize <= CoveragePoolConstants.FLOATING_POINT_DIVISOR,
+            "Portion to seize is not within the range (0, 1]"
+        );
+
         assetPool.claim(recipient, amountToSeize(portionToSeize));
     }
 
