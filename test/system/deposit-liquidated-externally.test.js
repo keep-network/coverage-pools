@@ -70,7 +70,7 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
     await underwriterToken.transferOwnership(assetPool.address)
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+      "SignerBondsManualSwap"
     )
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()
