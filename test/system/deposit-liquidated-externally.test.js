@@ -18,9 +18,8 @@ const describeFn =
 // There are two test cases: one for the auction partially filled and one for
 // the auction fully filled. In both cases there is an attempt to take offer on
 // an auction with an invalid state deposit, because the deposit has been
-// liquidated between auction creating and taking offer.
-// When auction is partially filled, the check is performed by the risk manager.
-// When auction is fully filled, the check is performed by the deposit contract.
+// liquidated between auction creating and taking offer. In both cases the
+// transaction should be reverted
 describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
@@ -147,7 +146,7 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
 
     it("should revert on auction fully filled", async () => {
       await expect(auction.takeOffer(lotSize)).to.be.revertedWith(
-        "No active auction"
+        "Deposit liquidation is not in progress"
       )
     })
   })
