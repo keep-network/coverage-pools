@@ -154,6 +154,14 @@ contract CoveragePool is Ownable {
         assetPool.approveNewAssetPoolUpgrade(newAssetPool);
     }
 
+    /// @notice Lets the governance to begin an update of withdrawal delay
+    ///         paramter value. Withdrawal delay is the time it takes the
+    ///         underwriter to withdraw their collateral and rewards from the
+    ///         pool. This is the time that needs to pass between initiating and
+    ///         completing the withdrawal. The change needs to be finalized with
+    ///         a call to finalizeWithdrawalDelayUpdate after the required
+    ///         governance delay passes.
+    /// @param newWithdrawalDelay The new value of withdrawal delay
     function beginWithdrawalDelayUpdate(uint256 newWithdrawalDelay)
         external
         onlyOwner
@@ -161,10 +169,21 @@ contract CoveragePool is Ownable {
         assetPool.beginWithdrawalDelayUpdate(newWithdrawalDelay);
     }
 
+    /// @notice Lets the governance to finalize an update of withdrawal
+    ///         delay parameter value. This call has to be preceded with
+    ///         a call to beginWithdrawalDelayUpdate and the governance delay
+    ///         has to pass.
     function finalizeWithdrawalDelayUpdate() external onlyOwner {
         assetPool.finalizeWithdrawalDelayUpdate();
     }
 
+    /// @notice Lets the governance to begin an update of withdrawal timeout
+    ///         parmeter value. The withdrawal timeout is the time the
+    ///         underwriter has - after the withdrawal delay passed - to
+    ///         complete the withdrawal. The change needs to be finalized with
+    ///         a call to finalizeWithdrawalTimeoutUpdate after the required
+    ///         governance delay passes.
+    /// @param  newWithdrawalTimeout The new value of the withdrawal timeout.
     function beginWithdrawalTimeoutUpdate(uint256 newWithdrawalTimeout)
         external
         onlyOwner
@@ -172,6 +191,10 @@ contract CoveragePool is Ownable {
         assetPool.beginWithdrawalTimeoutUpdate(newWithdrawalTimeout);
     }
 
+    /// @notice Lets the governance to finalize an update of withdrawal
+    ///         timeout parameter value. This call has to be preceded with
+    ///         a call to beginWithdrawalTimeoutUpdate and the governance delay
+    ///         has to pass.
     function finalizeWithdrawalTimeoutUpdate() external onlyOwner {
         assetPool.finalizeWithdrawalTimeoutUpdate();
     }
