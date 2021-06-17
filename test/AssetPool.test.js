@@ -1261,7 +1261,7 @@ describe("AssetPool", () => {
         it("should reset the governance delay timer", async () => {
           await expect(
             assetPool.getRemainingWithdrawalDelayUpdateTime()
-          ).to.be.revertedWith("Update not initiated")
+          ).to.be.revertedWith("Change not initiated")
         })
       }
     )
@@ -1385,7 +1385,7 @@ describe("AssetPool", () => {
         it("should reset the governance delay timer", async () => {
           await expect(
             assetPool.getRemainingWithdrawalTimeoutUpdateTime()
-          ).to.be.revertedWith("Update not initiated")
+          ).to.be.revertedWith("Change not initiated")
         })
       }
     )

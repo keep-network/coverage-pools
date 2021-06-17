@@ -16,6 +16,7 @@ pragma solidity <0.9.0;
 
 import "./AssetPool.sol";
 import "./CoveragePoolConstants.sol";
+import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -215,29 +216,9 @@ contract CoveragePool is Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 riskManagerApprovalTimestamps[riskManager],
                 assetPool.withdrawalGovernanceDelay()
             );
-    }
-
-    /// @notice Get the time remaining until the function parameter timer
-    ///         value can be updated.
-    /// @param changeTimestamp Timestamp indicating the beginning of the change.
-    /// @param delay Governance delay.
-    /// @return Remaining time in seconds.
-    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
-        internal
-        view
-        returns (uint256)
-    {
-        require(changeTimestamp > 0, "Change not initiated");
-        /* solhint-disable-next-line not-rely-on-time */
-        uint256 elapsed = block.timestamp.sub(changeTimestamp);
-        if (elapsed >= delay) {
-            return 0;
-        } else {
-            return delay.sub(elapsed);
-        }
     }
 }

@@ -23,6 +23,7 @@ import "./interfaces/IAssetPool.sol";
 import "./interfaces/IAssetPoolUpgrade.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
+import "./GovernanceUtils.sol";
 
 /// @title AssetPool
 /// @notice Asset pool is a component of a Coverage Pool. Asset Pool
@@ -400,7 +401,7 @@ contract AssetPool is Ownable, IAssetPool {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 withdrawalDelayChangeInitiated,
                 withdrawalGovernanceDelay()
             );
@@ -416,7 +417,7 @@ contract AssetPool is Ownable, IAssetPool {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 withdrawalTimeoutChangeInitiated,
                 withdrawalGovernanceDelay()
             );
@@ -447,20 +448,5 @@ contract AssetPool is Ownable, IAssetPool {
         }
         underwriterToken.mint(depositor, toMint);
         collateralToken.safeTransferFrom(depositor, address(this), amount);
-    }
-
-    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
-        internal
-        view
-        returns (uint256)
-    {
-        require(changeTimestamp > 0, "Update not initiated");
-        /* solhint-disable-next-line not-rely-on-time */
-        uint256 elapsed = block.timestamp.sub(changeTimestamp);
-        if (elapsed >= delay) {
-            return 0;
-        } else {
-            return delay.sub(elapsed);
-        }
     }
 }
