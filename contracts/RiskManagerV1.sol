@@ -21,6 +21,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IRiskManager.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -57,12 +58,13 @@ interface ITBTCDepositToken {
 /// @dev This interface is meant to abstract the underlying signer bonds
 ///      swap strategy and make it interchangeable for the governance.
 interface ISignerBondsSwapStrategy {
-    /// @notice Swaps signer bonds.
-    function swapSignerBonds() external payable;
+    /// @notice Notifies the strategy about signer bonds purchase.
+    /// @param amount Amount of purchased signer bonds.
+    function onSignerBondsPurchased(uint256 amount) external;
 }
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 is Auctioneer, Ownable {
+contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -133,6 +135,16 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         _;
     }
 
+    /// @notice Reverts if called by any account other than the signer bonds
+    ///         swap strategy.
+    modifier onlySignerBondsSwapStrategy() {
+        require(
+            msg.sender == address(signerBondsSwapStrategy),
+            "Caller is not the signer bonds swap strategy"
+        );
+        _;
+    }
+
     constructor(
         IERC20 _tbtcToken,
         ITBTCDepositToken _tbtcDepositToken,
@@ -169,6 +181,11 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         );
 
         require(
+            depositToAuction[depositAddress] == address(0),
+            "Already notified on the deposit in liquidation"
+        );
+
+        require(
             deposit.auctionValue() >=
                 address(deposit).balance.mul(bondAuctionThreshold).div(100),
             "Deposit bond auction percentage is below the threshold level"
@@ -187,6 +204,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             return;
         }
 
+        // slither-disable-next-line reentrancy-no-eth
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
@@ -317,6 +335,25 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         signerBondsSwapStrategyInitiated = 0;
     }
 
+    /// @notice Withdraws the given amount of accumulated signer bonds.
+    /// @dev Can be called only by the signer bonds swap strategy itself.
+    ///      This method should typically be used as part of the swap logic.
+    ///      Third-party calls may block funds on the strategy contract in case
+    ///      that strategy is not able to perform the swap.
+    /// @param amount Amount of signer bonds being withdrawn.
+    function withdrawSignerBonds(uint256 amount)
+        external
+        override
+        onlySignerBondsSwapStrategy
+    {
+        /* solhint-disable avoid-low-level-calls */
+        // slither-disable-next-line low-level-calls
+        (bool success, ) =
+            address(signerBondsSwapStrategy).call{value: amount}("");
+        require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
+    }
+
     /// @notice Get the time remaining until the bond auction threshold
     ///         can be updated.
     /// @return Remaining time in seconds.
@@ -362,6 +399,12 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             );
     }
 
+    /// @return True if there are open auctions managed by the risk manager.
+    ///         Returns false otherwise.
+    function hasOpenAuctions() external view override returns (bool) {
+        return openAuctionsCount > 0;
+    }
+
     /// @notice Cleans up auction and deposit data and executes deposit liquidation.
     /// @dev This function is invoked when Auctioneer determines that an auction
     ///      is eligible to be closed. It cannot be called on-demand outside
@@ -397,8 +440,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         uint256 withdrawableAmount = deposit.withdrawableAmount();
         deposit.withdrawFunds();
 
-        // slither-disable-next-line arbitrary-send
-        signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
+        signerBondsSwapStrategy.onSignerBondsPurchased(withdrawableAmount);
     }
 
     /// @notice Reverts if the deposit for which the auction was created is no

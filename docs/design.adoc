@@ -89,14 +89,10 @@ so that malicious underwriters can not trick the system by withdrawing their
 positions immediately, just before the claim from the risk manager.
 
 It takes 14 days at minimum for the underwriter to withdraw their collateral and
-rewards. After 14 days from initiating the withdrawal, the underwriter has 7
-days to complete the withdrawal. After 7 days, graceful withdrawal timeout
-passes and part of underwriter's rewards and collateral is slowly getting seized
-by the pool - more and more over the time. Seizing is needed to avoid malicious
-underwriters free-riding the pool - being able to exit at any moment and still
-earning rewards. After additional 63 days (70 days from the time withdrawal
-delay passed), 99% of tokens is seized by the pool and 1% of tokens is sent
-to the notifier who completed the withdrawal on behalf of the underwriter.
+rewards. After 14 days from initiating the withdrawal, the underwriter has 2
+days to complete the withdrawal. After 2 days, the withdrawal timeout elapses
+and the underwriter has to initiate the withdrawal again and wait for the
+entire withdrawal delay one more time.
 
 Before asset pool balance sheet changes during deposit, withdrawal, or claim
 operations, asset pool withdraws unlocked rewards from the rewards pool.

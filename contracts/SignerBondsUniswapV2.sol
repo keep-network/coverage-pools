@@ -14,6 +14,7 @@
 
 pragma solidity <0.9.0;
 
+import "./interfaces/IRiskManager.sol";
 import "./RiskManagerV1.sol";
 import "./CoveragePool.sol";
 import "./CoveragePoolConstants.sol";
@@ -59,12 +60,12 @@ interface IUniswapV2Pair {
 /// @title SignerBondsUniswapV2
 /// @notice ETH purchased by the risk manager from tBTC signer bonds needs to be
 ///         swapped and deposited back to the coverage pool as collateral.
-///         SignerBondsUniswapV2 is a swap strategy implementation allowing the
-///         risk manager to store purchased ETH signer bonds so that any
-///         interested part can later swap them on Uniswap v2 exchange and
-///         deposit as coverage pool collateral. The governance can set crucial
-///         swap parameters: max allowed percentage impact, slippage tolerance
-///         and swap deadline, to force reasonable swap outcomes.
+///         SignerBondsUniswapV2 is a swap strategy implementation which
+///         can withdraw the given bonds amount from the risk manager, swap them
+///         on Uniswap v2 exchange and deposit as coverage pool collateral.
+///         The governance can set crucial swap parameters: max allowed
+///         percentage impact, slippage tolerance and swap deadline, to force
+///         reasonable swap outcomes.
 contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     using SafeMath for uint256;
 
@@ -87,6 +88,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // Determines the deadline in which the swap transaction has to be mined.
     // If that deadline is exceeded, transaction will be reverted.
     uint256 public swapDeadline = 20 minutes;
+    // Determines if the swap should revert when open auctions exists. If true,
+    // swaps cannot be performed if there is at least one open auction.
+    // If false, open auctions are not taken into account.
+    bool public revertIfAuctionOpen = true;
 
     event UniswapV2SwapExecuted(uint256[] amounts);
 
@@ -103,9 +108,13 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         );
     }
 
-    /// @notice Swaps signer bonds.
-    /// @dev Adds incoming bonds to the overall contract balance.
-    function swapSignerBonds() external payable override {}
+    /// @notice Receive ETH upon withdrawal of risk manager's signer bonds.
+    /// @dev Do not send arbitrary funds. They will be locked forever.
+    receive() external payable {}
+
+    /// @notice Notifies the strategy about signer bonds purchase.
+    /// @param amount Amount of purchased signer bonds.
+    function onSignerBondsPurchased(uint256 amount) external override {}
 
     /// @notice Sets the maximum price impact allowed for a swap transaction.
     /// @param _maxAllowedPriceImpact Maximum allowed price impact specified
@@ -158,6 +167,18 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         swapDeadline = _swapDeadline;
     }
 
+    /// @notice Sets whether a swap should revert if at least one
+    ///         open auction exists.
+    /// @param _revertIfAuctionOpen If true, revert the swap if there is at
+    ///        least one open auction. If false, open auctions won't be taken
+    ///        into account.
+    function setRevertIfAuctionOpen(bool _revertIfAuctionOpen)
+        external
+        onlyOwner
+    {
+        revertIfAuctionOpen = _revertIfAuctionOpen;
+    }
+
     /// @notice Swaps signer bonds on Uniswap v2 exchange.
     /// @dev Swaps the given ETH amount for the collateral token using the
     ///      Uniswap exchange. The maximum ETH amount is capped by the
@@ -167,10 +188,23 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     ///      with the slippage tolerance and deadline. Acquired collateral
     ///      tokens are sent to the asset pool address set during
     ///      contract construction.
+    /// @param riskManager Address of the risk manager which holds the bonds.
     /// @param amount Amount to swap.
-    function swapSignerBondsOnUniswapV2(uint256 amount) external {
+    function swapSignerBondsOnUniswapV2(
+        IRiskManager riskManager,
+        uint256 amount
+    ) external {
         require(amount > 0, "Amount must be greater than 0");
-        require(amount <= address(this).balance, "Amount exceeds balance");
+        require(
+            amount <= address(riskManager).balance,
+            "Amount exceeds risk manager balance"
+        );
+
+        if (revertIfAuctionOpen) {
+            require(!riskManager.hasOpenAuctions(), "There are open auctions");
+        }
+
+        riskManager.withdrawSignerBonds(amount);
 
         // Setup the swap path. WETH must be the first component.
         address[] memory path = new address[](2);
@@ -192,12 +226,6 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         amountOutMin = amountOutMin
             .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
             .div(BASIS_POINTS_DIVISOR);
-
-        // TODO: Do not send acquired tokens to the asset pool in case an
-        //       open auction exists. In that case, additional tokens will
-        //       cause the auction to offer more of the coverage pool value for
-        //       the same price. This is unreasonable in terms of economy.
-        //       Figure out how to address that problem.
 
         // slither-disable-next-line arbitrary-send,reentrancy-events
         uint256[] memory amounts =
