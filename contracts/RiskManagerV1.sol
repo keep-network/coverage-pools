@@ -170,7 +170,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @param  depositAddress tBTC Deposit address
     function notifyLiquidation(address depositAddress) external {
         require(
-            tbtcDepositToken.exists(uint256(depositAddress)),
+            tbtcDepositToken.exists(uint256(uint160(depositAddress))),
             "Address is not a deposit contract"
         );
 

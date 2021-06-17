@@ -74,7 +74,7 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
         address recipient,
         uint256 amount
     ) external override returns (bool) {
-        if (allowance[sender][msg.sender] != uint256(-1)) {
+        if (allowance[sender][msg.sender] != type(uint256).max) {
             _approve(
                 sender,
                 msg.sender,
@@ -226,7 +226,7 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
             );
     }
 
-    function chainId() private pure returns (uint256 id) {
+    function chainId() private view returns (uint256 id) {
         /* solhint-disable-next-line no-inline-assembly */
         assembly {
             id := chainid()
