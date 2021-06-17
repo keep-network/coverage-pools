@@ -21,7 +21,7 @@ describe("Auctioneer", () => {
   let coveragePoolStub
   let testToken
 
-  before(async () => {
+  beforeEach(async () => {
     owner = await ethers.getSigner(0)
     bidder = await ethers.getSigner(1)
 
@@ -44,17 +44,12 @@ describe("Auctioneer", () => {
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
-  })
 
-  beforeEach(async () => {
     await testToken.mint(bidder.address, testTokensToMint)
   })
 
   describe("createAuction", () => {
-    let previousAuctionsCount
-
-    before(async () => {
-      previousAuctionsCount = await auctioneer.openAuctionsCount()
+    beforeEach(async () => {
       const receipt = await createAuction()
       events = pastEvents(receipt, auctioneer, "AuctionCreated")
     })
@@ -67,8 +62,7 @@ describe("Auctioneer", () => {
       })
 
       it("should increment the open auctions counter", async () => {
-        const currentAuctionsCount = await auctioneer.openAuctionsCount()
-        expect(currentAuctionsCount.sub(previousAuctionsCount)).to.be.equal(1)
+        expect(await auctioneer.openAuctionsCount()).to.be.equal(1)
       })
 
       it("should emit auction created event", async () => {
@@ -197,13 +191,10 @@ describe("Auctioneer", () => {
       let takeOfferTx
       let portionToSeize
       let receipt
-      let previousAuctionsCount
 
       beforeEach(async () => {
         // Increase time 12h -> 43,200 sec
         await increaseTime(43200)
-
-        previousAuctionsCount = await auctioneer.openAuctionsCount()
 
         amountPaidForAuction = to1e18(1)
         takeOfferTx = await auction
@@ -253,8 +244,7 @@ describe("Auctioneer", () => {
       })
 
       it("should decrement the open auctions counter", async () => {
-        const currentAuctionsCount = await auctioneer.openAuctionsCount()
-        expect(previousAuctionsCount.sub(currentAuctionsCount)).to.be.equal(1)
+        expect(await auctioneer.openAuctionsCount()).to.be.equal(0)
       })
     })
   })
@@ -297,12 +287,9 @@ describe("Auctioneer", () => {
       })
 
       it("should decrement the open auctions counter", async () => {
-        const previousAuctionsCount = await auctioneer.openAuctionsCount()
-
         await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
 
-        const currentAuctionsCount = await auctioneer.openAuctionsCount()
-        expect(previousAuctionsCount.sub(currentAuctionsCount)).to.be.equal(1)
+        expect(await auctioneer.openAuctionsCount()).to.be.equal(0)
       })
 
       it("should return the auction's transferred amount", async () => {
