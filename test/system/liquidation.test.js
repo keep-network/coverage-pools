@@ -74,7 +74,7 @@ describeFn("System -- liquidation", () => {
     await underwriterToken.transferOwnership(assetPool.address)
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+      "SignerBondsManualSwap"
     )
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()
@@ -170,24 +170,19 @@ describeFn("System -- liquidation", () => {
 
       // Deposit has been liquidated.
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
-    })
 
-    it("should swap signer bonds", async () => {
-      // No funds should last on the risk manager contract.
-      await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
-
-      // All funds should be moved to the signer bonds swap strategy contract.
+      // Signer bonds should land on the risk manager contract.
       await expect(tx).to.changeEtherBalance(
-        signerBondsSwapStrategy,
+        riskManagerV1,
         bondedAmount.mul(bondedAmountPercentage).div(100)
       )
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(485000)
+      await expect(parseInt(tx.gasLimit)).to.be.lessThan(482000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(240000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(238000)
     })
   })
 })
