@@ -12,11 +12,11 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./Auction.sol";
 import "./CoveragePool.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /// @title AuctionBidder
 /// @notice A contract for auction bidders for buying coverage pool auctions. This

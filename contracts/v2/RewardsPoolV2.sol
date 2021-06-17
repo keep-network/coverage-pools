@@ -12,9 +12,9 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title RewardTokenMinting

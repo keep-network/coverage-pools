@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 contract CoveragePoolStub {
     event FundsSeized(address indexed recipient, uint256 portionToSeize);

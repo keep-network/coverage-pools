@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 library CoveragePoolConstants {
     // This divisor is for precision purposes only. We use this divisor around
