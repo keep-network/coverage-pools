@@ -440,6 +440,27 @@ describe("CoveragePool", () => {
           amountSeized
         )
       })
+
+      it("should not allow to seize zero portion of the coverage pool", async () => {
+        const portionToSeize = 0
+
+        await expect(
+          coveragePool
+            .connect(riskManager)
+            .seizeFunds(recipient.address, portionToSeize)
+        ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
+      })
+
+      it("should not allow to seize more than a pool has", async () => {
+        // actual bounds are (0, 1]. to1e18(1) was used to mimic FLOATING_POINT_DIVISOR
+        const portionToSeize = to1e18(1) + 1
+
+        await expect(
+          coveragePool
+            .connect(riskManager)
+            .seizeFunds(recipient.address, portionToSeize)
+        ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
+      })
     })
   })
 })
