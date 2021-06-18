@@ -28,9 +28,8 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
   const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
-  // Only deposits with at least 50% of bonds offered on bond auction will be
-  // accepted by the risk manager.
-  const bondAuctionThreshold = 50
+  // Set to 66% as TBTC will offer 66,6667% of signer bonds after auction opening
+  const bondAuctionThreshold = 66
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
 
