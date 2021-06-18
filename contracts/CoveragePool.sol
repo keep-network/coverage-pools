@@ -116,49 +116,13 @@ contract CoveragePool is Ownable {
         delete approvedRiskManagers[riskManager];
     }
 
-    /// @notice Seizes funds from the coverage pool and puts them aside for the
-    ///         recipient to withdraw.
-    /// @dev `portionToSeize` value was multiplied by `FLOATING_POINT_DIVISOR`
-    ///      for calculation precision purposes. Further calculations in this
-    ///      function will need to take this divisor into account.
-    /// @param recipient Address that will receive the pool's seized funds.
-    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by `FLOATING_POINT_DIVISOR`.
-    function seizeFunds(address recipient, uint256 portionToSeize)
-        external
-        onlyApprovedRiskManager
-    {
-        require(
-            portionToSeize > 0 &&
-                portionToSeize <= CoveragePoolConstants.FLOATING_POINT_DIVISOR,
-            "Portion to seize is not within the range (0, 1]"
-        );
-
-        assetPool.claim(recipient, amountToSeize(portionToSeize));
-    }
-
-    /// @notice Calculates amount of tokens to be seized from the coverage pool.
-    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
-    function amountToSeize(uint256 portionToSeize)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            collateralToken
-                .balanceOf(address(assetPool))
-                .mul(portionToSeize)
-                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
-    }
-
     /// @notice Approves upgradeability of a new asset pool.
-    /// @param newAssetPool New asset pool
-    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade newAssetPool)
+    /// @param _newAssetPool New asset pool
+    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
         external
         onlyOwner
     {
-        assetPool.approveNewAssetPoolUpgrade(newAssetPool);
+        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
     }
 
     /// @notice Lets the governance to begin an update of withdrawal delay
@@ -206,6 +170,27 @@ contract CoveragePool is Ownable {
         assetPool.finalizeWithdrawalTimeoutUpdate();
     }
 
+    /// @notice Seizes funds from the coverage pool and puts them aside for the
+    ///         recipient to withdraw.
+    /// @dev `portionToSeize` value was multiplied by `FLOATING_POINT_DIVISOR`
+    ///      for calculation precision purposes. Further calculations in this
+    ///      function will need to take this divisor into account.
+    /// @param recipient Address that will receive the pool's seized funds.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by `FLOATING_POINT_DIVISOR`.
+    function seizeFunds(address recipient, uint256 portionToSeize)
+        external
+        onlyApprovedRiskManager
+    {
+        require(
+            portionToSeize > 0 &&
+                portionToSeize <= CoveragePoolConstants.FLOATING_POINT_DIVISOR,
+            "Portion to seize is not within the range (0, 1]"
+        );
+
+        assetPool.claim(recipient, amountToSeize(portionToSeize));
+    }
+
     /// @notice Returns the time remaining until the risk manager approval
     ///         process can be finalized
     /// @param riskManager Risk manager in the process of approval
@@ -220,5 +205,20 @@ contract CoveragePool is Ownable {
                 riskManagerApprovalTimestamps[riskManager],
                 assetPool.withdrawalGovernanceDelay()
             );
+    }
+
+    /// @notice Calculates amount of tokens to be seized from the coverage pool.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR.
+    function amountToSeize(uint256 portionToSeize)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            collateralToken
+                .balanceOf(address(assetPool))
+                .mul(portionToSeize)
+                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
     }
 }

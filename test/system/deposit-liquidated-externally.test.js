@@ -1,28 +1,26 @@
 const { expect } = require("chai")
-const { BigNumber } = ethers
 const {
   to1e18,
   impersonateAccount,
   resetFork,
   ZERO_ADDRESS,
-  increaseTime,
 } = require("../helpers/contract-test-helpers")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
-// This system test scenario checks the liquidation happy path. It is meant
-// to be executed on Hardhat Network with mainnet forking enabled. At the start,
-// the fork is being reset to the specific starting block which determines the
-// initial test state. This test uses the real tBTC token contract and a
-// deposit (https://allthekeeps.com/deposit/0x55d8b1dd88e60d12c81b5479186c15d07555db9d)
-// which is ready to be liquidated at the starting block. The bidder which
-// takes the offer is also a real account with actual tBTC balance. At the
-// end of the scenario, the risk manager should liquidate the deposit successfully,
-// and 75% of the deposit's bonded amount should land on the signer bonds
-// swap strategy contract.
-describeFn("System -- liquidation", () => {
+// This system test scenario checks the behaviour of Coverage Pools when the
+// deposit on auction has been liquidated outside Coverage Pools. It is meant
+// to be executed on Hardhat Network with mainnet forking enabled.
+// At the start, the fork is being reset to the specific starting block which
+// determines the initial test state. This test uses real mainnet contracts.
+// There are two test cases: one for the auction partially filled and one for
+// the auction fully filled. In both cases there is an attempt to take offer on
+// an auction with an invalid state deposit, because the deposit has been
+// liquidated between auction creating and taking offer. In both cases the
+// transaction should be reverted
+describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
   const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
@@ -30,15 +28,11 @@ describeFn("System -- liquidation", () => {
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
   const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
-  // Only deposits with at least 75% of bonds offered on bond auction will be
+  // Only deposits with at least 50% of bonds offered on bond auction will be
   // accepted by the risk manager.
-  const bondAuctionThreshold = 75
+  const bondAuctionThreshold = 50
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
-  // signers have bonded 290.81 ETH
-  const bondedAmount = BigNumber.from("290810391624000000000")
-  // 75% of the deposit is exposed on auction in the liquidation moment
-  const bondedAmountPercentage = BigNumber.from("75")
 
   let tbtcToken
   let underwriterToken
@@ -100,6 +94,7 @@ describeFn("System -- liquidation", () => {
       bondAuctionThreshold
     )
     await riskManagerV1.deployed()
+
     await coveragePool
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
@@ -125,29 +120,11 @@ describeFn("System -- liquidation", () => {
     })
   })
 
-  describe("when auction has been fully filled", () => {
+  describe("when deposit has been liquidated outside Coverage Pools", () => {
     let auction
-    let tx
-    let bidderInitialBalance
 
     before(async () => {
       await tbtcDeposit.notifyRedemptionSignatureTimedOut()
-
-      // The deposit's auction must offer at least 75% of bonds to be accepted
-      // by the risk manager. At starting block, the deposit's auction exposes
-      // 66% so an immediate `notifyLiquidation` must revert.
-      await expect(
-        riskManagerV1.notifyLiquidation(tbtcDeposit.address)
-      ).to.revertedWith(
-        "Deposit bond auction percentage is below the threshold level"
-      )
-
-      // We need additional 9% to pass the risk manager threshold. To get this
-      // part, we need 22870 seconds to elapse. This is because the auction
-      // length is 86400 seconds (24h) and there is 34% of bonds remaining.
-      // So, additional 9% will be offered after 9/34 * 86400s.
-      await increaseTime(22870)
-
       await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
@@ -155,34 +132,22 @@ describeFn("System -- liquidation", () => {
       )
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
-      bidderInitialBalance = await tbtcToken.balanceOf(bidder.address)
-      tx = await auction.takeOffer(lotSize)
+
+      // Simulate purchase of signer bonds outside Coverage Pools
+      await tbtcToken.connect(bidder).approve(tbtcDeposit.address, lotSize)
+      await tbtcDeposit.connect(bidder).purchaseSignerBondsAtAuction()
     })
 
-    it("should close auction", async () => {
-      expect(await auction.isOpen()).to.be.false
-    })
-
-    it("should liquidate the deposit", async () => {
-      // Auction bidder has spend their TBTC.
-      const bidderCurrentBalance = await tbtcToken.balanceOf(bidder.address)
-      expect(bidderInitialBalance.sub(bidderCurrentBalance)).to.equal(lotSize)
-
-      // Deposit has been liquidated.
-      expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
-
-      // Signer bonds should land on the risk manager contract.
-      await expect(tx).to.changeEtherBalance(
-        riskManagerV1,
-        bondedAmount.mul(bondedAmountPercentage).div(100)
+    it("should revert on auction partially filled", async () => {
+      await expect(auction.takeOffer(lotSize.div(2))).to.be.revertedWith(
+        "Deposit liquidation is not in progress"
       )
     })
 
-    it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(483000)
-
-      const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(238000)
+    it("should revert on auction fully filled", async () => {
+      await expect(auction.takeOffer(lotSize)).to.be.revertedWith(
+        "Deposit liquidation is not in progress"
+      )
     })
   })
 })
