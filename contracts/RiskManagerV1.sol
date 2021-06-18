@@ -98,6 +98,9 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
     uint256 public signerBondsSwapStrategyInitiated;
 
+    // TODO: Make it governable.
+    uint256 public notifierReward;
+
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
     // opened coverage pool auction => deposit in liquidation
@@ -154,13 +157,15 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength,
-        uint256 _bondAuctionThreshold
+        uint256 _bondAuctionThreshold,
+        uint256 _notifierReward
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
         tbtcDepositToken = _tbtcDepositToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
         bondAuctionThreshold = _bondAuctionThreshold;
+        notifierReward = _notifierReward;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -193,10 +198,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             "Deposit bond auction percentage is below the threshold level"
         );
 
-        // TODO: need to add some % to "lotSizeTbtc" to cover a notifier incentive.
         uint256 lotSizeTbtc = deposit.lotSizeTbtc();
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
+
+        // Reward the notifier by giving them some shares of the asset pool.
+        coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
 
         // If the surplus can cover the deposit liquidation cost, liquidate
         // that deposit directly without the auction process.
@@ -237,6 +244,9 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         // Add auction's transferred amount to the surplus pool.
         // slither-disable-next-line reentrancy-benign
         tbtcSurplus = tbtcSurplus.add(amountTransferred);
+
+        // Reward the notifier by giving them some shares of the asset pool.
+        coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
     }
 
     /// @notice Begins the bond auction threshold update process.

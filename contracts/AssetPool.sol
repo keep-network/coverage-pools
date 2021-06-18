@@ -395,6 +395,14 @@ contract AssetPool is Ownable, IAssetPool {
         withdrawalTimeoutChangeInitiated = 0;
     }
 
+    function grantShares(address recipient, uint256 covAmount)
+        external
+        onlyOwner
+    {
+        rewardsPool.withdraw();
+        underwriterToken.mint(recipient, covAmount);
+    }
+
     /// @notice Returns the remaining time that has to pass before the contract
     ///         owner will be able to finalize withdrawal delay update.
     ///         Bear in mind the contract owner may decide to wait longer and

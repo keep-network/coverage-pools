@@ -191,6 +191,13 @@ contract CoveragePool is Ownable {
         assetPool.claim(recipient, amountToSeize(portionToSeize));
     }
 
+    function grantAssetPoolShares(address recipient, uint256 covAmount)
+        external
+        onlyApprovedRiskManager
+    {
+        assetPool.grantShares(recipient, covAmount);
+    }
+
     /// @notice Returns the time remaining until the risk manager approval
     ///         process can be finalized
     /// @param riskManager Risk manager in the process of approval
