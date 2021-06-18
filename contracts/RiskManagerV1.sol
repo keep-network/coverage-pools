@@ -417,7 +417,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
         // Make sure the deposit was not liquidated outside of Coverage Pool
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            isDepositLiquidationInProgress(deposit),
             "Deposit liquidation is not in progress"
         );
 
