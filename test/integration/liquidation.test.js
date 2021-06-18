@@ -101,22 +101,6 @@ describe("Integration -- liquidation", () => {
     })
   })
 
-  describe("when deposit has been liquidated by someone else", () => {
-    let auction
-    beforeEach(async () => {
-      auction = await prepareAuction()
-      // simulate deposit state change outside Coverage Pools
-      await tbtcToken.connect(thirdParty).approve(tbtcDeposit.address, lotSize)
-      await tbtcDeposit.connect(thirdParty).purchaseSignerBondsAtAuction()
-    })
-
-    it("should revert", async () => {
-      await expect(auction.takeOffer(lotSize.div(2))).to.be.revertedWith(
-        "Deposit liquidation is not in progress"
-      )
-    })
-  })
-
   async function prepareAuction() {
     await tbtcDeposit.notifyUndercollateralizedLiquidation()
     await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
