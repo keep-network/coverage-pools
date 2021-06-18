@@ -154,6 +154,15 @@ contract CoveragePool is Ownable {
         delete approvedRiskManagers[riskManager];
     }
 
+    /// @notice Approves upgradeability of a new asset pool.
+    /// @param _newAssetPool New asset pool
+    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
+        external
+        onlyOwner
+    {
+        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
+    }
+
     /// @notice Seizes funds from the coverage pool and puts them aside for the
     ///         recipient to withdraw.
     /// @dev `portionToSeize` value was multiplied by `FLOATING_POINT_DIVISOR`
@@ -173,30 +182,6 @@ contract CoveragePool is Ownable {
         );
 
         assetPool.claim(recipient, amountToSeize(portionToSeize));
-    }
-
-    /// @notice Calculates amount of tokens to be seized from the coverage pool.
-    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
-    function amountToSeize(uint256 portionToSeize)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            collateralToken
-                .balanceOf(address(assetPool))
-                .mul(portionToSeize)
-                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
-    }
-
-    /// @notice Approves upgradeability of a new asset pool.
-    /// @param _newAssetPool New asset pool
-    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
-        external
-        onlyOwner
-    {
-        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
     }
 
     /// @notice Returns the time remaining until the risk manager approval
@@ -231,6 +216,21 @@ contract CoveragePool is Ownable {
                 CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
                 "Risk manager unapproval not initiated"
             );
+    }
+
+    /// @notice Calculates amount of tokens to be seized from the coverage pool.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR.
+    function amountToSeize(uint256 portionToSeize)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            collateralToken
+                .balanceOf(address(assetPool))
+                .mul(portionToSeize)
+                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
     }
 
     /// @notice Get the time remaining until the function parameter timer
