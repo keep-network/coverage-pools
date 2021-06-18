@@ -20,7 +20,6 @@ import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 import "./interfaces/IAssetPoolUpgrade.sol";
 
@@ -31,8 +30,6 @@ import "./interfaces/IAssetPoolUpgrade.sol";
 /// @dev Coverage pool contract is owned by the governance. Coverage pool is the
 ///      owner of the asset pool contract.
 contract CoveragePool is Ownable {
-    using SafeMath for uint256;
-
     AssetPool public assetPool;
     IERC20 public collateralToken;
 
@@ -97,7 +94,7 @@ contract CoveragePool is Ownable {
         );
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(riskManagerApprovalTimestamps[riskManager]) >=
+            block.timestamp - riskManagerApprovalTimestamps[riskManager] >=
                 assetPool.withdrawalGovernanceDelay(),
             "Risk manager governance delay has not elapsed"
         );
@@ -216,9 +213,7 @@ contract CoveragePool is Ownable {
         returns (uint256)
     {
         return
-            collateralToken
-                .balanceOf(address(assetPool))
-                .mul(portionToSeize)
-                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
+            (collateralToken.balanceOf(address(assetPool)) * portionToSeize) /
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 }

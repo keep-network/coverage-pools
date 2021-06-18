@@ -20,7 +20,7 @@ import "./CoveragePoolConstants.sol";
 import "./GovernanceUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IRiskManager.sol";
 
@@ -67,7 +67,6 @@ interface ISignerBondsSwapStrategy {
 /// @title RiskManagerV1 for tBTCv1
 contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
 
@@ -130,8 +129,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         require(changeInitiatedTimestamp > 0, "Change not initiated");
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(changeInitiatedTimestamp) >=
-                GOVERNANCE_TIME_DELAY,
+            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_TIME_DELAY,
             "Governance delay has not elapsed"
         );
         _;
@@ -189,7 +187,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         require(
             deposit.auctionValue() >=
-                address(deposit).balance.mul(bondAuctionThreshold).div(100),
+                (address(deposit).balance * bondAuctionThreshold) / 100,
             "Deposit bond auction percentage is below the threshold level"
         );
 
@@ -201,7 +199,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         // If the surplus can cover the deposit liquidation cost, liquidate
         // that deposit directly without the auction process.
         if (tbtcSurplus >= lotSizeTbtc) {
-            tbtcSurplus = tbtcSurplus.sub(lotSizeTbtc);
+            tbtcSurplus = tbtcSurplus - lotSizeTbtc;
             liquidateDeposit(deposit);
             return;
         }
@@ -236,7 +234,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         // Add auction's transferred amount to the surplus pool.
         // slither-disable-next-line reentrancy-benign
-        tbtcSurplus = tbtcSurplus.add(amountTransferred);
+        tbtcSurplus = tbtcSurplus + amountTransferred;
     }
 
     /// @notice Begins the bond auction threshold update process.
