@@ -82,6 +82,13 @@ contract DepositStub is IDeposit {
         auctionValue = _auctionValue;
     }
 
+    ///
+    /// Not in tBTC deposit interface, added just for tests.
+    ///
+    function notifyFraud() external {
+        currentState = uint256(States.FRAUD_LIQUIDATION_IN_PROGRESS);
+    }
+
     function withdrawableAmount() external view override returns (uint256) {
         return address(this).balance;
     }

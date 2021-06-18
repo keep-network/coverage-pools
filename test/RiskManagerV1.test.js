@@ -297,6 +297,17 @@ describe("RiskManagerV1", () => {
           )
         })
       })
+
+      context("when deposit is in liquidation state due to fraud", () => {
+        it("should not revert", async () => {
+          await mockTbtcDepositToken.mock.exists.returns(true)
+          await depositStub.notifyFraud()
+          await depositStub.setAuctionValue(bondedAmount)
+
+          await expect(riskManagerV1.notifyLiquidation(depositStub.address)).to
+            .not.be.reverted
+        })
+      })
     })
   })
 
