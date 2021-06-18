@@ -62,6 +62,7 @@ contract UniswapV2RouterStub is IUniswapV2Router {
     }
 
     /// @dev Returns mainnet address in order to get verifiable pair addresses.
+    /* solhint-disable-next-line func-name-mixedcase */
     function WETH() external pure override returns (address) {
         return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     }
