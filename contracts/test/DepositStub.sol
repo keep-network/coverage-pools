@@ -75,15 +75,14 @@ contract DepositStub is IDeposit {
         currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
 
-    function withdrawableAmount() external view override returns (uint256) {
-        return address(this).balance;
-    }
-
-    //
-    // Not in tBTC deposit interface, functions below were added just for tests.
-    //
-
+    ///
+    /// Not in tBTC deposit interface, added just for tests.
+    ///
     function setAuctionValue(uint256 _auctionValue) external {
         auctionValue = _auctionValue;
+    }
+
+    function withdrawableAmount() external view override returns (uint256) {
+        return address(this).balance;
     }
 }

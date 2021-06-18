@@ -25,10 +25,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///      router contract. For more info and function description please see:
 ///      https://uniswap.org/docs/v2/smart-contracts/router02
 interface IUniswapV2Router {
-    function factory() external pure returns (address);
-
-    function WETH() external pure returns (address);
-
     function swapExactETHForTokens(
         uint256 amountOutMin,
         address[] calldata path,
@@ -40,6 +36,10 @@ interface IUniswapV2Router {
         external
         view
         returns (uint256[] memory amounts);
+
+    function factory() external pure returns (address);
+
+    function WETH() external pure returns (address);
 }
 
 /// @notice Interface for the Uniswap v2 pair.
