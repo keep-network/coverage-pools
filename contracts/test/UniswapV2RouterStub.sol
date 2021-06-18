@@ -18,16 +18,6 @@ contract UniswapV2RouterStub is IUniswapV2Router {
         uint256 deadline
     );
 
-    /// @dev Returns mainnet address in order to get verifiable pair addresses.
-    function factory() external pure override returns (address) {
-        return 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
-    }
-
-    /// @dev Returns mainnet address in order to get verifiable pair addresses.
-    function WETH() external pure override returns (address) {
-        return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    }
-
     function setExchangeRate(uint256 _exchangeRate) external {
         exchangeRate = _exchangeRate;
     }
@@ -64,5 +54,16 @@ contract UniswapV2RouterStub is IUniswapV2Router {
         amounts[1] = amountIn.mul(exchangeRate).mul(997).div(1000); // simulate 0.3% fee
 
         return amounts;
+    }
+
+    /// @dev Returns mainnet address in order to get verifiable pair addresses.
+    function factory() external pure override returns (address) {
+        return 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
+    }
+
+    /// @dev Returns mainnet address in order to get verifiable pair addresses.
+    /* solhint-disable-next-line func-name-mixedcase */
+    function WETH() external pure override returns (address) {
+        return 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     }
 }

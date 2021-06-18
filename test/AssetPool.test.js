@@ -3,7 +3,6 @@ const {
   to1e18,
   increaseTime,
   lastBlockTime,
-  pastEvents,
   to1ePrecision,
 } = require("./helpers/contract-test-helpers")
 
@@ -425,7 +424,7 @@ describe("AssetPool", () => {
     })
 
     context(
-      "when there was a pending withdrawal and graceful withdrawal timeout has elapsed",
+      "when there was a pending withdrawal and withdrawal timeout elapsed",
       () => {
         beforeEach(async () => {
           await assetPool
@@ -435,12 +434,59 @@ describe("AssetPool", () => {
           await increaseTime(14 * 24 * 3600)
         })
 
-        it("should revert", async () => {
-          await expect(
-            assetPool.connect(underwriter1).initiateWithdrawal(10)
-          ).to.be.revertedWith(
-            "Cannot initiate withdrawal after withdrawal delay"
-          )
+        context("when adding more tokens to the withdrawal", async () => {
+          let tx
+          beforeEach(async () => {
+            tx = await assetPool.connect(underwriter1).initiateWithdrawal(10)
+          })
+
+          it("should transfer underwriter tokens to the pool", async () => {
+            expect(
+              await underwriterToken.balanceOf(assetPool.address)
+            ).to.equal(amount)
+          })
+
+          it("should reset the withdrawal initiated time", async () => {
+            expect(
+              await assetPool.withdrawalInitiatedTimestamp(underwriter1.address)
+            ).to.equal(await lastBlockTime())
+          })
+
+          it("should emit WithdrawalInitiated event with a total COV amount", async () => {
+            await expect(tx)
+              .to.emit(assetPool, "WithdrawalInitiated")
+              .withArgs(underwriter1.address, amount, await lastBlockTime())
+          })
+        })
+
+        context("when just re-initiating", async () => {
+          let tx
+
+          beforeEach(async () => {
+            tx = await assetPool.connect(underwriter1).initiateWithdrawal(0)
+          })
+
+          it("should transfer no more underwriter tokens to the pool", async () => {
+            expect(
+              await underwriterToken.balanceOf(assetPool.address)
+            ).to.equal(amount.sub(10))
+          })
+
+          it("should reset the withdrawal initiated time", async () => {
+            expect(
+              await assetPool.withdrawalInitiatedTimestamp(underwriter1.address)
+            ).to.equal(await lastBlockTime())
+          })
+
+          it("should emit WithdrawalInitiated event with a total COV amount", async () => {
+            await expect(tx)
+              .to.emit(assetPool, "WithdrawalInitiated")
+              .withArgs(
+                underwriter1.address,
+                amount.sub(10),
+                await lastBlockTime()
+              )
+          })
         })
       }
     )
@@ -479,45 +525,7 @@ describe("AssetPool", () => {
       })
     })
 
-    context("when hard withdrawal timeout has elapsed", () => {
-      let tx
-
-      beforeEach(async () => {
-        const amount = to1e18(100)
-        await assetPool.connect(underwriter1).deposit(amount)
-        await underwriterToken
-          .connect(underwriter1)
-          .approve(assetPool.address, amount)
-        await assetPool.connect(underwriter1).initiateWithdrawal(amount)
-        await increaseTime((14 + 70) * 86400) // 14 + 70 days
-        tx = await assetPool
-          .connect(thirdParty)
-          .completeWithdrawal(underwriter1.address)
-      })
-
-      it("should withdraw 1% to the caller and leave the rest in the pool", async () => {
-        expect(await collateralToken.balanceOf(thirdParty.address)).to.equal(
-          to1e18(1)
-        )
-        expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
-          to1e18(99)
-        )
-      })
-
-      it("should emit WithdrawalCompleted event", async () => {
-        expect(tx)
-          .to.emit(assetPool, "WithdrawalCompleted")
-          .withArgs(underwriter1.address, 0, await lastBlockTime())
-      })
-
-      it("should emit WithdrawalTimedOut event", async () => {
-        expect(tx)
-          .to.emit(assetPool, "WithdrawalTimedOut")
-          .withArgs(underwriter1.address, await lastBlockTime())
-      })
-    })
-
-    context("when graceful withdrawal timeout has elapsed", () => {
+    context("when withdrawal timeout elapsed", () => {
       const amount = to1e18(100)
       beforeEach(async () => {
         await assetPool.connect(underwriter1).deposit(amount)
@@ -525,95 +533,17 @@ describe("AssetPool", () => {
           .connect(underwriter1)
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
-        await increaseTime((14 + 7) * 86400) // 14 + 7 days
+        await increaseTime((14 + 2) * 86400) // 14 + 2 days
       })
 
-      it("should seize portion of tokens after the timeout", async () => {
-        await increaseTime(86400) // 1 day
-        await assetPool
-          .connect(thirdParty)
-          .completeWithdrawal(underwriter1.address)
-
-        // We are one day after the graceful withdrawal period (one week).
-        // Underwriter has 9 weeks more (63 days) to withdraw tokens and their
-        // amount is reduced proportionally every day.
-        //
-        // 1/63 is seized by the pool
-        // 62/63 goes to the underwriter
-        //
-        // 1/63 * 100 = 1.5873015873
-        // 62/63 * 100 = 98.4126984127
-        expect(
-          await collateralToken.balanceOf(assetPool.address)
-        ).to.be.closeTo(to1ePrecision(158, 16), assertionPrecision)
-
-        expect(
-          await collateralToken.balanceOf(underwriter1.address)
-        ).to.be.closeTo(
-          underwriterInitialCollateralBalance.sub(to1ePrecision(158, 16)),
-          assertionPrecision
-        )
-      })
-
-      it("should seize portion of tokens before hard timeout", async () => {
-        await increaseTime(62 * 86400) // 62 days
-        await assetPool
-          .connect(thirdParty)
-          .completeWithdrawal(underwriter1.address)
-
-        // We are 62 days after the graceful withdrawal period (one week).
-        // Underwriter has 1 more day to withdraw tokens and their
-        // amount is reduced proportionally every day.
-        //
-        // 62/63 is seized by the pool
-        // 1/63 goes to the underwriter
-        //
-        // 62/63 * 100 = 98.4126984127
-        // 1/63 * 100 = 1.5873015873
-        expect(
-          await collateralToken.balanceOf(assetPool.address)
-        ).to.be.closeTo(to1ePrecision(9841, 16), assertionPrecision)
-
-        expect(
-          await collateralToken.balanceOf(underwriter1.address)
-        ).to.be.closeTo(
-          underwriterInitialCollateralBalance
-            .sub(amount)
-            .add(to1ePrecision(158, 16)),
-          assertionPrecision
-        )
-      })
-
-      it("should emit WithdrawalCompleted event", async () => {
-        await increaseTime(62 * 86400) // 62 days
-        const tx = await assetPool
-          .connect(thirdParty)
-          .completeWithdrawal(underwriter1.address)
-        const receipt = await tx.wait()
-        const events = pastEvents(receipt, assetPool, "WithdrawalCompleted")
-
-        expect(events.length).to.equal(1)
-        expect(events[0].args["underwriter"]).to.equal(underwriter1.address)
-        expect(events[0].args["amount"]).to.be.closeTo(
-          to1ePrecision(158, 16), // see the previous test for explanation
-          assertionPrecision
-        )
-        expect(events[0].args["timestamp"]).to.equal(await lastBlockTime())
-      })
-
-      it("should emit GracefulWithdrawalTimedOut event", async () => {
-        await increaseTime(62 * 86400) // 62 days
-        const tx = await assetPool
-          .connect(thirdParty)
-          .completeWithdrawal(underwriter1.address)
-
-        expect(tx)
-          .to.emit(assetPool, "GracefulWithdrawalTimedOut")
-          .withArgs(underwriter1.address, await lastBlockTime())
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(thirdParty).completeWithdrawal(underwriter1.address)
+        ).to.be.revertedWith("Withdrawal timeout elapsed")
       })
     })
 
-    context("when graceful withdrawal timeout has not passed", () => {
+    context("when withdrawal timeout not elapsed", () => {
       it("should emit WithdrawalCompleted event", async () => {
         const amount = to1e18(1050)
         await assetPool.connect(underwriter1).deposit(amount)
@@ -1244,6 +1174,252 @@ describe("AssetPool", () => {
             await collateralToken.balanceOf(newAssetPool.address)
           ).to.be.closeTo(to1e18(44), assertionPrecision)
         })
+      })
+    })
+  })
+
+  describe("beginWithdrawalDelayUpdate", () => {
+    const newWithdrawalDelay = 172800 // 2 days
+
+    context("when caller is the owner", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+      })
+
+      it("should not update withdrawal delay", async () => {
+        // 1209600 sec = 14 days, default value
+        expect(await assetPool.withdrawalDelay()).to.equal(1209600)
+      })
+
+      it("should start the governance delay timer", async () => {
+        // 14 days (withdrawal delay) +
+        // 2 days (withdrawal timeout) +
+        // 2 days additional delay
+        expect(
+          await assetPool.getRemainingWithdrawalDelayUpdateTime()
+        ).to.equal(
+          1555200 // 18 days
+        )
+      })
+
+      it("should emit WithdrawalDelayUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(assetPool, "WithdrawalDelayUpdateStarted")
+          .withArgs(newWithdrawalDelay, blockTimestamp)
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(thirdParty)
+            .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("finalizeWithdrawalDelayUpdate", () => {
+    const newWithdrawalDelay = 172800 // 2 days
+
+    context(
+      "when the update process is initialized, governance delay passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+
+          const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+          await increaseTime(governanceDelay.toNumber())
+
+          tx = await assetPool
+            .connect(coveragePool)
+            .finalizeWithdrawalDelayUpdate()
+        })
+
+        it("should update the withdrawal delay", async () => {
+          expect(await assetPool.withdrawalDelay()).to.equal(newWithdrawalDelay)
+        })
+
+        it("should emit WithdrawalDelayUpdated event", async () => {
+          await expect(tx)
+            .to.emit(assetPool, "WithdrawalDelayUpdated")
+            .withArgs(newWithdrawalDelay)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            assetPool.getRemainingWithdrawalDelayUpdateTime()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      }
+    )
+
+    context("when the governance delay has not passed", () => {
+      beforeEach(async () => {
+        await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+
+        const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+        await increaseTime(governanceDelay.sub(60).toNumber()) // - 1 minute
+      })
+
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalDelayUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(thirdParty).finalizeWithdrawalDelayUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process has not been initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalDelayUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+  })
+
+  describe("beginWithdrawalTimeoutUpdate", () => {
+    const newWithdrawalTimeout = 604800 // 1 week
+
+    context("when caller is the owner", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+      })
+
+      it("should not update withdrawal timeout", async () => {
+        // 172800 sec = 2 days, default value
+        expect(await assetPool.withdrawalTimeout()).to.equal(172800)
+      })
+
+      it("should start the governance delay timer", async () => {
+        // 14 days (withdrawal delay) +
+        // 2 days (withdrawal timeout) +
+        // 2 days additional delay
+        expect(
+          await assetPool.getRemainingWithdrawalTimeoutUpdateTime()
+        ).to.equal(
+          1555200 // 18 days
+        )
+      })
+
+      it("should emit WithdrawalTimeoutUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(assetPool, "WithdrawalTimeoutUpdateStarted")
+          .withArgs(newWithdrawalTimeout, blockTimestamp)
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(thirdParty)
+            .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("finalizeWithdrawalTimeoutUpdate", () => {
+    const newWithdrawalTimeout = 604800 // 1 week
+
+    context(
+      "when the update process is initialized, governance delay passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+
+          const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+          await increaseTime(governanceDelay.toNumber())
+
+          tx = await assetPool
+            .connect(coveragePool)
+            .finalizeWithdrawalTimeoutUpdate()
+        })
+
+        it("should update the withdrawal timeout", async () => {
+          expect(await assetPool.withdrawalTimeout()).to.equal(
+            newWithdrawalTimeout
+          )
+        })
+
+        it("should emit WithdrawalTimeoutUpdated event", async () => {
+          await expect(tx)
+            .to.emit(assetPool, "WithdrawalTimeoutUpdated")
+            .withArgs(newWithdrawalTimeout)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            assetPool.getRemainingWithdrawalTimeoutUpdateTime()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      }
+    )
+
+    context("when the governance delay has not passed", () => {
+      beforeEach(async () => {
+        await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+
+        const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+        await increaseTime(governanceDelay.sub(60).toNumber()) // - 1 minute
+      })
+
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalTimeoutUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(thirdParty).finalizeWithdrawalTimeoutUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process has not been initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalTimeoutUpdate()
+        ).to.be.revertedWith("Change not initiated")
       })
     })
   })
