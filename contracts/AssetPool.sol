@@ -96,6 +96,10 @@ contract AssetPool is Ownable, IAssetPool {
     );
     event WithdrawalTimeoutUpdated(uint256 withdrawalTimeout);
 
+    /// @notice Reverts if the withdrawl governance delay has not passed yet or
+    ///         if the change was not yet initiated.
+    /// @param changeInitiatedTimestamp The timestamp at which the change has
+    ///        been initiated.
     modifier onlyAfterWithdrawalGovernanceDelay(
         uint256 changeInitiatedTimestamp
     ) {
@@ -395,6 +399,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         owner will be able to finalize withdrawal delay update.
     ///         Bear in mind the contract owner may decide to wait longer and
     ///         this value is just an absolute minimum.
+    /// @return The time left until withdrawal delay update can be finalized
     function getRemainingWithdrawalDelayUpdateTime()
         external
         view
@@ -411,6 +416,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         owner will be able to finalize withdrawal timeout update.
     ///         Bear in mind the contract owner may decide to wait longer and
     ///         this value is just an absolute minimum.
+    /// @return The time left until withdrawal timeout update can be finalized
     function getRemainingWithdrawalTimeoutUpdateTime()
         external
         view
@@ -428,6 +434,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         should be used for all changes directly affecting underwriter
     ///         positions. This time is a minimum and the governance may choose
     ///         to wait longer before finalizing the update.
+    /// @return The withdrawal governance delay in seconds
     function withdrawalGovernanceDelay() public view returns (uint256) {
         return withdrawalDelay.add(withdrawalTimeout).add(2 days);
     }
