@@ -1177,4 +1177,250 @@ describe("AssetPool", () => {
       })
     })
   })
+
+  describe("beginWithdrawalDelayUpdate", () => {
+    const newWithdrawalDelay = 172800 // 2 days
+
+    context("when caller is the owner", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+      })
+
+      it("should not update withdrawal delay", async () => {
+        // 1209600 sec = 14 days, default value
+        expect(await assetPool.withdrawalDelay()).to.equal(1209600)
+      })
+
+      it("should start the governance delay timer", async () => {
+        // 14 days (withdrawal delay) +
+        // 2 days (withdrawal timeout) +
+        // 2 days additional delay
+        expect(
+          await assetPool.getRemainingWithdrawalDelayUpdateTime()
+        ).to.equal(
+          1555200 // 18 days
+        )
+      })
+
+      it("should emit WithdrawalDelayUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(assetPool, "WithdrawalDelayUpdateStarted")
+          .withArgs(newWithdrawalDelay, blockTimestamp)
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(thirdParty)
+            .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("finalizeWithdrawalDelayUpdate", () => {
+    const newWithdrawalDelay = 172800 // 2 days
+
+    context(
+      "when the update process is initialized, governance delay passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+
+          const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+          await increaseTime(governanceDelay.toNumber())
+
+          tx = await assetPool
+            .connect(coveragePool)
+            .finalizeWithdrawalDelayUpdate()
+        })
+
+        it("should update the withdrawal delay", async () => {
+          expect(await assetPool.withdrawalDelay()).to.equal(newWithdrawalDelay)
+        })
+
+        it("should emit WithdrawalDelayUpdated event", async () => {
+          await expect(tx)
+            .to.emit(assetPool, "WithdrawalDelayUpdated")
+            .withArgs(newWithdrawalDelay)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            assetPool.getRemainingWithdrawalDelayUpdateTime()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      }
+    )
+
+    context("when the governance delay has not passed", () => {
+      beforeEach(async () => {
+        await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalDelayUpdate(newWithdrawalDelay)
+
+        const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+        await increaseTime(governanceDelay.sub(60).toNumber()) // - 1 minute
+      })
+
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalDelayUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(thirdParty).finalizeWithdrawalDelayUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process has not been initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalDelayUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+  })
+
+  describe("beginWithdrawalTimeoutUpdate", () => {
+    const newWithdrawalTimeout = 604800 // 1 week
+
+    context("when caller is the owner", () => {
+      let tx
+
+      beforeEach(async () => {
+        tx = await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+      })
+
+      it("should not update withdrawal timeout", async () => {
+        // 172800 sec = 2 days, default value
+        expect(await assetPool.withdrawalTimeout()).to.equal(172800)
+      })
+
+      it("should start the governance delay timer", async () => {
+        // 14 days (withdrawal delay) +
+        // 2 days (withdrawal timeout) +
+        // 2 days additional delay
+        expect(
+          await assetPool.getRemainingWithdrawalTimeoutUpdateTime()
+        ).to.equal(
+          1555200 // 18 days
+        )
+      })
+
+      it("should emit WithdrawalTimeoutUpdateStarted event", async () => {
+        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
+          .timestamp
+        await expect(tx)
+          .to.emit(assetPool, "WithdrawalTimeoutUpdateStarted")
+          .withArgs(newWithdrawalTimeout, blockTimestamp)
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(thirdParty)
+            .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("finalizeWithdrawalTimeoutUpdate", () => {
+    const newWithdrawalTimeout = 604800 // 1 week
+
+    context(
+      "when the update process is initialized, governance delay passed, " +
+        "and the caller is the owner",
+      () => {
+        let tx
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(coveragePool)
+            .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+
+          const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+          await increaseTime(governanceDelay.toNumber())
+
+          tx = await assetPool
+            .connect(coveragePool)
+            .finalizeWithdrawalTimeoutUpdate()
+        })
+
+        it("should update the withdrawal timeout", async () => {
+          expect(await assetPool.withdrawalTimeout()).to.equal(
+            newWithdrawalTimeout
+          )
+        })
+
+        it("should emit WithdrawalTimeoutUpdated event", async () => {
+          await expect(tx)
+            .to.emit(assetPool, "WithdrawalTimeoutUpdated")
+            .withArgs(newWithdrawalTimeout)
+        })
+
+        it("should reset the governance delay timer", async () => {
+          await expect(
+            assetPool.getRemainingWithdrawalTimeoutUpdateTime()
+          ).to.be.revertedWith("Change not initiated")
+        })
+      }
+    )
+
+    context("when the governance delay has not passed", () => {
+      beforeEach(async () => {
+        await assetPool
+          .connect(coveragePool)
+          .beginWithdrawalTimeoutUpdate(newWithdrawalTimeout)
+
+        const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+        await increaseTime(governanceDelay.sub(60).toNumber()) // - 1 minute
+      })
+
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalTimeoutUpdate()
+        ).to.be.revertedWith("Governance delay has not elapsed")
+      })
+    })
+
+    context("when caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(thirdParty).finalizeWithdrawalTimeoutUpdate()
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the update process has not been initiated", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(coveragePool).finalizeWithdrawalTimeoutUpdate()
+        ).to.be.revertedWith("Change not initiated")
+      })
+    })
+  })
 })

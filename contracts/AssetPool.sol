@@ -23,6 +23,7 @@ import "./interfaces/IAssetPool.sol";
 import "./interfaces/IAssetPoolUpgrade.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
+import "./GovernanceUtils.sol";
 
 /// @title AssetPool
 /// @notice Asset pool is a component of a Coverage Pool. Asset Pool
@@ -43,15 +44,14 @@ contract AssetPool is Ownable, IAssetPool {
 
     IAssetPoolUpgrade public newAssetPool;
 
-    mapping(address => uint256) public withdrawalInitiatedTimestamp;
-    mapping(address => uint256) public pendingWithdrawal;
-
     // The time it takes the underwriter to withdraw their collateral
     // and rewards from the pool. This is the time that needs to pass between
     // initiating and completing the withdrawal. During that time, underwriter
     // is still earning rewards and their share of the pool is still a subject
     // of a possible coverage claim.
-    uint256 public constant withdrawalDelay = 14 days; // TODO: make governable
+    uint256 public withdrawalDelay = 14 days;
+    uint256 public newWithdrawalDelay;
+    uint256 public withdrawalDelayChangeInitiated;
     // The time the underwriter has after the withdrawal delay passed to
     // complete the withdrawal. During that time, underwriter is still earning
     // rewards and their share of the pool is still a subject of a possible
@@ -59,7 +59,12 @@ contract AssetPool is Ownable, IAssetPool {
     // After the withdrawal timeout elapses, tokens stay in the pool
     // and the underwriters has to initiate the withdrawal again and wait for
     // the full withdrawal delay to complete the withdrawal.
-    uint256 public constant withdrawalTimeout = 2 days; // TODO: make governable
+    uint256 public withdrawalTimeout = 2 days;
+    uint256 public newWithdrawalTimeout;
+    uint256 public withdrawalTimeoutChangeInitiated;
+
+    mapping(address => uint256) public withdrawalInitiatedTimestamp;
+    mapping(address => uint256) public pendingWithdrawal;
 
     event WithdrawalInitiated(
         address indexed underwriter,
@@ -72,13 +77,41 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 timestamp
     );
 
+    event ApprovedAssetPoolUpgrade(address newAssetPool);
     event AssetPoolUpgraded(
         address indexed underwriter,
         uint256 collateralAmount,
         uint256 covAmount,
         uint256 timestamp
     );
-    event ApprovedAssetPoolUpgrade(address newAssetPool);
+
+    event WithdrawalDelayUpdateStarted(
+        uint256 withdrawalDelay,
+        uint256 timestamp
+    );
+    event WithdrawalDelayUpdated(uint256 withdrawalDelay);
+    event WithdrawalTimeoutUpdateStarted(
+        uint256 withdrawalTimeout,
+        uint256 timestamp
+    );
+    event WithdrawalTimeoutUpdated(uint256 withdrawalTimeout);
+
+    /// @notice Reverts if the withdrawl governance delay has not passed yet or
+    ///         if the change was not yet initiated.
+    /// @param changeInitiatedTimestamp The timestamp at which the change has
+    ///        been initiated.
+    modifier onlyAfterWithdrawalGovernanceDelay(
+        uint256 changeInitiatedTimestamp
+    ) {
+        require(changeInitiatedTimestamp > 0, "Change not initiated");
+        require(
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp.sub(changeInitiatedTimestamp) >=
+                withdrawalGovernanceDelay(),
+            "Governance delay has not elapsed"
+        );
+        _;
+    }
 
     constructor(
         IERC20 _collateralToken,
@@ -294,6 +327,116 @@ contract AssetPool is Ownable, IAssetPool {
     function claim(address recipient, uint256 amount) external onlyOwner {
         rewardsPool.withdraw();
         collateralToken.safeTransfer(recipient, amount);
+    }
+
+    /// @notice Lets the contract owner to begin an update of withdrawal delay
+    ///         paramter value. Withdrawal delay is the time it takes the
+    ///         underwriter to withdraw their collateral and rewards from the
+    ///         pool. This is the time that needs to pass between initiating and
+    ///         completing the withdrawal. The change needs to be finalized with
+    ///         a call to finalizeWithdrawalDelayUpdate after the required
+    ///         governance delay passes.
+    /// @param _newWithdrawalDelay The new value of withdrawal delay
+    function beginWithdrawalDelayUpdate(uint256 _newWithdrawalDelay)
+        external
+        onlyOwner
+    {
+        newWithdrawalDelay = _newWithdrawalDelay;
+        withdrawalDelayChangeInitiated = block.timestamp;
+        emit WithdrawalDelayUpdateStarted(_newWithdrawalDelay, block.timestamp);
+    }
+
+    /// @notice Lets the contract owner to finalize an update of withdrawal
+    ///         delay parameter value. This call has to be preceded with
+    ///         a call to beginWithdrawalDelayUpdate and the governance delay
+    ///         has to pass.
+    function finalizeWithdrawalDelayUpdate()
+        external
+        onlyOwner
+        onlyAfterWithdrawalGovernanceDelay(withdrawalDelayChangeInitiated)
+    {
+        withdrawalDelay = newWithdrawalDelay;
+        emit WithdrawalDelayUpdated(withdrawalDelay);
+        newWithdrawalDelay = 0;
+        withdrawalDelayChangeInitiated = 0;
+    }
+
+    /// @notice Lets the contract owner to begin an update of withdrawal timeout
+    ///         parmeter value. The withdrawal timeout is the time the
+    ///         underwriter has - after the withdrawal delay passed - to
+    ///         complete the withdrawal. The change needs to be finalized with
+    ///         a call to finalizeWithdrawalTimeoutUpdate after the required
+    ///         governance delay passes.
+    /// @param  _newWithdrawalTimeout The new value of the withdrawal timeout.
+    function beginWithdrawalTimeoutUpdate(uint256 _newWithdrawalTimeout)
+        external
+        onlyOwner
+    {
+        newWithdrawalTimeout = _newWithdrawalTimeout;
+        withdrawalTimeoutChangeInitiated = block.timestamp;
+        emit WithdrawalTimeoutUpdateStarted(
+            _newWithdrawalTimeout,
+            block.timestamp
+        );
+    }
+
+    /// @notice Lets the contract owner to finalize an update of withdrawal
+    ///         timeout parameter value. This call has to be preceded with
+    ///         a call to beginWithdrawalTimeoutUpdate and the governance delay
+    ///         has to pass.
+    function finalizeWithdrawalTimeoutUpdate()
+        external
+        onlyOwner
+        onlyAfterWithdrawalGovernanceDelay(withdrawalTimeoutChangeInitiated)
+    {
+        withdrawalTimeout = newWithdrawalTimeout;
+        emit WithdrawalTimeoutUpdated(withdrawalTimeout);
+        newWithdrawalTimeout = 0;
+        withdrawalTimeoutChangeInitiated = 0;
+    }
+
+    /// @notice Returns the remaining time that has to pass before the contract
+    ///         owner will be able to finalize withdrawal delay update.
+    ///         Bear in mind the contract owner may decide to wait longer and
+    ///         this value is just an absolute minimum.
+    /// @return The time left until withdrawal delay update can be finalized
+    function getRemainingWithdrawalDelayUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                withdrawalDelayChangeInitiated,
+                withdrawalGovernanceDelay()
+            );
+    }
+
+    /// @notice Returns the remaining time that has to pass before the contract
+    ///         owner will be able to finalize withdrawal timeout update.
+    ///         Bear in mind the contract owner may decide to wait longer and
+    ///         this value is just an absolute minimum.
+    /// @return The time left until withdrawal timeout update can be finalized
+    function getRemainingWithdrawalTimeoutUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                withdrawalTimeoutChangeInitiated,
+                withdrawalGovernanceDelay()
+            );
+    }
+
+    /// @notice The time it takes to initiate and complete the withdrawal from
+    ///         the pool plus 2 days to make a decision. This governance delay
+    ///         should be used for all changes directly affecting underwriter
+    ///         positions. This time is a minimum and the governance may choose
+    ///         to wait longer before finalizing the update.
+    /// @return The withdrawal governance delay in seconds
+    function withdrawalGovernanceDelay() public view returns (uint256) {
+        return withdrawalDelay.add(withdrawalTimeout).add(2 days);
     }
 
     function _deposit(address depositor, uint256 amount) internal {

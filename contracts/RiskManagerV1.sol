@@ -17,6 +17,7 @@ pragma solidity <0.9.0;
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
+import "./GovernanceUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -364,7 +365,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 bondAuctionThresholdChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
@@ -379,7 +380,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 auctionLengthChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
@@ -394,7 +395,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 signerBondsSwapStrategyInitiated,
                 GOVERNANCE_TIME_DELAY
             );
@@ -460,26 +461,6 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             isDepositLiquidationInProgress(deposit),
             "Deposit liquidation is not in progress"
         );
-    }
-
-    /// @notice Get the time remaining until the function parameter timer
-    ///         value can be updated.
-    /// @param changeTimestamp Timestamp indicating the beginning of the change.
-    /// @param delay Governance delay.
-    /// @return Remaining time in seconds.
-    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
-        internal
-        view
-        returns (uint256)
-    {
-        require(changeTimestamp > 0, "Update not initiated");
-        /* solhint-disable-next-line not-rely-on-time */
-        uint256 elapsed = block.timestamp.sub(changeTimestamp);
-        if (elapsed >= delay) {
-            return 0;
-        } else {
-            return delay.sub(elapsed);
-        }
     }
 
     function isDepositLiquidationInProgress(IDeposit deposit)

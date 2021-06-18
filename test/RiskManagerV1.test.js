@@ -469,7 +469,7 @@ describe("RiskManagerV1", () => {
         it("should reset the governance delay timer", async () => {
           await expect(
             riskManagerV1.getRemainingAuctionLengthUpdateTime()
-          ).to.be.revertedWith("Update not initiated")
+          ).to.be.revertedWith("Change not initiated")
         })
       }
     )
@@ -583,7 +583,7 @@ describe("RiskManagerV1", () => {
         it("should reset the governance delay timer", async () => {
           await expect(
             riskManagerV1.getRemainingBondAuctionThresholdUpdateTime()
-          ).to.be.revertedWith("Update not initiated")
+          ).to.be.revertedWith("Change not initiated")
         })
       }
     )
@@ -710,7 +710,7 @@ describe("RiskManagerV1", () => {
         it("should reset the governance delay timer", async () => {
           await expect(
             riskManagerV1.getRemainingSignerBondsSwapStrategyChangeTime()
-          ).to.be.revertedWith("Update not initiated")
+          ).to.be.revertedWith("Change not initiated")
         })
 
         it("should reset new signer bonds swap strategy", async () => {
