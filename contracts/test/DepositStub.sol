@@ -86,4 +86,8 @@ contract DepositStub is IDeposit {
     function setAuctionValue(uint256 _auctionValue) external {
         auctionValue = _auctionValue;
     }
+
+    function notifyFraud() external {
+        currentState = uint256(States.FRAUD_LIQUIDATION_IN_PROGRESS);
+    }
 }

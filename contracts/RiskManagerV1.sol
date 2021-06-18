@@ -70,6 +70,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
     uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
 
+    uint256 public constant DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE = 9;
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
     // Coverage pool auction will not be opened if the deposit's bond auction
@@ -176,7 +177,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         IDeposit deposit = IDeposit(depositAddress);
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            isDepositLiquidationInProgress(deposit),
             "Deposit is not in liquidation state"
         );
 
@@ -454,7 +455,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
         // Make sure the deposit was not liquidated outside of Coverage Pool
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            isDepositLiquidationInProgress(deposit),
             "Deposit liquidation is not in progress"
         );
     }
@@ -477,5 +478,16 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         } else {
             return delay.sub(elapsed);
         }
+    }
+
+    function isDepositLiquidationInProgress(IDeposit deposit)
+        internal
+        view
+        returns (bool)
+    {
+        uint256 state = deposit.currentState();
+
+        return (state == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE ||
+            state == DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE);
     }
 }
