@@ -99,6 +99,8 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     uint256 public signerBondsSwapStrategyInitiated;
 
     // TODO: Make it governable.
+    // Amount of underwriter tokens granted to the notifier as reward for
+    // `notifyLiquidation` and `notifyLiquidated` calls.
     uint256 public notifierReward;
 
     // deposit in liquidation => opened coverage pool auction
