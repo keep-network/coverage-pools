@@ -1,10 +1,11 @@
 const { expect } = require("chai")
 const {
-  to1e18,
   impersonateAccount,
   resetFork,
   ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
+const { initContracts } = require("./init-contracts")
+const { bidderAddress } = require("./constants.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
@@ -22,86 +23,40 @@ const describeFn =
 // liquidation of a real deposit, represented by an existing tBTC deposit token.
 describeFn("System -- deposit validation", () => {
   const startingBlock = 12368838
-  const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
-  const thirdPartyAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
-  const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
-  const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
-  const auctionLength = 86400 // 24h
-  const collateralizationThreshold = 300
 
-  let tbtcToken
   let underwriterToken
   let assetPool
-  let signerBondsSwapStrategy
   let coveragePool
   let riskManagerV1
   let fakeDeposit
 
   let governance
-  let rewardsManager
   let thirdParty
 
   before(async () => {
     await resetFork(startingBlock)
 
     governance = await ethers.getSigner(0)
-    rewardsManager = await ethers.getSigner(1)
-    thirdParty = await impersonateAccount(thirdPartyAddress)
 
-    tbtcToken = await ethers.getContractAt("IERC20", tbtcTokenAddress)
+    const contracts = await initContracts("SignerBondsManualSwap")
+    tbtcToken = contracts.tbtcToken
+    underwriterToken = contracts.underwriterToken
+    assetPool = contracts.assetPool
+    signerBondsSwapStrategy = contracts.signerBondsSwapStrategy
+    coveragePool = contracts.coveragePool
+    riskManagerV1 = contracts.riskManagerV1
+    tbtcDeposit = contracts.tbtcDeposit
+    thirdParty = contracts.thirdPartyAccount
+    fakeDeposit = contracts.fakeTbtcDeposit
 
-    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
-    underwriterToken = await UnderwriterToken.deploy("Coverage KEEP", "covKEEP")
-    await underwriterToken.deployed()
-
-    const AssetPool = await ethers.getContractFactory("AssetPool")
-    assetPool = await AssetPool.deploy(
-      keepTokenAddress,
-      underwriterToken.address,
-      rewardsManager.address
-    )
-    await assetPool.deployed()
     await underwriterToken.transferOwnership(assetPool.address)
-
-    const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsManualSwap"
-    )
-    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
-    await signerBondsSwapStrategy.deployed()
-
-    const Auction = await ethers.getContractFactory("Auction")
-
-    const masterAuction = await Auction.deploy()
-    await masterAuction.deployed()
-
-    const CoveragePool = await ethers.getContractFactory("CoveragePool")
-    coveragePool = await CoveragePool.deploy(assetPool.address)
-    await coveragePool.deployed()
     await assetPool.transferOwnership(coveragePool.address)
 
-    const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
-    riskManagerV1 = await RiskManagerV1.deploy(
-      tbtcToken.address,
-      tbtcDepositTokenAddress,
-      coveragePool.address,
-      signerBondsSwapStrategy.address,
-      masterAuction.address,
-      auctionLength,
-      collateralizationThreshold
-    )
-    await riskManagerV1.deployed()
     await coveragePool
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
 
-    // Suppose a third party deploys an arbitrary deposit contract.
-    // For simplicity, let's say it's just the DepositStub.
-    const DepositStub = await ethers.getContractFactory("DepositStub")
-    fakeDeposit = await DepositStub.connect(thirdParty).deploy(
-      tbtcToken.address,
-      to1e18(1)
-    )
-    await fakeDeposit.deployed()
+    bidder = await impersonateAccount(bidderAddress)
   })
 
   describe("test initial state", () => {
