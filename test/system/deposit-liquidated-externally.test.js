@@ -23,8 +23,8 @@ const describeFn =
 describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   const startingBlock = 12368838
   const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
-  const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
-  const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
+  const depositAddress1 = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
+  const bidderAddress1 = "0xa0216ED2202459068a750bDf74063f677613DA34"
   const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
   const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
@@ -40,7 +40,7 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   let signerBondsSwapStrategy
   let coveragePool
   let riskManagerV1
-  let tbtcDeposit
+  let tbtcDeposit1
 
   let governance
   let rewardsManager
@@ -99,21 +99,21 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
 
-    tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
-    bidder = await impersonateAccount(bidderAddress)
+    tbtcDeposit1 = await ethers.getContractAt("IDeposit", depositAddress1)
+    bidder = await impersonateAccount(bidderAddress1)
   })
 
   describe("test initial state", () => {
     describe("deposit", () => {
       it("should be in active state", async () => {
-        expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+        expect(await tbtcDeposit1.currentState()).to.equal(5) // Active
       })
     })
 
     describe("auction", () => {
       it("should not exist", async () => {
         const auctionAddress = await riskManagerV1.depositToAuction(
-          tbtcDeposit.address
+          tbtcDeposit1.address
         )
         expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
       })
@@ -124,18 +124,18 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
     let auction
 
     before(async () => {
-      await tbtcDeposit.notifyRedemptionSignatureTimedOut()
-      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+      await tbtcDeposit1.notifyRedemptionSignatureTimedOut()
+      await riskManagerV1.notifyLiquidation(tbtcDeposit1.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
+        tbtcDeposit1.address
       )
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
 
       // Simulate purchase of signer bonds outside Coverage Pools
-      await tbtcToken.connect(bidder).approve(tbtcDeposit.address, lotSize)
-      await tbtcDeposit.connect(bidder).purchaseSignerBondsAtAuction()
+      await tbtcToken.connect(bidder).approve(tbtcDeposit1.address, lotSize)
+      await tbtcDeposit1.connect(bidder).purchaseSignerBondsAtAuction()
     })
 
     it("should revert on auction partially filled", async () => {
