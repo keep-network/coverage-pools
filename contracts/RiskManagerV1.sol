@@ -203,6 +203,8 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         // Reward the notifier by giving them some shares of the asset pool.
+        //
+        // slither-disable-next-line reentrancy-benign
         coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
 
         // If the surplus can cover the deposit liquidation cost, liquidate
