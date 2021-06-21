@@ -10,6 +10,7 @@ describe("CoveragePool", () => {
   let coveragePool
   let assetPool
   let testToken
+  let underwriterToken
 
   let governance
   let underwriter
@@ -39,10 +40,7 @@ describe("CoveragePool", () => {
     await testToken.deployed()
 
     const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
-    const underwriterToken = await UnderwriterToken.deploy(
-      "Underwriter Token",
-      "COV"
-    )
+    underwriterToken = await UnderwriterToken.deploy("Underwriter Token", "COV")
     await underwriterToken.deployed()
 
     const AssetPool = await ethers.getContractFactory("AssetPool")
@@ -341,6 +339,38 @@ describe("CoveragePool", () => {
             .connect(riskManager)
             .seizeFunds(recipient.address, portionToSeize)
         ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
+      })
+    })
+  })
+
+  describe("grantAssetPoolShares", () => {
+    context("when the caller is not an approved risk manager", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(thirdParty)
+            .grantAssetPoolShares(thirdParty.address, to1e18(10))
+        ).to.be.revertedWith("Risk manager not approved")
+      })
+    })
+
+    context("when the caller is an approved risk manager", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(riskManager.address)
+
+        await coveragePool
+          .connect(riskManager)
+          .grantAssetPoolShares(thirdParty.address, to1e18(10))
+      })
+
+      it("should grant asset pool shares to the recipient", async () => {
+        // That's the only way to check whether the interaction occurred because
+        // a real AssetPool is used in tests.
+        expect(
+          await underwriterToken.balanceOf(thirdParty.address)
+        ).to.be.equal(to1e18(10))
       })
     })
   })

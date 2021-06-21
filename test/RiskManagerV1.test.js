@@ -16,6 +16,7 @@ const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
 const bondAuctionThreshold = 100
 const bondedAmount = to1e18(10)
+const notifierReward = to1e18(5)
 
 describe("RiskManagerV1", () => {
   let tbtcToken
@@ -26,6 +27,7 @@ describe("RiskManagerV1", () => {
   let bidder
   let riskManagerV1
   let depositStub
+  let coveragePoolStub
 
   beforeEach(async () => {
     owner = await ethers.getSigner(0)
@@ -52,7 +54,7 @@ describe("RiskManagerV1", () => {
 
     const Auction = await ethers.getContractFactory("Auction")
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
-    const coveragePoolStub = await CoveragePoolStub.deploy()
+    coveragePoolStub = await CoveragePoolStub.deploy()
     await coveragePoolStub.deployed()
 
     masterAuction = await Auction.deploy()
@@ -68,7 +70,8 @@ describe("RiskManagerV1", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold
+      bondAuctionThreshold,
+      notifierReward
     )
     await riskManagerV1.deployed()
 
@@ -158,6 +161,12 @@ describe("RiskManagerV1", () => {
                 .withArgs(depositStub.address, notifier.address)
             })
 
+            it("should reward the notifier with asset pool shares", async () => {
+              await expect(notifyLiquidationTx)
+                .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
+                .withArgs(notifier.address, notifierReward)
+            })
+
             it("should create an auction ", async () => {
               expect(auctionAddress).to.be.properAddress
               expect(auctionAddress).to.not.equal(ZERO_ADDRESS)
@@ -193,6 +202,12 @@ describe("RiskManagerV1", () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(riskManagerV1, "NotifiedLiquidation")
                   .withArgs(depositStub.address, notifier.address)
+              })
+
+              it("should reward the notifier with asset pool shares", async () => {
+                await expect(notifyLiquidationTx)
+                  .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
+                  .withArgs(notifier.address, notifierReward)
               })
 
               it("should create an auction ", async () => {
@@ -233,6 +248,12 @@ describe("RiskManagerV1", () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(riskManagerV1, "NotifiedLiquidation")
                   .withArgs(depositStub.address, notifier.address)
+              })
+
+              it("should reward the notifier with asset pool shares", async () => {
+                await expect(notifyLiquidationTx)
+                  .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
+                  .withArgs(notifier.address, notifierReward)
               })
 
               it("should not create an auction", async () => {
@@ -277,6 +298,12 @@ describe("RiskManagerV1", () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(riskManagerV1, "NotifiedLiquidation")
                   .withArgs(depositStub.address, notifier.address)
+              })
+
+              it("should reward the notifier with asset pool shares", async () => {
+                await expect(notifyLiquidationTx)
+                  .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
+                  .withArgs(notifier.address, notifierReward)
               })
 
               it("should not create an auction", async () => {
@@ -389,6 +416,16 @@ describe("RiskManagerV1", () => {
           ZERO_ADDRESS
         )
         expect(await riskManagerV1.openAuctions(auctionAddress)).to.be.false
+      })
+
+      it("should reward the notifier with asset pool shares", async () => {
+        const tx = await riskManagerV1
+          .connect(notifier)
+          .notifyLiquidated(depositStub.address)
+
+        await expect(tx)
+          .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
+          .withArgs(notifier.address, notifierReward)
       })
     })
   })

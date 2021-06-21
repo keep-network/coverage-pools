@@ -33,6 +33,7 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   const bondAuctionThreshold = 50
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
+  const notifierReward = to1e18(5)
 
   let tbtcToken
   let underwriterToken
@@ -91,7 +92,8 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold
+      bondAuctionThreshold,
+      notifierReward
     )
     await riskManagerV1.deployed()
 

@@ -9,6 +9,7 @@ describe("Integration -- liquidation", () => {
   const lotSize = to1e18(10)
   const bondedAmount = to1e18(150)
   const bondAuctionThreshold = 100
+  const notifierReward = to1e18(5)
 
   let tbtcToken
   let signerBondsSwapStrategy
@@ -60,7 +61,8 @@ describe("Integration -- liquidation", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold
+      bondAuctionThreshold,
+      notifierReward
     )
     await riskManagerV1.deployed()
 

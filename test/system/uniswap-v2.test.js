@@ -1,6 +1,6 @@
 const { expect } = require("chai")
 
-const { resetFork } = require("../helpers/contract-test-helpers")
+const { resetFork, to1e18 } = require("../helpers/contract-test-helpers")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
@@ -13,6 +13,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
   const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
   const bondAuctionThreshold = 75
+  const notifierReward = to1e18(5)
 
   let tbtcToken
   let collateralToken
@@ -83,7 +84,8 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
       signerBondsUniswapV2.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold
+      bondAuctionThreshold,
+      notifierReward
     )
     await riskManagerV1.deployed()
 

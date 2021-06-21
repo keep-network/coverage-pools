@@ -1423,4 +1423,30 @@ describe("AssetPool", () => {
       })
     })
   })
+
+  describe("grantShares", () => {
+    context("when the caller is not the owner", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool
+            .connect(thirdParty)
+            .grantShares(thirdParty.address, to1e18(10))
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when the caller is the owner", () => {
+      beforeEach(async () => {
+        await assetPool
+          .connect(coveragePool)
+          .grantShares(thirdParty.address, to1e18(10))
+      })
+
+      it("should mint underwriter tokens for the recipient", async () => {
+        expect(
+          await underwriterToken.balanceOf(thirdParty.address)
+        ).to.be.equal(to1e18(10))
+      })
+    })
+  })
 })

@@ -28,6 +28,7 @@ describeFn("System -- deposit validation", () => {
   const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
   const auctionLength = 86400 // 24h
   const collateralizationThreshold = 300
+  const notifierReward = to1e18(5)
 
   let tbtcToken
   let underwriterToken
@@ -87,7 +88,8 @@ describeFn("System -- deposit validation", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      collateralizationThreshold
+      collateralizationThreshold,
+      notifierReward
     )
     await riskManagerV1.deployed()
     await coveragePool

@@ -39,6 +39,7 @@ describeFn("System -- liquidation", () => {
   const bondedAmount = BigNumber.from("290810391624000000000")
   // 75% of the deposit is exposed on auction in the liquidation moment
   const bondedAmountPercentage = BigNumber.from("75")
+  const notifierReward = to1e18(5)
 
   let tbtcToken
   let underwriterToken
@@ -97,7 +98,8 @@ describeFn("System -- liquidation", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold
+      bondAuctionThreshold,
+      notifierReward
     )
     await riskManagerV1.deployed()
     await coveragePool
