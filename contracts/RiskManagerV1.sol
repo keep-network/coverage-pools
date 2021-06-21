@@ -98,10 +98,11 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
     uint256 public signerBondsSwapStrategyInitiated;
 
-    // TODO: Make it governable.
     // Amount of underwriter tokens granted to the notifier as reward for
     // `notifyLiquidation` and `notifyLiquidated` calls.
     uint256 public notifierReward;
+    uint256 public newNotifierReward;
+    uint256 public notifierRewardChangeInitiated;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -127,6 +128,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     event SignerBondsSwapStrategyUpdated(
         address indexed signerBondsSwapStrategy
     );
+
+    event NotifierRewardUpdateStarted(
+        uint256 notifierReward,
+        uint256 timestamp
+    );
+    event NotifierRewardUpdated(uint256 notifierReward);
 
     /// @notice Reverts if called before the delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -351,6 +358,34 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         signerBondsSwapStrategyInitiated = 0;
     }
 
+    /// @notice Begins the notifier reward update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newNotifierReward New notifier reward amount.
+    function beginNotifierRewardUpdate(uint256 _newNotifierReward)
+        external
+        onlyOwner
+    {
+        newNotifierReward = _newNotifierReward;
+        /* solhint-disable-next-line not-rely-on-time */
+        notifierRewardChangeInitiated = block.timestamp;
+        /* solhint-disable-next-line not-rely-on-time */
+        emit NotifierRewardUpdateStarted(_newNotifierReward, block.timestamp);
+    }
+
+    /// @notice Finalizes the notifier reward update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeNotifierRewardUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(notifierRewardChangeInitiated)
+    {
+        notifierReward = newNotifierReward;
+        emit NotifierRewardUpdated(newNotifierReward);
+        newNotifierReward = 0;
+        notifierRewardChangeInitiated = 0;
+    }
+
     /// @notice Withdraws the given amount of accumulated signer bonds.
     /// @dev Can be called only by the signer bonds swap strategy itself.
     ///      This method should typically be used as part of the swap logic.
@@ -411,6 +446,21 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 signerBondsSwapStrategyInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the notifier reward parameter
+    ///         can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingNotifierRewardUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                notifierRewardChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
     }
