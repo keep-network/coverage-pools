@@ -14,9 +14,13 @@
 
 pragma solidity <0.9.0;
 
-library CoveragePoolConstants {
-    // This divisor is for precision purposes only. We use this divisor around
-    // auction related code to get the precise values without rounding it down
-    // when dealing with floating numbers.
-    uint256 public constant FLOATING_POINT_DIVISOR = 1e18;
+/// @title IRiskManager
+interface IRiskManager {
+    /// @notice Withdraws the given amount of accumulated signer bonds.
+    /// @param amount Amount of signer bonds being withdrawn.
+    function withdrawSignerBonds(uint256 amount) external;
+
+    /// @return True if there are open auctions managed by the risk manager.
+    ///         Returns false otherwise.
+    function hasOpenAuctions() external view returns (bool);
 }

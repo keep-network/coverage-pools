@@ -17,10 +17,12 @@ pragma solidity <0.9.0;
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
+import "./GovernanceUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IRiskManager.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -57,17 +59,19 @@ interface ITBTCDepositToken {
 /// @dev This interface is meant to abstract the underlying signer bonds
 ///      swap strategy and make it interchangeable for the governance.
 interface ISignerBondsSwapStrategy {
-    /// @notice Swaps signer bonds.
-    function swapSignerBonds() external payable;
+    /// @notice Notifies the strategy about signer bonds purchase.
+    /// @param amount Amount of purchased signer bonds.
+    function onSignerBondsPurchased(uint256 amount) external;
 }
 
 /// @title RiskManagerV1 for tBTCv1
-contract RiskManagerV1 is Auctioneer, Ownable {
+contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
     uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
 
+    uint256 public constant DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE = 9;
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
     // Coverage pool auction will not be opened if the deposit's bond auction
@@ -133,6 +137,16 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         _;
     }
 
+    /// @notice Reverts if called by any account other than the signer bonds
+    ///         swap strategy.
+    modifier onlySignerBondsSwapStrategy() {
+        require(
+            msg.sender == address(signerBondsSwapStrategy),
+            "Caller is not the signer bonds swap strategy"
+        );
+        _;
+    }
+
     constructor(
         IERC20 _tbtcToken,
         ITBTCDepositToken _tbtcDepositToken,
@@ -164,8 +178,13 @@ contract RiskManagerV1 is Auctioneer, Ownable {
 
         IDeposit deposit = IDeposit(depositAddress);
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            isDepositLiquidationInProgress(deposit),
             "Deposit is not in liquidation state"
+        );
+
+        require(
+            depositToAuction[depositAddress] == address(0),
+            "Already notified on the deposit in liquidation"
         );
 
         require(
@@ -187,6 +206,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
             return;
         }
 
+        // slither-disable-next-line reentrancy-no-eth
         address auctionAddress =
             createAuction(tbtcToken, lotSizeTbtc, auctionLength);
         depositToAuction[depositAddress] = auctionAddress;
@@ -317,6 +337,25 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         signerBondsSwapStrategyInitiated = 0;
     }
 
+    /// @notice Withdraws the given amount of accumulated signer bonds.
+    /// @dev Can be called only by the signer bonds swap strategy itself.
+    ///      This method should typically be used as part of the swap logic.
+    ///      Third-party calls may block funds on the strategy contract in case
+    ///      that strategy is not able to perform the swap.
+    /// @param amount Amount of signer bonds being withdrawn.
+    function withdrawSignerBonds(uint256 amount)
+        external
+        override
+        onlySignerBondsSwapStrategy
+    {
+        /* solhint-disable avoid-low-level-calls */
+        // slither-disable-next-line low-level-calls
+        (bool success, ) =
+            address(signerBondsSwapStrategy).call{value: amount}("");
+        require(success, "Failed to send Ether");
+        /* solhint-enable avoid-low-level-calls */
+    }
+
     /// @notice Get the time remaining until the bond auction threshold
     ///         can be updated.
     /// @return Remaining time in seconds.
@@ -326,7 +365,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 bondAuctionThresholdChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
@@ -341,7 +380,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 auctionLengthChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
@@ -356,10 +395,16 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 signerBondsSwapStrategyInitiated,
                 GOVERNANCE_TIME_DELAY
             );
+    }
+
+    /// @return True if there are open auctions managed by the risk manager.
+    ///         Returns false otherwise.
+    function hasOpenAuctions() external view override returns (bool) {
+        return openAuctionsCount > 0;
     }
 
     /// @notice Cleans up auction and deposit data and executes deposit liquidation.
@@ -368,12 +413,14 @@ contract RiskManagerV1 is Auctioneer, Ownable {
     ///      the Auctioneer contract. By the time this function is called, all
     ///      the TBTC tokens for the coverage pool auction should be transferred
     ///      to this contract in order to buy signer bonds.
-    ///      Note: There are checks of the deposit's state performed when
-    ///      the signer bonds are purchased. There is no risk this function
-    ///      succeeds for a deposit liquidated outside of Coverage Pool.
     /// @param auction Coverage pool auction.
     function onAuctionFullyFilled(Auction auction) internal override {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
+        // Make sure the deposit was not liquidated outside of Coverage Pool
+        require(
+            isDepositLiquidationInProgress(deposit),
+            "Deposit liquidation is not in progress"
+        );
 
         delete depositToAuction[address(deposit)];
         delete auctionToDeposit[address(auction)];
@@ -397,8 +444,7 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         uint256 withdrawableAmount = deposit.withdrawableAmount();
         deposit.withdrawFunds();
 
-        // slither-disable-next-line arbitrary-send
-        signerBondsSwapStrategy.swapSignerBonds{value: withdrawableAmount}();
+        signerBondsSwapStrategy.onSignerBondsPurchased(withdrawableAmount);
     }
 
     /// @notice Reverts if the deposit for which the auction was created is no
@@ -412,28 +458,19 @@ contract RiskManagerV1 is Auctioneer, Ownable {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
         // Make sure the deposit was not liquidated outside of Coverage Pool
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE,
+            isDepositLiquidationInProgress(deposit),
             "Deposit liquidation is not in progress"
         );
     }
 
-    /// @notice Get the time remaining until the function parameter timer
-    ///         value can be updated.
-    /// @param changeTimestamp Timestamp indicating the beginning of the change.
-    /// @param delay Governance delay.
-    /// @return Remaining time in seconds.
-    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+    function isDepositLiquidationInProgress(IDeposit deposit)
         internal
         view
-        returns (uint256)
+        returns (bool)
     {
-        require(changeTimestamp > 0, "Update not initiated");
-        /* solhint-disable-next-line not-rely-on-time */
-        uint256 elapsed = block.timestamp.sub(changeTimestamp);
-        if (elapsed >= delay) {
-            return 0;
-        } else {
-            return delay.sub(elapsed);
-        }
+        uint256 state = deposit.currentState();
+
+        return (state == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE ||
+            state == DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE);
     }
 }
