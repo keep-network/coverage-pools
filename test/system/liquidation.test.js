@@ -49,7 +49,7 @@ describeFn("System -- liquidation", () => {
 
     governance = await ethers.getSigner(0)
 
-    const contracts = await initContracts()
+    const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
     underwriterToken = contracts.underwriterToken
     assetPool = contracts.assetPool

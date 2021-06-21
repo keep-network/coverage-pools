@@ -22,24 +22,20 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
 
     const governance = await ethers.getSigner(0)
 
-    const contracts = await initContracts()
+    const contracts = await initContracts("SignerBondsUniswapV2")
     collateralToken = contracts.collateralToken
     underwriterToken = contracts.underwriterToken
     assetPool = contracts.assetPool
     coveragePool = contracts.coveragePool
-    signerBondsUniswapV2 = contracts.signerBondsUniswapV2
+    signerBondsUniswapV2 = contracts.signerBondsSwapStrategy
     thirdParty = contracts.thirdPartyAccount
+    riskManagerV1 = contracts.riskManagerV1
 
     await underwriterToken
       .connect(governance)
       .transferOwnership(assetPool.address)
 
     await assetPool.connect(governance).transferOwnership(coveragePool.address)
-
-    // Simulate that risk manager deposits signer bonds on the Uniswap strategy.
-    // await signerBondsUniswapV2
-    //   .connect(riskManager)
-    //   .swapSignerBonds({ value: ethers.utils.parseEther("20") })
 
     // Simulate that risk manager has withdrawable signer bonds.
     await governance.sendTransaction({

@@ -12,7 +12,7 @@ const {
   impersonateAccount,
 } = require("../helpers/contract-test-helpers")
 
-async function initContracts() {
+async function initContracts(swapStrategy) {
   const auctionLength = 86400 // 24h
   // Only deposits with at least 75% of bonds offered on bond auction will be
   // accepted by the risk manager.
@@ -47,10 +47,21 @@ async function initContracts() {
   const coveragePool = await CoveragePool.deploy(assetPool.address)
   await coveragePool.deployed()
 
-  const SignerBondsSwapStrategy = await ethers.getContractFactory(
-    "SignerBondsEscrow"
-  )
-  const signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+  let signerBondsSwapStrategy
+  if (swapStrategy == "SignerBondsManualSwap") {
+    const SignerBondsSwapStrategy = await ethers.getContractFactory(
+      "SignerBondsManualSwap"
+    )
+    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
+  } else if (swapStrategy == "SignerBondsUniswapV2") {
+    const SignerBondsUniswapV2 = await ethers.getContractFactory(
+      "SignerBondsUniswapV2"
+    )
+    signerBondsSwapStrategy = await SignerBondsUniswapV2.deploy(
+      uniswapV2Router.address,
+      coveragePool.address
+    )
+  }
   await signerBondsSwapStrategy.deployed()
 
   const Auction = await ethers.getContractFactory("Auction")
@@ -68,15 +79,6 @@ async function initContracts() {
     bondAuctionThreshold
   )
   await riskManagerV1.deployed()
-
-  const SignerBondsUniswapV2 = await ethers.getContractFactory(
-    "SignerBondsUniswapV2"
-  )
-  const signerBondsUniswapV2 = await SignerBondsUniswapV2.deploy(
-    uniswapV2Router.address,
-    coveragePool.address
-  )
-  await signerBondsUniswapV2.deployed()
 
   const thirdParty = await impersonateAccount(thirdPartyAddress)
   // Suppose a third party deploys an arbitrary deposit contract.
@@ -100,7 +102,6 @@ async function initContracts() {
     thirdPartyAccount: thirdParty,
     collateralToken: collateralToken,
     uniswapV2Router: uniswapV2Router,
-    signerBondsUniswapV2: signerBondsUniswapV2,
   }
 }
 
