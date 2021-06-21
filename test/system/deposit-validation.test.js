@@ -50,7 +50,6 @@ describeFn("System -- deposit validation", () => {
     fakeDeposit = contracts.fakeTbtcDeposit
 
     await underwriterToken.transferOwnership(assetPool.address)
-
     await assetPool.transferOwnership(coveragePool.address)
 
     await coveragePool

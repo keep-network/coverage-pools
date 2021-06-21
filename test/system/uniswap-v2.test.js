@@ -8,12 +8,12 @@ const describeFn =
 
 describeFn("System -- swap signer bonds on UniswapV2", () => {
   const startingBlock = 12521265
-
   let collateralToken
   let underwriterToken
   let assetPool
   let coveragePool
   let signerBondsUniswapV2
+  let riskManagerV1
 
   let thirdParty
 
@@ -21,7 +21,6 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     await resetFork(startingBlock)
 
     const governance = await ethers.getSigner(0)
-    const riskManager = await ethers.getSigner(2)
 
     const contracts = await initContracts()
     collateralToken = contracts.collateralToken
@@ -38,9 +37,15 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     await assetPool.connect(governance).transferOwnership(coveragePool.address)
 
     // Simulate that risk manager deposits signer bonds on the Uniswap strategy.
-    await signerBondsUniswapV2
-      .connect(riskManager)
-      .swapSignerBonds({ value: ethers.utils.parseEther("20") })
+    // await signerBondsUniswapV2
+    //   .connect(riskManager)
+    //   .swapSignerBonds({ value: ethers.utils.parseEther("20") })
+
+    // Simulate that risk manager has withdrawable signer bonds.
+    await governance.sendTransaction({
+      to: riskManagerV1.address,
+      value: ethers.utils.parseEther("20"),
+    })
   })
 
   describe("test initial state", () => {
@@ -50,10 +55,10 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
       })
     })
 
-    describe("swap strategy", () => {
+    describe("risk manager", () => {
       it("should have the signer bonds deposited", async () => {
         const balance = await (
-          await ethers.getSigner(signerBondsUniswapV2.address)
+          await ethers.getSigner(riskManagerV1.address)
         ).getBalance()
 
         expect(balance).to.equal(ethers.utils.parseEther("20"))
@@ -67,21 +72,21 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     before(async () => {
       tx = await signerBondsUniswapV2
         .connect(thirdParty)
-        .swapSignerBondsOnUniswapV2(ethers.utils.parseEther("10"), {
-          gasLimit: 185000,
-        })
+        .swapSignerBondsOnUniswapV2(
+          riskManagerV1.address,
+          ethers.utils.parseEther("10"),
+          {
+            gasLimit: 200000,
+          }
+        )
     })
 
-    it(
-      "should take the swapped amount from the swap strategy " +
-        "contract balance",
-      async () => {
-        await expect(tx).to.changeEtherBalance(
-          signerBondsUniswapV2,
-          ethers.utils.parseEther("-10")
-        )
-      }
-    )
+    it("should take the swapped amount from the risk manager contract balance", async () => {
+      await expect(tx).to.changeEtherBalance(
+        riskManagerV1,
+        ethers.utils.parseEther("-10")
+      )
+    })
 
     it("should send acquired tokens to the asset pool", async () => {
       // WETH_in = 10000000000000000000 (10 ETH)
@@ -108,10 +113,10 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.equal(185000)
+      await expect(parseInt(tx.gasLimit)).to.be.equal(200000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(160000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(175000)
     })
   })
 })

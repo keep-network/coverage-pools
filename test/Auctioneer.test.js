@@ -21,7 +21,7 @@ describe("Auctioneer", () => {
   let coveragePoolStub
   let testToken
 
-  before(async () => {
+  beforeEach(async () => {
     owner = await ethers.getSigner(0)
     bidder = await ethers.getSigner(1)
 
@@ -44,14 +44,12 @@ describe("Auctioneer", () => {
 
     testToken = await TestToken.deploy()
     await testToken.deployed()
-  })
 
-  beforeEach(async () => {
     await testToken.mint(bidder.address, testTokensToMint)
   })
 
   describe("createAuction", () => {
-    before(async () => {
+    beforeEach(async () => {
       const receipt = await createAuction()
       events = pastEvents(receipt, auctioneer, "AuctionCreated")
     })
@@ -61,6 +59,10 @@ describe("Auctioneer", () => {
         expect(
           await auctioneer.openAuctions(events[0].args["auctionAddress"])
         ).to.equal(true)
+      })
+
+      it("should increment the open auctions counter", async () => {
+        expect(await auctioneer.openAuctionsCount()).to.be.equal(1)
       })
 
       it("should emit auction created event", async () => {
@@ -240,6 +242,10 @@ describe("Auctioneer", () => {
       it("should stop tracking the auction", async () => {
         expect(await auctioneer.openAuctions(auctionAddress)).to.equal(false)
       })
+
+      it("should decrement the open auctions counter", async () => {
+        expect(await auctioneer.openAuctionsCount()).to.be.equal(0)
+      })
     })
   })
 
@@ -278,6 +284,12 @@ describe("Auctioneer", () => {
         await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
 
         expect(await auctioneer.openAuctions(auctionAddress)).to.be.false
+      })
+
+      it("should decrement the open auctions counter", async () => {
+        await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
+
+        expect(await auctioneer.openAuctionsCount()).to.be.equal(0)
       })
 
       it("should return the auction's transferred amount", async () => {
