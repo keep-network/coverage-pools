@@ -12,7 +12,7 @@ const { initContracts } = require("./init-contracts")
 const { underwriterAddress, bidderAddress1 } = require("./constants.js")
 
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
-const precision = to1ePrecision(1, 15) // 0.001 precision
+const precision = to1ePrecision(1, 16) // 0.01 precision
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
@@ -157,20 +157,20 @@ describeFn("System -- liquidation", () => {
 
     it("should transfer collateral tokens to the bidder", async () => {
       expect(await collateralToken.balanceOf(bidder.address)).to.be.closeTo(
-        to1e18(6),
+        to1e18(6), // 30% of the initial asset pool
         precision
       )
       expect(await collateralToken.balanceOf(assetPool.address)).to.be.closeTo(
-        to1e18(14),
+        to1e18(14), // 70% of the initial asset pool
         precision
       )
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(500000)
+      await expect(parseInt(tx.gasLimit)).to.be.lessThan(516000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(243000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(255000)
     })
   })
 })
