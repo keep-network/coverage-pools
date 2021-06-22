@@ -2,7 +2,9 @@ const {
   tbtcTokenAddress,
   keepTokenAddress,
   tbtcDepositTokenAddress,
-  depositAddress,
+  depositAddress1,
+  depositAddress2,
+  depositAddress3,
   thirdPartyAddress,
   uniswapV2RouterAddress,
 } = require("./constants.js")
@@ -33,7 +35,9 @@ async function initContracts(swapStrategy) {
     "IUniswapV2Router",
     uniswapV2RouterAddress
   )
-  const tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
+  const tbtcDeposit1 = await ethers.getContractAt("IDeposit", depositAddress1)
+  const tbtcDeposit2 = await ethers.getContractAt("IDeposit", depositAddress2)
+  const tbtcDeposit3 = await ethers.getContractAt("IDeposit", depositAddress3)
 
   const AssetPool = await ethers.getContractFactory("AssetPool")
   const assetPool = await AssetPool.deploy(
@@ -97,7 +101,9 @@ async function initContracts(swapStrategy) {
     signerBondsSwapStrategy: signerBondsSwapStrategy,
     coveragePool: coveragePool,
     riskManagerV1: riskManagerV1,
-    tbtcDeposit: tbtcDeposit,
+    tbtcDeposit1: tbtcDeposit1,
+    tbtcDeposit2: tbtcDeposit2,
+    tbtcDeposit3: tbtcDeposit3,
     fakeTbtcDeposit: fakeTbtcDeposit,
     thirdPartyAccount: thirdParty,
     collateralToken: collateralToken,

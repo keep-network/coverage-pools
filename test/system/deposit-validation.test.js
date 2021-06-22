@@ -5,7 +5,7 @@ const {
   ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 const { initContracts } = require("./init-contracts")
-const { bidderAddress } = require("./constants.js")
+const { bidderAddress1 } = require("./constants.js")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
@@ -45,7 +45,7 @@ describeFn("System -- deposit validation", () => {
     signerBondsSwapStrategy = contracts.signerBondsSwapStrategy
     coveragePool = contracts.coveragePool
     riskManagerV1 = contracts.riskManagerV1
-    tbtcDeposit = contracts.tbtcDeposit
+    tbtcDeposit1 = contracts.tbtcDeposit1
     thirdParty = contracts.thirdPartyAccount
     fakeDeposit = contracts.fakeTbtcDeposit
 
@@ -56,7 +56,7 @@ describeFn("System -- deposit validation", () => {
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
 
-    bidder = await impersonateAccount(bidderAddress)
+    bidder = await impersonateAccount(bidderAddress1)
   })
 
   describe("test initial state", () => {
