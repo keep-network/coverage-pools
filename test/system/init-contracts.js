@@ -14,9 +14,9 @@ const {
   impersonateAccount,
 } = require("../helpers/contract-test-helpers")
 
-// Only deposits with at least 75% of bonds offered on bond auction will be
+// Only deposits with at least 66% of bonds offered on bond auction will be
 // accepted by the risk manager.
-const defaultBondAuctionThreshold = 75
+const defaultBondAuctionThreshold = 66
 let bondAuctionThreshold = defaultBondAuctionThreshold
 
 // Can overrite the default value for testing purposes
@@ -90,7 +90,7 @@ async function initContracts(swapStrategy) {
     bondAuctionThreshold
   )
   await riskManagerV1.deployed()
-  // reset to default value, since most of the tests use 75% threshold
+  // reset to default value, since most of the tests use 66% threshold
   bondAuctionThreshold = defaultBondAuctionThreshold
 
   const thirdParty = await impersonateAccount(thirdPartyAddress)
