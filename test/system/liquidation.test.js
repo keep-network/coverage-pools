@@ -128,7 +128,7 @@ describeFn("System -- liquidation", () => {
       await assetPool.connect(underwriter).deposit(collateralAmount)
 
       // Wait 30% of the auction length and take offer
-      await increaseTime((await riskManagerV1.auctionLength()) * 0.3)
+      await increaseTime(25920)
       tx = await auction.takeOffer(lotSize)
     })
 
@@ -144,18 +144,15 @@ describeFn("System -- liquidation", () => {
       // Deposit has been liquidated.
       expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
 
-      // The percentage of signer bonds that should land on the risk manager
-      // contract consists of:
-      // * the initial 66%
-      // * portion of the remaining 34% depending on how much auction length
-      //   passed since notified liquidation and offer taken:
-      // The percentage is therefore equal to:
-      // (66 + 34 * ((25920 + 22870)/86400)) = 85.1997685185
-      const expectedBondsAmount = bondedAmount
-        .mul(851997685185)
-        .div(1000000000000)
-
-        await expect(tx).to.changeEtherBalance(riskManagerV1, expectedBondsAmount)
+      // The percentage of signer bonds that should be sent to the risk manager
+      // contract consists of the initial 66% and a portion of the remaining 34%
+      // that depends on the time passed before take offer. The percentage
+      // (rounded to the whole number) is therefore equal to:
+      // (66 + 34 * ((25920 + 22870)/86400)) = 85
+      await expect(tx).to.changeEtherBalance(
+        riskManagerV1,
+        bondedAmount.mul(85).div(100)
+      )
     })
 
     it("should transfer collateral tokens to the bidder", async () => {
