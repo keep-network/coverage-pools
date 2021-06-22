@@ -4,6 +4,7 @@ module.exports.tbtcDepositTokenAddress =
   "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
 // https://allthekeeps.com/deposit/0x55d8b1dd88e60d12c81b5479186c15d07555db9d)
 module.exports.depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
+module.exports.underwriterAddress = "0x5203aeaaee721195707b01e613b6c3259b3a5cf6"
 module.exports.bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
 module.exports.thirdPartyAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
 module.exports.uniswapV2RouterAddress =

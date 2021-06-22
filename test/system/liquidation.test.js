@@ -2,16 +2,17 @@ const { expect } = require("chai")
 const { BigNumber } = ethers
 const {
   to1e18,
+  to1ePrecision,
   impersonateAccount,
   resetFork,
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
 const { initContracts } = require("./init-contracts")
-const { bidderAddress } = require("./constants.js")
+const { underwriterAddress, bidderAddress } = require("./constants.js")
 
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
-
+const precision = to1ePrecision(1, 15) // 0.001 precision
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
@@ -31,10 +32,11 @@ describeFn("System -- liquidation", () => {
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
   const bondedAmount = BigNumber.from("290810391624000000000")
-  // 75% of the deposit is exposed on auction in the liquidation moment
-  const bondedAmountPercentage = BigNumber.from("75")
+  // amount of collateral deposited to asset pool is 20 KEEPS
+  const collateralAmount = to1e18(20)
 
   let tbtcToken
+  let collateralToken
   let underwriterToken
   let assetPool
   let coveragePool
@@ -51,6 +53,7 @@ describeFn("System -- liquidation", () => {
 
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
+    collateralToken = contracts.collateralToken
     underwriterToken = contracts.underwriterToken
     assetPool = contracts.assetPool
     signerBondsSwapStrategy = contracts.signerBondsSwapStrategy
@@ -65,6 +68,7 @@ describeFn("System -- liquidation", () => {
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
 
+    underwriter = await impersonateAccount(underwriterAddress)
     bidder = await impersonateAccount(bidderAddress)
   })
 
@@ -116,6 +120,15 @@ describeFn("System -- liquidation", () => {
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
       bidderInitialBalance = await tbtcToken.balanceOf(bidder.address)
+
+      // Deposit collateral tokens in the asset pool
+      await collateralToken
+        .connect(underwriter)
+        .approve(assetPool.address, collateralAmount)
+      await assetPool.connect(underwriter).deposit(collateralAmount)
+
+      // Wait 30% of the auction length and take offer
+      await increaseTime((await riskManagerV1.auctionLength()) * 0.3)
       tx = await auction.takeOffer(lotSize)
     })
 
@@ -131,10 +144,28 @@ describeFn("System -- liquidation", () => {
       // Deposit has been liquidated.
       expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
 
-      // Signer bonds should land on the risk manager contract.
-      await expect(tx).to.changeEtherBalance(
-        riskManagerV1,
-        bondedAmount.mul(bondedAmountPercentage).div(100)
+      // The percentage of signer bonds that should land on the risk manager
+      // contract consists of:
+      // * the initial 66%
+      // * portion of the remaining 34% depending on how much auction length
+      //   passed since notified liquidation and offer taken:
+      // The percentage is therefore equal to:
+      // (66 + 34 * ((25920 + 22870)/86400)) = 85.1997685185
+      const expectedBondsAmount = bondedAmount
+        .mul(851997685185)
+        .div(1000000000000)
+
+        await expect(tx).to.changeEtherBalance(riskManagerV1, expectedBondsAmount)
+    })
+
+    it("should transfer collateral tokens to the bidder", async () => {
+      expect(await collateralToken.balanceOf(bidder.address)).to.be.closeTo(
+        to1e18(6),
+        precision
+      )
+      expect(await collateralToken.balanceOf(assetPool.address)).to.be.closeTo(
+        to1e18(14),
+        precision
       )
     })
 
