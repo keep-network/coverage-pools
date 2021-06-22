@@ -9,7 +9,7 @@ const {
   increaseTime,
 } = require("../helpers/contract-test-helpers")
 const { initContracts } = require("./init-contracts")
-const { underwriterAddress, bidderAddress } = require("./constants.js")
+const { underwriterAddress, bidderAddress1 } = require("./constants.js")
 
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 const precision = to1ePrecision(1, 15) // 0.001 precision
@@ -41,7 +41,7 @@ describeFn("System -- liquidation", () => {
   let assetPool
   let coveragePool
   let riskManagerV1
-  let tbtcDeposit
+  let tbtcDeposit1
 
   let governance
   let bidder
@@ -59,7 +59,7 @@ describeFn("System -- liquidation", () => {
     signerBondsSwapStrategy = contracts.signerBondsSwapStrategy
     coveragePool = contracts.coveragePool
     riskManagerV1 = contracts.riskManagerV1
-    tbtcDeposit = contracts.tbtcDeposit
+    tbtcDeposit1 = contracts.tbtcDeposit1
 
     await underwriterToken.transferOwnership(assetPool.address)
     await assetPool.transferOwnership(coveragePool.address)
@@ -69,20 +69,20 @@ describeFn("System -- liquidation", () => {
       .approveFirstRiskManager(riskManagerV1.address)
 
     underwriter = await impersonateAccount(underwriterAddress)
-    bidder = await impersonateAccount(bidderAddress)
+    bidder = await impersonateAccount(bidderAddress1)
   })
 
   describe("test initial state", () => {
     describe("deposit", () => {
       it("should be in active state", async () => {
-        expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+        expect(await tbtcDeposit1.currentState()).to.equal(5) // Active
       })
     })
 
     describe("auction", () => {
       it("should not exist", async () => {
         const auctionAddress = await riskManagerV1.depositToAuction(
-          tbtcDeposit.address
+          tbtcDeposit1.address
         )
         expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
       })
@@ -95,13 +95,13 @@ describeFn("System -- liquidation", () => {
     let bidderInitialBalance
 
     before(async () => {
-      await tbtcDeposit.notifyRedemptionSignatureTimedOut()
+      await tbtcDeposit1.notifyRedemptionSignatureTimedOut()
 
       // The deposit's auction must offer at least 75% of bonds to be accepted
       // by the risk manager. At starting block, the deposit's auction exposes
       // 66% so an immediate `notifyLiquidation` must revert.
       await expect(
-        riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+        riskManagerV1.notifyLiquidation(tbtcDeposit1.address)
       ).to.revertedWith(
         "Deposit bond auction percentage is below the threshold level"
       )
@@ -112,10 +112,10 @@ describeFn("System -- liquidation", () => {
       // So, additional 9% will be offered after 9/34 * 86400s.
       await increaseTime(22870)
 
-      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+      await riskManagerV1.notifyLiquidation(tbtcDeposit1.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
+        tbtcDeposit1.address
       )
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
@@ -142,7 +142,7 @@ describeFn("System -- liquidation", () => {
       expect(bidderInitialBalance.sub(bidderCurrentBalance)).to.equal(lotSize)
 
       // Deposit has been liquidated.
-      expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
+      expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
 
       // The percentage of signer bonds that should land on the risk manager
       // contract consists of:
@@ -170,10 +170,10 @@ describeFn("System -- liquidation", () => {
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(483000)
+      await expect(parseInt(tx.gasLimit)).to.be.lessThan(500000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(238000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(243000)
     })
   })
 })

@@ -12,13 +12,12 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CoveragePool.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
@@ -27,8 +26,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
 contract Auctioneer is CloneFactory {
-    using SafeMath for uint256;
-
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
     address public masterAuction;
@@ -103,7 +100,7 @@ contract Auctioneer is CloneFactory {
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
-            openAuctionsCount = openAuctionsCount.sub(1);
+            openAuctionsCount -= 1;
         }
     }
 
@@ -132,7 +129,7 @@ contract Auctioneer is CloneFactory {
         );
 
         openAuctions[cloneAddress] = true;
-        openAuctionsCount = openAuctionsCount.add(1);
+        openAuctionsCount += 1;
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -162,7 +159,7 @@ contract Auctioneer is CloneFactory {
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
-        openAuctionsCount = openAuctionsCount.sub(1);
+        openAuctionsCount -= 1;
 
         return amountTransferred;
     }
