@@ -6,7 +6,7 @@ const {
   ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
-const { initContracts, setBondAuctionThreshold } = require("./init-contracts")
+const { initContracts } = require("./init-contracts")
 const { bidderAddress1 } = require("./constants.js")
 
 const describeFn =
@@ -26,8 +26,6 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
   const startingBlock = 12368838
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
-  // Set to 66% as TBTC will offer 66,6667% of signer bonds after auction opening
-  const bondAuctionThreshold = 66
 
   let tbtcToken
   let underwriterToken
@@ -44,7 +42,6 @@ describeFn("System -- deposit liquidated outside Coverage Pools", () => {
 
     governance = await ethers.getSigner(0)
 
-    setBondAuctionThreshold(bondAuctionThreshold)
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
     underwriterToken = contracts.underwriterToken
