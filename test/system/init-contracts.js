@@ -14,11 +14,18 @@ const {
   impersonateAccount,
 } = require("../helpers/contract-test-helpers")
 
+// Only deposits with at least 75% of bonds offered on bond auction will be
+// accepted by the risk manager.
+const defaultBondAuctionThreshold = 75
+let bondAuctionThreshold = defaultBondAuctionThreshold
+
+// Can overrite the default value for testing purposes
+function setBondAuctionThreshold(newThreshold) {
+  bondAuctionThreshold = newThreshold
+}
+
 async function initContracts(swapStrategy) {
   const auctionLength = 86400 // 24h
-  // Only deposits with at least 75% of bonds offered on bond auction will be
-  // accepted by the risk manager.
-  const bondAuctionThreshold = 75
 
   const rewardsManager = await ethers.getSigner(1)
 
@@ -83,6 +90,8 @@ async function initContracts(swapStrategy) {
     bondAuctionThreshold
   )
   await riskManagerV1.deployed()
+  // reset to default value, since most of the tests use 75% threshold
+  bondAuctionThreshold = defaultBondAuctionThreshold
 
   const thirdParty = await impersonateAccount(thirdPartyAddress)
   // Suppose a third party deploys an arbitrary deposit contract.
@@ -112,3 +121,4 @@ async function initContracts(swapStrategy) {
 }
 
 module.exports.initContracts = initContracts
+module.exports.setBondAuctionThreshold = setBondAuctionThreshold
