@@ -175,7 +175,7 @@ contract AssetPool is Ownable, IAssetPool {
             "Underwriter token amount must be greater than 0"
         );
 
-        pending = pending + covAmount;
+        pending += covAmount;
         pendingWithdrawal[msg.sender] = pending;
         /* solhint-disable not-rely-on-time */
         withdrawalInitiatedTimestamp[msg.sender] = block.timestamp;

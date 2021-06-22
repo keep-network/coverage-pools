@@ -100,7 +100,7 @@ contract Auctioneer is CloneFactory {
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
-            openAuctionsCount = openAuctionsCount - 1;
+            openAuctionsCount -= 1;
         }
     }
 
@@ -129,7 +129,7 @@ contract Auctioneer is CloneFactory {
         );
 
         openAuctions[cloneAddress] = true;
-        openAuctionsCount = openAuctionsCount + 1;
+        openAuctionsCount += 1;
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -159,7 +159,7 @@ contract Auctioneer is CloneFactory {
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
-        openAuctionsCount = openAuctionsCount - 1;
+        openAuctionsCount -= 1;
 
         return amountTransferred;
     }

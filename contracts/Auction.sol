@@ -173,7 +173,7 @@ contract Auction is IAuction {
                 (self.auctionLength - self.startTimeOffset);
         }
 
-        self.amountOutstanding = self.amountOutstanding - amountToTransfer;
+        self.amountOutstanding -= amountToTransfer;
 
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all

@@ -199,7 +199,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         // If the surplus can cover the deposit liquidation cost, liquidate
         // that deposit directly without the auction process.
         if (tbtcSurplus >= lotSizeTbtc) {
-            tbtcSurplus = tbtcSurplus - lotSizeTbtc;
+            tbtcSurplus -= lotSizeTbtc;
             liquidateDeposit(deposit);
             return;
         }
@@ -234,7 +234,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         // Add auction's transferred amount to the surplus pool.
         // slither-disable-next-line reentrancy-benign
-        tbtcSurplus = tbtcSurplus + amountTransferred;
+        tbtcSurplus += amountTransferred;
     }
 
     /// @notice Begins the bond auction threshold update process.
