@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "../SignerBondsUniswapV2.sol";
 
 contract UniswapV2RouterStub is IUniswapV2Router {
-    using SafeMath for uint256;
-
     // Settable fake exchange rate is defined here to avoid pair logic complexity.
     // It determines how much tokens can be received for 1 ETH.
     uint256 public exchangeRate = 1;
@@ -37,7 +35,7 @@ contract UniswapV2RouterStub is IUniswapV2Router {
 
         amounts = new uint256[](2);
         amounts[0] = msg.value;
-        amounts[1] = msg.value.mul(exchangeRate).mul(997).div(1000); // simulate 0.3% fee
+        amounts[1] = (msg.value * exchangeRate * 997) / 1000; // simulate 0.3% fee
 
         return amounts;
     }
@@ -51,7 +49,7 @@ contract UniswapV2RouterStub is IUniswapV2Router {
     ) external view override returns (uint256[] memory amounts) {
         amounts = new uint256[](2);
         amounts[0] = amountIn;
-        amounts[1] = amountIn.mul(exchangeRate).mul(997).div(1000); // simulate 0.3% fee
+        amounts[1] = (amountIn * exchangeRate * 997) / 1000; // simulate 0.3% fee
 
         return amounts;
     }
