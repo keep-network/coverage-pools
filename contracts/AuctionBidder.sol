@@ -12,19 +12,16 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./Auction.sol";
 import "./CoveragePool.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 /// @title AuctionBidder
 /// @notice A contract for auction bidders for buying coverage pool auctions. This
 ///         contract offers additional features for bidders to decide if their
 ///         requirements for making a purchase are satisfied.
 contract AuctionBidder {
-    using SafeMath for uint256;
-
     CoveragePool public coveragePool;
 
     constructor(CoveragePool _coveragePool) {
@@ -56,7 +53,7 @@ contract AuctionBidder {
         uint256 amountToPay = Math.min(amount, auctionAmountOutstanding);
         (uint256 amountOnOffer, ) = auction.onOffer();
         uint256 portionToSeize =
-            amountOnOffer.mul(amountToPay).div(auctionAmountOutstanding);
+            (amountOnOffer * amountToPay) / auctionAmountOutstanding;
 
         uint256 amountToSeize = coveragePool.amountToSeize(portionToSeize);
 

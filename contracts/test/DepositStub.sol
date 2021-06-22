@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../RiskManagerV1.sol";
 
@@ -75,15 +75,21 @@ contract DepositStub is IDeposit {
         currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
 
-    function withdrawableAmount() external view override returns (uint256) {
-        return address(this).balance;
-    }
-
-    //
-    // Not in tBTC deposit interface, functions below were added just for tests.
-    //
-
+    ///
+    /// Not in tBTC deposit interface, added just for tests.
+    ///
     function setAuctionValue(uint256 _auctionValue) external {
         auctionValue = _auctionValue;
+    }
+
+    ///
+    /// Not in tBTC deposit interface, added just for tests.
+    ///
+    function notifyFraud() external {
+        currentState = uint256(States.FRAUD_LIQUIDATION_IN_PROGRESS);
+    }
+
+    function withdrawableAmount() external view override returns (uint256) {
+        return address(this).balance;
     }
 }

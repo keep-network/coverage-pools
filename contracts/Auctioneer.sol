@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
@@ -30,6 +30,7 @@ contract Auctioneer is CloneFactory {
     // which will be used as a master contract for cloning.
     address public masterAuction;
     mapping(address => bool) public openAuctions;
+    uint256 public openAuctionsCount;
 
     CoveragePool public coveragePool;
 
@@ -89,7 +90,7 @@ contract Auctioneer is CloneFactory {
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         //
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
         if (auction.isOpen()) {
@@ -99,6 +100,7 @@ contract Auctioneer is CloneFactory {
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
+            openAuctionsCount -= 1;
         }
     }
 
@@ -127,6 +129,7 @@ contract Auctioneer is CloneFactory {
         );
 
         openAuctions[cloneAddress] = true;
+        openAuctionsCount += 1;
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -151,11 +154,12 @@ contract Auctioneer is CloneFactory {
 
         uint256 amountTransferred = auction.amountTransferred();
 
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         auction.earlyClose();
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
+        openAuctionsCount -= 1;
 
         return amountTransferred;
     }

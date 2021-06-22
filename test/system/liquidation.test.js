@@ -7,6 +7,9 @@ const {
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
+const { initContracts } = require("./init-contracts")
+const { bidderAddress1 } = require("./constants.js")
+
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 
 const describeFn =
@@ -24,15 +27,6 @@ const describeFn =
 // swap strategy contract.
 describeFn("System -- liquidation", () => {
   const startingBlock = 12368838
-  const tbtcTokenAddress = "0x8daebade922df735c38c80c7ebd708af50815faa"
-  const depositAddress = "0x55d8b1dd88e60d12c81b5479186c15d07555db9d"
-  const bidderAddress = "0xa0216ED2202459068a750bDf74063f677613DA34"
-  const keepTokenAddress = "0x85Eee30c52B0b379b046Fb0F85F4f3Dc3009aFEC"
-  const tbtcDepositTokenAddress = "0x10b66bd1e3b5a936b7f8dbc5976004311037cdf0"
-  const auctionLength = 86400 // 24h
-  // Only deposits with at least 75% of bonds offered on bond auction will be
-  // accepted by the risk manager.
-  const bondAuctionThreshold = 75
   // deposit lot size is 5 BTC
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
@@ -43,82 +37,48 @@ describeFn("System -- liquidation", () => {
   let tbtcToken
   let underwriterToken
   let assetPool
-  let signerBondsSwapStrategy
   let coveragePool
   let riskManagerV1
-  let tbtcDeposit
+  let tbtcDeposit1
 
   let governance
-  let rewardsManager
   let bidder
 
   before(async () => {
     await resetFork(startingBlock)
 
     governance = await ethers.getSigner(0)
-    rewardsManager = await ethers.getSigner(1)
 
-    tbtcToken = await ethers.getContractAt("IERC20", tbtcTokenAddress)
+    const contracts = await initContracts("SignerBondsManualSwap")
+    tbtcToken = contracts.tbtcToken
+    underwriterToken = contracts.underwriterToken
+    assetPool = contracts.assetPool
+    signerBondsSwapStrategy = contracts.signerBondsSwapStrategy
+    coveragePool = contracts.coveragePool
+    riskManagerV1 = contracts.riskManagerV1
+    tbtcDeposit1 = contracts.tbtcDeposit1
 
-    const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
-    underwriterToken = await UnderwriterToken.deploy("Coverage KEEP", "covKEEP")
-    await underwriterToken.deployed()
-
-    const AssetPool = await ethers.getContractFactory("AssetPool")
-    assetPool = await AssetPool.deploy(
-      keepTokenAddress,
-      underwriterToken.address,
-      rewardsManager.address
-    )
-    await assetPool.deployed()
     await underwriterToken.transferOwnership(assetPool.address)
-
-    const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
-    )
-    signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
-    await signerBondsSwapStrategy.deployed()
-
-    const Auction = await ethers.getContractFactory("Auction")
-
-    const masterAuction = await Auction.deploy()
-    await masterAuction.deployed()
-
-    const CoveragePool = await ethers.getContractFactory("CoveragePool")
-    coveragePool = await CoveragePool.deploy(assetPool.address)
-    await coveragePool.deployed()
     await assetPool.transferOwnership(coveragePool.address)
 
-    const RiskManagerV1 = await ethers.getContractFactory("RiskManagerV1")
-    riskManagerV1 = await RiskManagerV1.deploy(
-      tbtcToken.address,
-      tbtcDepositTokenAddress,
-      coveragePool.address,
-      signerBondsSwapStrategy.address,
-      masterAuction.address,
-      auctionLength,
-      bondAuctionThreshold
-    )
-    await riskManagerV1.deployed()
     await coveragePool
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
 
-    tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
-    bidder = await impersonateAccount(bidderAddress)
+    bidder = await impersonateAccount(bidderAddress1)
   })
 
   describe("test initial state", () => {
     describe("deposit", () => {
       it("should be in active state", async () => {
-        expect(await tbtcDeposit.currentState()).to.equal(5) // Active
+        expect(await tbtcDeposit1.currentState()).to.equal(5) // Active
       })
     })
 
     describe("auction", () => {
       it("should not exist", async () => {
         const auctionAddress = await riskManagerV1.depositToAuction(
-          tbtcDeposit.address
+          tbtcDeposit1.address
         )
         expect(auctionAddress).to.be.equal(ZERO_ADDRESS)
       })
@@ -131,13 +91,13 @@ describeFn("System -- liquidation", () => {
     let bidderInitialBalance
 
     before(async () => {
-      await tbtcDeposit.notifyRedemptionSignatureTimedOut()
+      await tbtcDeposit1.notifyRedemptionSignatureTimedOut()
 
       // The deposit's auction must offer at least 75% of bonds to be accepted
       // by the risk manager. At starting block, the deposit's auction exposes
       // 66% so an immediate `notifyLiquidation` must revert.
       await expect(
-        riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+        riskManagerV1.notifyLiquidation(tbtcDeposit1.address)
       ).to.revertedWith(
         "Deposit bond auction percentage is below the threshold level"
       )
@@ -148,10 +108,10 @@ describeFn("System -- liquidation", () => {
       // So, additional 9% will be offered after 9/34 * 86400s.
       await increaseTime(22870)
 
-      await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+      await riskManagerV1.notifyLiquidation(tbtcDeposit1.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
-        tbtcDeposit.address
+        tbtcDeposit1.address
       )
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
@@ -169,25 +129,20 @@ describeFn("System -- liquidation", () => {
       expect(bidderInitialBalance.sub(bidderCurrentBalance)).to.equal(lotSize)
 
       // Deposit has been liquidated.
-      expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
-    })
+      expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
 
-    it("should swap signer bonds", async () => {
-      // No funds should last on the risk manager contract.
-      await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
-
-      // All funds should be moved to the signer bonds swap strategy contract.
+      // Signer bonds should land on the risk manager contract.
       await expect(tx).to.changeEtherBalance(
-        signerBondsSwapStrategy,
+        riskManagerV1,
         bondedAmount.mul(bondedAmountPercentage).div(100)
       )
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(485000)
+      await expect(parseInt(tx.gasLimit)).to.be.lessThan(500000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(240000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(243000)
     })
   })
 })

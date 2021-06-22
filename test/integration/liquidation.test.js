@@ -14,7 +14,7 @@ describe("Integration -- liquidation", () => {
   let signerBondsSwapStrategy
   let coveragePool
   let riskManagerV1
-  let tbtcDeposit
+  let tbtcDeposit1
 
   let owner
   let bidder
@@ -38,7 +38,7 @@ describe("Integration -- liquidation", () => {
     await mockTbtcDepositToken.mock.exists.returns(true)
 
     const SignerBondsSwapStrategy = await ethers.getContractFactory(
-      "SignerBondsEscrow"
+      "SignerBondsManualSwap"
     )
     signerBondsSwapStrategy = await SignerBondsSwapStrategy.deploy()
     await signerBondsSwapStrategy.deployed()
@@ -65,12 +65,12 @@ describe("Integration -- liquidation", () => {
     await riskManagerV1.deployed()
 
     const DepositStub = await ethers.getContractFactory("DepositStub")
-    tbtcDeposit = await DepositStub.deploy(tbtcToken.address, lotSize)
-    await tbtcDeposit.deployed()
-    await tbtcDeposit.setAuctionValue(bondedAmount)
+    tbtcDeposit1 = await DepositStub.deploy(tbtcToken.address, lotSize)
+    await tbtcDeposit1.deployed()
+    await tbtcDeposit1.setAuctionValue(bondedAmount)
 
     await owner.sendTransaction({
-      to: tbtcDeposit.address,
+      to: tbtcDeposit1.address,
       value: bondedAmount,
     })
 
@@ -95,40 +95,18 @@ describe("Integration -- liquidation", () => {
       // Auction bidder has spend their TBTC
       expect(await tbtcToken.balanceOf(bidder.address)).to.equal(0)
       // Deposit has been liquidated
-      expect(await tbtcDeposit.currentState()).to.equal(11) // LIQUIDATED
-    })
-
-    it("should swap signer bonds", async () => {
-      await expect(tx).to.changeEtherBalance(riskManagerV1, 0)
-      await expect(tx).to.changeEtherBalance(
-        signerBondsSwapStrategy,
-        bondedAmount
-      )
-    })
-  })
-
-  describe("when deposit has been liquidated by someone else", () => {
-    let auction
-    beforeEach(async () => {
-      auction = await prepareAuction()
-      // simulate deposit state change outside Coverage Pools
-      await tbtcToken.connect(thirdParty).approve(tbtcDeposit.address, lotSize)
-      await tbtcDeposit.connect(thirdParty).purchaseSignerBondsAtAuction()
-    })
-
-    it("should revert", async () => {
-      await expect(auction.takeOffer(lotSize.div(2))).to.be.revertedWith(
-        "Deposit liquidation is not in progress"
-      )
+      expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
+      // Signer bonds should land on risk manager contract
+      await expect(tx).to.changeEtherBalance(riskManagerV1, bondedAmount)
     })
   })
 
   async function prepareAuction() {
-    await tbtcDeposit.notifyUndercollateralizedLiquidation()
-    await riskManagerV1.notifyLiquidation(tbtcDeposit.address)
+    await tbtcDeposit1.notifyUndercollateralizedLiquidation()
+    await riskManagerV1.notifyLiquidation(tbtcDeposit1.address)
 
     const auctionAddress = await riskManagerV1.depositToAuction(
-      tbtcDeposit.address
+      tbtcDeposit1.address
     )
     const auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
     await tbtcToken.connect(bidder).approve(auction.address, lotSize)

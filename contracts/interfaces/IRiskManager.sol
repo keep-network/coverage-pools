@@ -14,9 +14,13 @@
 
 pragma solidity 0.8.4;
 
-interface IAssetPoolUpgrade {
-    /// @notice Accepts the given underwriter with collateral tokens amount as a
-    ///         deposit. In exchange new underwriter tokens will be calculated,
-    ///         minted and then transferred back to the underwriter.
-    function depositFor(address underwriter, uint256 amount) external;
+/// @title IRiskManager
+interface IRiskManager {
+    /// @notice Withdraws the given amount of accumulated signer bonds.
+    /// @param amount Amount of signer bonds being withdrawn.
+    function withdrawSignerBonds(uint256 amount) external;
+
+    /// @return True if there are open auctions managed by the risk manager.
+    ///         Returns false otherwise.
+    function hasOpenAuctions() external view returns (bool);
 }

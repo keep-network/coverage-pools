@@ -12,14 +12,14 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./AssetPool.sol";
 import "./CoveragePoolConstants.sol";
+import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/IAssetPoolUpgrade.sol";
 
@@ -30,8 +30,6 @@ import "./interfaces/IAssetPoolUpgrade.sol";
 /// @dev Coverage pool contract is owned by the governance. Coverage pool is the
 ///      owner of the asset pool contract.
 contract CoveragePool is Ownable {
-    using SafeMath for uint256;
-
     AssetPool public assetPool;
     IERC20 public collateralToken;
 
@@ -41,16 +39,10 @@ contract CoveragePool is Ownable {
     mapping(address => bool) public approvedRiskManagers;
     // Timestamps of risk managers whose approvals have been initiated
     mapping(address => uint256) public riskManagerApprovalTimestamps;
-    // Timestamps of risk managers whose unapprovals have been initiated
-    mapping(address => uint256) public riskManagerUnapprovalTimestamps;
 
     event RiskManagerApprovalStarted(address riskManager, uint256 timestamp);
     event RiskManagerApprovalCompleted(address riskManager, uint256 timestamp);
-    event RiskManagerUnapprovalStarted(address riskManager, uint256 timestamp);
-    event RiskManagerUnapprovalCompleted(
-        address riskManager,
-        uint256 timestamp
-    );
+    event RiskManagerUnapproved(address riskManager, uint256 timestamp);
 
     /// @notice Reverts if called by a risk manager that is not approved
     modifier onlyApprovedRiskManager() {
@@ -102,8 +94,8 @@ contract CoveragePool is Ownable {
         );
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(riskManagerApprovalTimestamps[riskManager]) >=
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
+            block.timestamp - riskManagerApprovalTimestamps[riskManager] >=
+                assetPool.withdrawalGovernanceDelay(),
             "Risk manager governance delay has not elapsed"
         );
         approvedRiskManagers[riskManager] = true;
@@ -112,46 +104,67 @@ contract CoveragePool is Ownable {
         delete riskManagerApprovalTimestamps[riskManager];
     }
 
-    /// @notice Begins risk manager unapproval process.
-    /// @dev Can be called only by the contract owner. For a risk manager to be
-    ///      unapproved, a call to `finalizeRiskManagerUnapproval` must follow
-    ///      (after a governance delay). Can only be called on a risk manager
-    ///      that is approved.
+    /// @notice Unapproves the risk manager. The change takes effect immediately.
+    /// @dev Can be called only by the contract owner.
     /// @param riskManager Risk manager that will be unapproved.
-    function beginRiskManagerUnapproval(address riskManager)
-        external
-        onlyOwner
-    {
-        require(approvedRiskManagers[riskManager], "Risk manager not approved");
+    function unapproveRiskManager(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
-        riskManagerUnapprovalTimestamps[riskManager] = block.timestamp;
-        /* solhint-disable-next-line not-rely-on-time */
-        emit RiskManagerUnapprovalStarted(riskManager, block.timestamp);
+        emit RiskManagerUnapproved(riskManager, block.timestamp);
+        delete approvedRiskManagers[riskManager];
     }
 
-    /// @notice Finalizes risk manager unapproval process.
-    /// @dev Can be called only by the contract owner. Must be preceded with a
-    ///      call to `beginRiskManagerUnapproval` and a governance delay must
-    ///      elapse.
-    /// @param riskManager Risk manager that will be unapproved.
-    function finalizeRiskManagerUnapproval(address riskManager)
+    /// @notice Approves upgradeability of a new asset pool.
+    /// @param _newAssetPool New asset pool
+    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
         external
         onlyOwner
     {
-        require(
-            riskManagerUnapprovalTimestamps[riskManager] > 0,
-            "Risk manager unapproval not initiated"
-        );
-        require(
-            /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(riskManagerUnapprovalTimestamps[riskManager]) >=
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-            "Risk manager governance delay has not elapsed"
-        );
-        /* solhint-disable-next-line not-rely-on-time */
-        emit RiskManagerUnapprovalCompleted(riskManager, block.timestamp);
-        delete riskManagerUnapprovalTimestamps[riskManager];
-        delete approvedRiskManagers[riskManager];
+        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
+    }
+
+    /// @notice Lets the governance to begin an update of withdrawal delay
+    ///         paramter value. Withdrawal delay is the time it takes the
+    ///         underwriter to withdraw their collateral and rewards from the
+    ///         pool. This is the time that needs to pass between initiating and
+    ///         completing the withdrawal. The change needs to be finalized with
+    ///         a call to finalizeWithdrawalDelayUpdate after the required
+    ///         governance delay passes.
+    /// @param newWithdrawalDelay The new value of withdrawal delay
+    function beginWithdrawalDelayUpdate(uint256 newWithdrawalDelay)
+        external
+        onlyOwner
+    {
+        assetPool.beginWithdrawalDelayUpdate(newWithdrawalDelay);
+    }
+
+    /// @notice Lets the governance to finalize an update of withdrawal
+    ///         delay parameter value. This call has to be preceded with
+    ///         a call to beginWithdrawalDelayUpdate and the governance delay
+    ///         has to pass.
+    function finalizeWithdrawalDelayUpdate() external onlyOwner {
+        assetPool.finalizeWithdrawalDelayUpdate();
+    }
+
+    /// @notice Lets the governance to begin an update of withdrawal timeout
+    ///         parmeter value. The withdrawal timeout is the time the
+    ///         underwriter has - after the withdrawal delay passed - to
+    ///         complete the withdrawal. The change needs to be finalized with
+    ///         a call to finalizeWithdrawalTimeoutUpdate after the required
+    ///         governance delay passes.
+    /// @param  newWithdrawalTimeout The new value of the withdrawal timeout.
+    function beginWithdrawalTimeoutUpdate(uint256 newWithdrawalTimeout)
+        external
+        onlyOwner
+    {
+        assetPool.beginWithdrawalTimeoutUpdate(newWithdrawalTimeout);
+    }
+
+    /// @notice Lets the governance to finalize an update of withdrawal
+    ///         timeout parameter value. This call has to be preceded with
+    ///         a call to beginWithdrawalTimeoutUpdate and the governance delay
+    ///         has to pass.
+    function finalizeWithdrawalTimeoutUpdate() external onlyOwner {
+        assetPool.finalizeWithdrawalTimeoutUpdate();
     }
 
     /// @notice Seizes funds from the coverage pool and puts them aside for the
@@ -166,31 +179,13 @@ contract CoveragePool is Ownable {
         external
         onlyApprovedRiskManager
     {
+        require(
+            portionToSeize > 0 &&
+                portionToSeize <= CoveragePoolConstants.FLOATING_POINT_DIVISOR,
+            "Portion to seize is not within the range (0, 1]"
+        );
+
         assetPool.claim(recipient, amountToSeize(portionToSeize));
-    }
-
-    /// @notice Calculates amount of tokens to be seized from the coverage pool.
-    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
-    function amountToSeize(uint256 portionToSeize)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            collateralToken
-                .balanceOf(address(assetPool))
-                .mul(portionToSeize)
-                .div(CoveragePoolConstants.FLOATING_POINT_DIVISOR);
-    }
-
-    /// @notice Approves upgradeability of a new asset pool.
-    /// @param _newAssetPool New asset pool
-    function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
-        external
-        onlyOwner
-    {
-        assetPool.approveNewAssetPoolUpgrade(_newAssetPool);
     }
 
     /// @notice Returns the time remaining until the risk manager approval
@@ -203,48 +198,22 @@ contract CoveragePool is Ownable {
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
+            GovernanceUtils.getRemainingChangeTime(
                 riskManagerApprovalTimestamps[riskManager],
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-                "Risk manager approval not initiated"
+                assetPool.withdrawalGovernanceDelay()
             );
     }
 
-    /// @notice Returns the time remaining until the risk manager unapproval
-    ///         process can be finalized
-    /// @param riskManager Risk manager in the process of unapproval
-    /// @return Remaining time in seconds.
-    function getRemainingRiskManagerUnapprovalTime(address riskManager)
-        external
+    /// @notice Calculates amount of tokens to be seized from the coverage pool.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR.
+    function amountToSeize(uint256 portionToSeize)
+        public
         view
         returns (uint256)
     {
         return
-            getRemainingChangeTime(
-                riskManagerUnapprovalTimestamps[riskManager],
-                CoveragePoolConstants.RISK_MANAGER_GOVERNANCE_DELAY,
-                "Risk manager unapproval not initiated"
-            );
-    }
-
-    /// @notice Get the time remaining until the function parameter timer
-    ///         value can be updated.
-    /// @param changeTimestamp Timestamp indicating the beginning of the change.
-    /// @param delay Governance delay.
-    /// @param errorMsg Revert message when change not initiated
-    /// @return Remaining time in seconds.
-    function getRemainingChangeTime(
-        uint256 changeTimestamp,
-        uint256 delay,
-        string memory errorMsg
-    ) internal view returns (uint256) {
-        require(changeTimestamp > 0, errorMsg);
-        /* solhint-disable-next-line not-rely-on-time */
-        uint256 elapsed = block.timestamp.sub(changeTimestamp);
-        if (elapsed >= delay) {
-            return 0;
-        } else {
-            return delay.sub(elapsed);
-        }
+            (collateralToken.balanceOf(address(assetPool)) * portionToSeize) /
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 }
