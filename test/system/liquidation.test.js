@@ -2,17 +2,15 @@ const { expect } = require("chai")
 const { BigNumber } = ethers
 const {
   to1e18,
-  to1ePrecision,
   impersonateAccount,
   resetFork,
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
-const { initContracts } = require("./init-contracts")
 const { underwriterAddress, bidderAddress1 } = require("./constants.js")
+const { initContracts, setBondAuctionThreshold } = require("./init-contracts")
 
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
-const precision = to1ePrecision(1, 16) // 0.01 precision
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
@@ -32,8 +30,10 @@ describeFn("System -- liquidation", () => {
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
   const bondedAmount = BigNumber.from("290810391624000000000")
-  // amount of collateral deposited to asset pool is 20 KEEPS
-  const collateralAmount = to1e18(20)
+  // deposit's auction must offer 75% of bonds to be accepted by risk manager
+  const bondedAmountPercentage = BigNumber.from("75")
+  // amount of collateral deposited to asset pool is 200k KEEP tokens
+  const collateralAmount = to1e18(200000)
 
   let tbtcToken
   let collateralToken
@@ -51,6 +51,7 @@ describeFn("System -- liquidation", () => {
 
     governance = await ethers.getSigner(0)
 
+    setBondAuctionThreshold(bondedAmountPercentage)
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
     collateralToken = contracts.collateralToken
@@ -157,12 +158,15 @@ describeFn("System -- liquidation", () => {
 
     it("should transfer collateral tokens to the bidder", async () => {
       expect(await collateralToken.balanceOf(bidder.address)).to.be.closeTo(
-        to1e18(6), // 30% of the initial asset pool
-        precision
+        to1e18(60000), // 30% of the initial asset pool
+        to1e18(10) // 10 KEEP tokens precision
       )
+    })
+
+    it("should adjust asset pool's collateral tokens after the claim", async () => {
       expect(await collateralToken.balanceOf(assetPool.address)).to.be.closeTo(
-        to1e18(14), // 70% of the initial asset pool
-        precision
+        to1e18(140000), // 70% of the initial asset pool
+        to1e18(10) // 10 KEEP tokens precision
       )
     })
 
