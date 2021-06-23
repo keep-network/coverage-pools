@@ -7,7 +7,7 @@ const {
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
-const { initContracts } = require("./init-contracts")
+const { initContracts, setBondAuctionThreshold } = require("./init-contracts")
 const { bidderAddress1 } = require("./constants.js")
 
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
@@ -49,6 +49,7 @@ describeFn("System -- liquidation", () => {
 
     governance = await ethers.getSigner(0)
 
+    setBondAuctionThreshold(bondedAmountPercentage)
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
     underwriterToken = contracts.underwriterToken
