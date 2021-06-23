@@ -513,7 +513,7 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
 
-        await increaseTime(14 * 86400 - 1) // 14 days - 1 sec
+        await increaseTime(21 * 86400 - 1) // 21 days - 1 sec
       })
 
       it("should revert", async () => {
@@ -533,7 +533,7 @@ describe("AssetPool", () => {
           .connect(underwriter1)
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
-        await increaseTime((14 + 2) * 86400) // 14 + 2 days
+        await increaseTime((21 + 2) * 86400) // 21 + 2 days
       })
 
       it("should revert", async () => {
@@ -554,7 +554,7 @@ describe("AssetPool", () => {
           .connect(underwriter1)
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
-        await increaseTime(14 * 86400) // 14 days
+        await increaseTime(21 * 86400) // 21 days
         const tx = await assetPool.completeWithdrawal(underwriter1.address)
 
         expect(tx)
@@ -603,7 +603,7 @@ describe("AssetPool", () => {
             .connect(underwriter4)
             .initiateWithdrawal(depositedUnderwriter4)
 
-          await increaseTime(14 * 86400) // 14 days
+          await increaseTime(21 * 86400) // 21 days
         })
 
         it("should let all underwriters withdraw their original collateral amounts", async () => {
@@ -670,7 +670,7 @@ describe("AssetPool", () => {
             .connect(underwriter3)
             .initiateWithdrawal(coverageMintedUnderwriter3)
 
-          await increaseTime(14 * 86400) // 14 days
+          await increaseTime(21 * 86400) // 21 days
           await assetPool.completeWithdrawal(underwriter1.address)
           await assetPool.completeWithdrawal(underwriter2.address)
           await assetPool.completeWithdrawal(underwriter3.address)
@@ -756,7 +756,7 @@ describe("AssetPool", () => {
             .connect(underwriter3)
             .initiateWithdrawal(coverageMintedUnderwriter3)
 
-          await increaseTime(14 * 86400) // 14 days
+          await increaseTime(21 * 86400) // 21 days
           await assetPool.completeWithdrawal(underwriter1.address)
           await assetPool.completeWithdrawal(underwriter2.address)
           await assetPool.completeWithdrawal(underwriter3.address)
@@ -867,7 +867,7 @@ describe("AssetPool", () => {
               .connect(underwriter3)
               .initiateWithdrawal(coverageMintedUnderwriter3)
 
-            await increaseTime(14 * 86400) // 14 days
+            await increaseTime(21 * 86400) // 21 days
             await assetPool.completeWithdrawal(underwriter1.address)
             await assetPool.completeWithdrawal(underwriter2.address)
             await assetPool.completeWithdrawal(underwriter3.address)
@@ -1191,18 +1191,18 @@ describe("AssetPool", () => {
       })
 
       it("should not update withdrawal delay", async () => {
-        // 1209600 sec = 14 days, default value
-        expect(await assetPool.withdrawalDelay()).to.equal(1209600)
+        // 1814400 sec = 21 days, default value
+        expect(await assetPool.withdrawalDelay()).to.equal(1814400)
       })
 
       it("should start the governance delay timer", async () => {
-        // 14 days (withdrawal delay) +
+        // 21 days (withdrawal delay) +
         // 2 days (withdrawal timeout) +
         // 2 days additional delay
         expect(
           await assetPool.getRemainingWithdrawalDelayUpdateTime()
         ).to.equal(
-          1555200 // 18 days
+          2160000 // 25 days
         )
       })
 
@@ -1318,13 +1318,13 @@ describe("AssetPool", () => {
       })
 
       it("should start the governance delay timer", async () => {
-        // 14 days (withdrawal delay) +
+        // 21 days (withdrawal delay) +
         // 2 days (withdrawal timeout) +
         // 2 days additional delay
         expect(
           await assetPool.getRemainingWithdrawalTimeoutUpdateTime()
         ).to.equal(
-          1555200 // 18 days
+          2160000 // 25 days
         )
       })
 

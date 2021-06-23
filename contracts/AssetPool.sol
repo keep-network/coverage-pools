@@ -47,7 +47,7 @@ contract AssetPool is Ownable, IAssetPool {
     // initiating and completing the withdrawal. During that time, underwriter
     // is still earning rewards and their share of the pool is still a subject
     // of a possible coverage claim.
-    uint256 public withdrawalDelay = 14 days;
+    uint256 public withdrawalDelay = 21 days;
     uint256 public newWithdrawalDelay;
     uint256 public withdrawalDelayChangeInitiated;
     // The time the underwriter has after the withdrawal delay passed to
