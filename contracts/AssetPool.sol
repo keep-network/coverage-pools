@@ -12,11 +12,10 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./interfaces/IAssetPool.sol";
@@ -35,7 +34,6 @@ import "./GovernanceUtils.sol";
 contract AssetPool is Ownable, IAssetPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for UnderwriterToken;
-    using SafeMath for uint256;
 
     IERC20 public collateralToken;
     UnderwriterToken public underwriterToken;
@@ -106,7 +104,7 @@ contract AssetPool is Ownable, IAssetPool {
         require(changeInitiatedTimestamp > 0, "Change not initiated");
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp.sub(changeInitiatedTimestamp) >=
+            block.timestamp - changeInitiatedTimestamp >=
                 withdrawalGovernanceDelay(),
             "Governance delay has not elapsed"
         );
@@ -177,7 +175,7 @@ contract AssetPool is Ownable, IAssetPool {
             "Underwriter token amount must be greater than 0"
         );
 
-        pending = pending.add(covAmount);
+        pending += covAmount;
         pendingWithdrawal[msg.sender] = pending;
         /* solhint-disable not-rely-on-time */
         withdrawalInitiatedTimestamp[msg.sender] = block.timestamp;
@@ -206,15 +204,14 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 initiatedAt = withdrawalInitiatedTimestamp[underwriter];
         require(initiatedAt > 0, "No withdrawal initiated for the underwriter");
 
-        uint256 withdrawalDelayEndTimestamp = initiatedAt.add(withdrawalDelay);
+        uint256 withdrawalDelayEndTimestamp = initiatedAt + withdrawalDelay;
         require(
             withdrawalDelayEndTimestamp < block.timestamp,
             "Withdrawal delay has not elapsed"
         );
 
         require(
-            withdrawalDelayEndTimestamp.add(withdrawalTimeout) >=
-                block.timestamp,
+            withdrawalDelayEndTimestamp + withdrawalTimeout >= block.timestamp,
             "Withdrawal timeout elapsed"
         );
 
@@ -228,8 +225,7 @@ contract AssetPool is Ownable, IAssetPool {
 
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
-        uint256 amountToWithdraw =
-            covAmount.mul(collateralBalance).div(covSupply);
+        uint256 amountToWithdraw = (covAmount * collateralBalance) / covSupply;
 
         emit WithdrawalCompleted(
             underwriter,
@@ -284,7 +280,7 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
         uint256 collateralToTransfer =
-            covAmount.mul(collateralBalance).div(covSupply);
+            (covAmount * collateralBalance) / covSupply;
 
         collateralToken.safeApprove(
             address(newAssetPool),
@@ -451,7 +447,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         to wait longer before finalizing the update.
     /// @return The withdrawal governance delay in seconds
     function withdrawalGovernanceDelay() public view returns (uint256) {
-        return withdrawalDelay.add(withdrawalTimeout).add(2 days);
+        return withdrawalDelay + withdrawalTimeout + 2 days;
     }
 
     function _deposit(address depositor, uint256 amount) internal {
@@ -466,7 +462,7 @@ contract AssetPool is Ownable, IAssetPool {
         if (covSupply == 0) {
             toMint = amount;
         } else {
-            toMint = amount.mul(covSupply).div(collateralBalance);
+            toMint = (amount * covSupply) / collateralBalance;
         }
         underwriterToken.mint(depositor, toMint);
         collateralToken.safeTransferFrom(depositor, address(this), amount);

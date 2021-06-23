@@ -3,7 +3,11 @@ require("hardhat-gas-reporter")
 
 module.exports = {
   solidity: {
-    version: "0.7.6",
+    compilers: [
+      {
+        version: "0.8.4",
+      },
+    ],
   },
 
   networks: {
@@ -18,5 +22,8 @@ module.exports = {
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
     },
+  },
+  mocha: {
+    timeout: 30000,
   },
 }

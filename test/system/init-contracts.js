@@ -2,7 +2,9 @@ const {
   tbtcTokenAddress,
   keepTokenAddress,
   tbtcDepositTokenAddress,
-  depositAddress,
+  depositAddress1,
+  depositAddress2,
+  depositAddress3,
   thirdPartyAddress,
   uniswapV2RouterAddress,
 } = require("./constants.js")
@@ -11,6 +13,16 @@ const {
   to1e18,
   impersonateAccount,
 } = require("../helpers/contract-test-helpers")
+
+// Only deposits with at least 66% of bonds offered on bond auction will be
+// accepted by the risk manager.
+const defaultBondAuctionThreshold = 66
+let bondAuctionThreshold = defaultBondAuctionThreshold
+
+// Can overrite the default value for testing purposes
+function setBondAuctionThreshold(newThreshold) {
+  bondAuctionThreshold = newThreshold
+}
 
 async function initContracts(swapStrategy) {
   const auctionLength = 86400 // 24h
@@ -34,7 +46,9 @@ async function initContracts(swapStrategy) {
     "IUniswapV2Router",
     uniswapV2RouterAddress
   )
-  const tbtcDeposit = await ethers.getContractAt("IDeposit", depositAddress)
+  const tbtcDeposit1 = await ethers.getContractAt("IDeposit", depositAddress1)
+  const tbtcDeposit2 = await ethers.getContractAt("IDeposit", depositAddress2)
+  const tbtcDeposit3 = await ethers.getContractAt("IDeposit", depositAddress3)
 
   const AssetPool = await ethers.getContractFactory("AssetPool")
   const assetPool = await AssetPool.deploy(
@@ -81,6 +95,8 @@ async function initContracts(swapStrategy) {
     notifierReward
   )
   await riskManagerV1.deployed()
+  // reset to default value, since most of the tests use 66% threshold
+  bondAuctionThreshold = defaultBondAuctionThreshold
 
   const thirdParty = await impersonateAccount(thirdPartyAddress)
   // Suppose a third party deploys an arbitrary deposit contract.
@@ -99,7 +115,9 @@ async function initContracts(swapStrategy) {
     signerBondsSwapStrategy: signerBondsSwapStrategy,
     coveragePool: coveragePool,
     riskManagerV1: riskManagerV1,
-    tbtcDeposit: tbtcDeposit,
+    tbtcDeposit1: tbtcDeposit1,
+    tbtcDeposit2: tbtcDeposit2,
+    tbtcDeposit3: tbtcDeposit3,
     fakeTbtcDeposit: fakeTbtcDeposit,
     thirdPartyAccount: thirdParty,
     collateralToken: collateralToken,
@@ -108,3 +126,4 @@ async function initContracts(swapStrategy) {
 }
 
 module.exports.initContracts = initContracts
+module.exports.setBondAuctionThreshold = setBondAuctionThreshold

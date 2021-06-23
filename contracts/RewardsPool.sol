@@ -12,12 +12,11 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./AssetPool.sol";
@@ -29,7 +28,6 @@ import "./AssetPool.sol";
 ///         tokens.
 contract RewardsPool is Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     uint256 public constant DURATION = 7 days;
 
@@ -70,13 +68,13 @@ contract RewardsPool is Ownable {
         if (block.timestamp >= intervalFinish) {
             // see https://github.com/crytic/slither/issues/844
             // slither-disable-next-line divide-before-multiply
-            rewardRate = reward.div(DURATION);
+            rewardRate = reward / DURATION;
         } else {
-            uint256 remaining = intervalFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(DURATION);
+            uint256 remaining = intervalFinish - block.timestamp;
+            uint256 leftover = remaining * rewardRate;
+            rewardRate = (reward + leftover) / DURATION;
         }
-        intervalFinish = block.timestamp.add(DURATION);
+        intervalFinish = block.timestamp + DURATION;
         lastUpdateTime = block.timestamp;
         /* solhint-enable avoid-low-level-calls */
 
@@ -97,9 +95,8 @@ contract RewardsPool is Ownable {
     /// tokens.
     function earned() public view returns (uint256) {
         return
-            rewardAccumulated.add(
-                lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate)
-            );
+            rewardAccumulated +
+            ((lastTimeRewardApplicable() - lastUpdateTime) * rewardRate);
     }
 
     /// @notice Returns the timestamp at which a reward was last time applicable.

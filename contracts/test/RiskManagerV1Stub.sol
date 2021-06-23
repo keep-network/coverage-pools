@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "../RiskManagerV1.sol";
 
 contract RiskManagerV1Stub is RiskManagerV1 {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     constructor(
         IERC20 _tbtcToken,
@@ -32,6 +31,6 @@ contract RiskManagerV1Stub is RiskManagerV1 {
 
     function fundTbtcSurplus(uint256 amount) external {
         tbtcToken.safeTransferFrom(msg.sender, address(this), amount);
-        tbtcSurplus = tbtcSurplus.add(amount);
+        tbtcSurplus = tbtcSurplus + amount;
     }
 }

@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./interfaces/IRiskManager.sol";
 import "./RiskManagerV1.sol";
@@ -68,8 +68,6 @@ interface IUniswapV2Pair {
 ///         percentage impact, slippage tolerance and swap deadline, to force
 ///         reasonable swap outcomes.
 contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
-    using SafeMath for uint256;
-
     // One basis point is equivalent to 1/100th of a percent.
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
@@ -224,9 +222,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         );
 
         // Include slippage tolerance into the minimum amount of output tokens.
-        amountOutMin = amountOutMin
-            .mul(BASIS_POINTS_DIVISOR.sub(slippageTolerance))
-            .div(BASIS_POINTS_DIVISOR);
+        amountOutMin =
+            (amountOutMin * (BASIS_POINTS_DIVISOR - slippageTolerance)) /
+            BASIS_POINTS_DIVISOR;
 
         // slither-disable-next-line arbitrary-send,reentrancy-events
         uint256[] memory amounts =
@@ -235,7 +233,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
                 path,
                 assetPool,
                 /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp.add(swapDeadline)
+                block.timestamp + swapDeadline
             );
 
         emit UniswapV2SwapExecuted(amounts);
@@ -256,18 +254,15 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         // divisor to avoid float number.
         // slither-disable-next-line divide-before-multiply
         uint256 priceImpact =
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR.mul(amount).div(
-                collateralTokenReserve
-            );
+            (CoveragePoolConstants.FLOATING_POINT_DIVISOR * amount) /
+                collateralTokenReserve;
 
         // Calculate the price impact limit. Multiply it by the floating point
         // divisor to avoid float number and make it comparable with the
         // swap's price impact.
         uint256 priceImpactLimit =
-            CoveragePoolConstants
-                .FLOATING_POINT_DIVISOR
-                .mul(maxAllowedPriceImpact)
-                .div(BASIS_POINTS_DIVISOR);
+            (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
+                maxAllowedPriceImpact) / BASIS_POINTS_DIVISOR;
 
         return priceImpact <= priceImpactLimit;
     }
@@ -287,13 +282,15 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
         return
             address(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            factory,
-                            keccak256(abi.encodePacked(token0, token1)),
-                            hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                hex"ff",
+                                factory,
+                                keccak256(abi.encodePacked(token0, token1)),
+                                hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+                            )
                         )
                     )
                 )

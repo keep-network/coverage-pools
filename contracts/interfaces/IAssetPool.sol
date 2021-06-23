@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 interface IAssetPool {
     /// @notice Accepts the given amount of collateral token as a deposit and
