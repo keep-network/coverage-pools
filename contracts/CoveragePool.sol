@@ -230,4 +230,19 @@ contract CoveragePool is Ownable {
             (collateralToken.balanceOf(address(assetPool)) * portionToSeize) /
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
+
+    /// @notice Calculates the amount of COV tokens for a grant.
+    /// @param portionToGrant Portion to grant in the range [0, 1] multiplied
+    ///        by FLOATING_POINT_DIVISOR.
+    function covAmountToGrant(uint256 portionToGrant)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 covTotalSupply = assetPool.underwriterToken().totalSupply();
+
+        return
+            (portionToGrant * covTotalSupply) /
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
+    }
 }

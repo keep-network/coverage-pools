@@ -22,8 +22,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IRiskManager.sol";
-import "./AssetPool.sol";
-import "./UnderwriterToken.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -201,7 +199,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         // Reward the notifier by giving them some shares of the asset pool.
         uint256 notifierReward =
-            rewards.getLiquidationNotifierReward(covTotalSupply());
+            rewards.getLiquidationNotifierReward(coveragePool);
         if (notifierReward > 0) {
             // slither-disable-next-line reentrancy-benign
             coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
@@ -249,7 +247,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         // Reward the notifier by giving them some shares of the asset pool.
         uint256 notifierReward =
-            rewards.getLiquidatedNotifierReward(covTotalSupply());
+            rewards.getLiquidatedNotifierReward(coveragePool);
         if (notifierReward > 0) {
             coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
         }
@@ -643,13 +641,6 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         );
     }
 
-    /// @return Total supply of the COV token.
-    function covTotalSupply() internal view returns (uint256) {
-        UnderwriterToken underwriterToken =
-            AssetPool(coveragePool.assetPool()).underwriterToken();
-        return underwriterToken.totalSupply();
-    }
-
     function isDepositLiquidationInProgress(IDeposit deposit)
         internal
         view
@@ -872,19 +863,20 @@ library RiskManagerV1Rewards {
     ///         liquidation process.
     /// @dev Uses the fixed reward amount if non-zero. Otherwise, it calculates
     ///      the reward as percentage of the total COV supply.
-    /// @param covTotalSupply Total COV supply amount.
+    /// @param coveragePool The coverage pool holding the COV tokens.
     /// @return Amount of the COV token reward.
     function getLiquidationNotifierReward(
         Storage storage self,
-        uint256 covTotalSupply
+        CoveragePool coveragePool
     ) external view returns (uint256) {
         if (self.liquidationNotifierRewardAmount > 0) {
             return self.liquidationNotifierRewardAmount;
         }
 
         return
-            (self.liquidationNotifierRewardPercentage * covTotalSupply) /
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
+            coveragePool.covAmountToGrant(
+                self.liquidationNotifierRewardPercentage
+            );
     }
 
     /// @notice Calculates the amount of COV tokens which should be granted
@@ -892,18 +884,19 @@ library RiskManagerV1Rewards {
     ///         outside of the coverage pool
     /// @dev Uses the fixed reward amount if non-zero. Otherwise, it calculates
     ///      the reward as percentage of the total COV supply.
-    /// @param covTotalSupply Total COV supply amount.
+    /// @param coveragePool The coverage pool holding the COV tokens.
     /// @return Amount of the COV token reward.
     function getLiquidatedNotifierReward(
         Storage storage self,
-        uint256 covTotalSupply
+        CoveragePool coveragePool
     ) external view returns (uint256) {
         if (self.liquidatedNotifierRewardAmount > 0) {
             return self.liquidatedNotifierRewardAmount;
         }
 
         return
-            (self.liquidatedNotifierRewardPercentage * covTotalSupply) /
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
+            coveragePool.covAmountToGrant(
+                self.liquidatedNotifierRewardPercentage
+            );
     }
 }
