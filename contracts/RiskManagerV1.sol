@@ -23,6 +23,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IRiskManager.sol";
 import "./NotifierRewards.sol";
+import "./AssetPool.sol";
+import "./UnderwriterToken.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -205,11 +207,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         // Reward the notifier by giving them some shares of the asset pool.
-        uint256 covTotalSupply = 0; // TODO: get from the coverage pool
         uint256 notifierReward =
-            notifierRewards.getLiquidationNotifierReward(covTotalSupply);
-        // slither-disable-next-line reentrancy-benign
-        coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
+            notifierRewards.getLiquidationNotifierReward(covTotalSupply());
+        if (notifierReward > 0) {
+            // slither-disable-next-line reentrancy-benign
+            coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
+        }
 
         // If the surplus can cover the deposit liquidation cost, liquidate
         // that deposit directly without the auction process.
@@ -252,10 +255,11 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         tbtcSurplus += amountTransferred;
 
         // Reward the notifier by giving them some shares of the asset pool.
-        uint256 covTotalSupply = 0; // TODO: get from the coverage pool
         uint256 notifierReward =
-            notifierRewards.getLiquidatedNotifierReward(covTotalSupply);
-        coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
+            notifierRewards.getLiquidatedNotifierReward(covTotalSupply());
+        if (notifierReward > 0) {
+            coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
+        }
     }
 
     /// @notice Begins the bond auction threshold update process.
@@ -646,6 +650,13 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             isDepositLiquidationInProgress(deposit),
             "Deposit liquidation is not in progress"
         );
+    }
+
+    /// @return Total supply of the COV token.
+    function covTotalSupply() internal view returns (uint256) {
+        UnderwriterToken underwriterToken =
+            AssetPool(coveragePool.assetPool()).underwriterToken();
+        return underwriterToken.totalSupply();
     }
 
     function isDepositLiquidationInProgress(IDeposit deposit)
