@@ -126,12 +126,6 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         address indexed signerBondsSwapStrategy
     );
 
-    event NotifierRewardUpdateStarted(
-        uint256 notifierReward,
-        uint256 timestamp
-    );
-    event NotifierRewardUpdated(uint256 notifierReward);
-
     /// @notice Reverts if called before the delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
     ///        of the change.
