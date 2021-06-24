@@ -19,7 +19,7 @@ const {
 const defaultBondAuctionThreshold = 66
 let bondAuctionThreshold = defaultBondAuctionThreshold
 
-// Can overrite the default value for testing purposes
+// Can overwrite the default value for testing purposes
 function setBondAuctionThreshold(newThreshold) {
   bondAuctionThreshold = newThreshold
 }
