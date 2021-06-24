@@ -22,6 +22,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IRiskManager.sol";
+import "./NotifierRewards.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
@@ -66,6 +67,7 @@ interface ISignerBondsSwapStrategy {
 /// @title RiskManagerV1 for tBTCv1
 contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
+    using NotifierRewards for NotifierRewards.Storage;
 
     uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
 
@@ -96,11 +98,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
     uint256 public signerBondsSwapStrategyInitiated;
 
-    // Amount of underwriter tokens granted to the notifier as reward for
-    // `notifyLiquidation` and `notifyLiquidated` calls.
-    uint256 public notifierReward;
-    uint256 public newNotifierReward;
-    uint256 public notifierRewardChangeInitiated;
+    NotifierRewards.Storage public notifierRewards;
 
     // deposit in liquidation => opened coverage pool auction
     mapping(address => address) public depositToAuction;
@@ -163,15 +161,13 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength,
-        uint256 _bondAuctionThreshold,
-        uint256 _notifierReward
+        uint256 _bondAuctionThreshold
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
         tbtcDepositToken = _tbtcDepositToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
         bondAuctionThreshold = _bondAuctionThreshold;
-        notifierReward = _notifierReward;
     }
 
     /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
@@ -209,7 +205,9 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         // Reward the notifier by giving them some shares of the asset pool.
-        //
+        uint256 covTotalSupply = 0; // TODO: get from the coverage pool
+        uint256 notifierReward =
+            notifierRewards.getLiquidationNotifierReward(covTotalSupply);
         // slither-disable-next-line reentrancy-benign
         coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
 
@@ -254,6 +252,9 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         tbtcSurplus += amountTransferred;
 
         // Reward the notifier by giving them some shares of the asset pool.
+        uint256 covTotalSupply = 0; // TODO: get from the coverage pool
+        uint256 notifierReward =
+            notifierRewards.getLiquidatedNotifierReward(covTotalSupply);
         coveragePool.grantAssetPoolShares(msg.sender, notifierReward);
     }
 
@@ -318,6 +319,31 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         auctionLengthChangeInitiated = 0;
     }
 
+    /// @notice Begins the liquidation notifier reward amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newLiquidationNotifierRewardAmount New liquidation notifier
+    ///        reward amount.
+    function beginLiquidationNotifierRewardAmountUpdate(
+        uint256 _newLiquidationNotifierRewardAmount
+    ) external onlyOwner {
+        notifierRewards.beginLiquidationNotifierRewardAmountUpdate(
+            _newLiquidationNotifierRewardAmount
+        );
+    }
+
+    /// @notice Finalizes the liquidation notifier reward amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeLiquidationNotifierRewardAmountUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(
+            notifierRewards.liquidationNotifierRewardAmountChangeInitiated
+        )
+    {
+        notifierRewards.finalizeLiquidationNotifierRewardAmountUpdate();
+    }
+
     /// @notice Begins the signer bonds swap strategy update process.
     /// @dev Must be followed by a finalizeSignerBondsSwapStrategyUpdate after
     ///      the governance delay elapses.
@@ -353,34 +379,6 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         );
         delete newSignerBondsSwapStrategy;
         signerBondsSwapStrategyInitiated = 0;
-    }
-
-    /// @notice Begins the notifier reward update process.
-    /// @dev Can be called only by the contract owner.
-    /// @param _newNotifierReward New notifier reward amount.
-    function beginNotifierRewardUpdate(uint256 _newNotifierReward)
-        external
-        onlyOwner
-    {
-        newNotifierReward = _newNotifierReward;
-        /* solhint-disable-next-line not-rely-on-time */
-        notifierRewardChangeInitiated = block.timestamp;
-        /* solhint-disable-next-line not-rely-on-time */
-        emit NotifierRewardUpdateStarted(_newNotifierReward, block.timestamp);
-    }
-
-    /// @notice Finalizes the notifier reward update process.
-    /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
-    function finalizeNotifierRewardUpdate()
-        external
-        onlyOwner
-        onlyAfterGovernanceDelay(notifierRewardChangeInitiated)
-    {
-        notifierReward = newNotifierReward;
-        emit NotifierRewardUpdated(newNotifierReward);
-        newNotifierReward = 0;
-        notifierRewardChangeInitiated = 0;
     }
 
     /// @notice Withdraws the given amount of accumulated signer bonds.
@@ -443,21 +441,6 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 signerBondsSwapStrategyInitiated,
-                GOVERNANCE_TIME_DELAY
-            );
-    }
-
-    /// @notice Get the time remaining until the notifier reward parameter
-    ///         can be updated.
-    /// @return Remaining time in seconds.
-    function getRemainingNotifierRewardUpdateTime()
-        external
-        view
-        returns (uint256)
-    {
-        return
-            GovernanceUtils.getRemainingChangeTime(
-                notifierRewardChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
     }
