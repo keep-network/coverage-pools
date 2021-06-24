@@ -344,6 +344,85 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         notifierRewards.finalizeLiquidationNotifierRewardAmountUpdate();
     }
 
+    /// @notice Begins the liquidation notifier reward percentage update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newLiquidationNotifierRewardPercentage New liquidation notifier
+    ///        reward percentage. This parameter represents the counter of a
+    ///        fraction denominated with 1e18. For example, 3% should be
+    ///        represented as 3*1e16 because 3*1e16/1e18 equals to 0.03
+    function beginLiquidationNotifierRewardPercentageUpdate(
+        uint256 _newLiquidationNotifierRewardPercentage
+    ) external onlyOwner {
+        notifierRewards.beginLiquidationNotifierRewardPercentageUpdate(
+            _newLiquidationNotifierRewardPercentage
+        );
+    }
+
+    /// @notice Finalizes the liquidation notifier reward percentage update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeLiquidationNotifierRewardPercentageUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(
+            notifierRewards.liquidationNotifierRewardPercentageChangeInitiated
+        )
+    {
+        notifierRewards.finalizeLiquidationNotifierRewardPercentageUpdate();
+    }
+
+    /// @notice Begins the liquidated notifier reward amount update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newLiquidatedNotifierRewardAmount New liquidated notifier
+    ///        reward amount.
+    function beginLiquidatedNotifierRewardAmountUpdate(
+        uint256 _newLiquidatedNotifierRewardAmount
+    ) external onlyOwner {
+        notifierRewards.beginLiquidatedNotifierRewardAmountUpdate(
+            _newLiquidatedNotifierRewardAmount
+        );
+    }
+
+    /// @notice Finalizes the liquidated notifier reward amount update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeLiquidatedNotifierRewardAmountUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(
+            notifierRewards.liquidatedNotifierRewardAmountChangeInitiated
+        )
+    {
+        notifierRewards.finalizeLiquidatedNotifierRewardAmountUpdate();
+    }
+
+    /// @notice Begins the liquidated notifier reward percentage update process.
+    /// @dev Can be called only by the contract owner.
+    /// @param _newLiquidatedNotifierRewardPercentage New liquidated notifier
+    ///        reward percentage. This parameter represents the counter of a
+    ///        fraction denominated with 1e18. For example, 3% should be
+    ///        represented as 3*1e16 because 3*1e16/1e18 equals to 0.03
+    function beginLiquidatedNotifierRewardPercentageUpdate(
+        uint256 _newLiquidatedNotifierRewardPercentage
+    ) external onlyOwner {
+        notifierRewards.beginLiquidatedNotifierRewardPercentageUpdate(
+            _newLiquidatedNotifierRewardPercentage
+        );
+    }
+
+    /// @notice Finalizes the liquidated notifier reward percentage update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
+    function finalizeLiquidatedNotifierRewardPercentageUpdate()
+        external
+        onlyOwner
+        onlyAfterGovernanceDelay(
+            notifierRewards.liquidatedNotifierRewardPercentageChangeInitiated
+        )
+    {
+        notifierRewards.finalizeLiquidatedNotifierRewardPercentageUpdate();
+    }
+
     /// @notice Begins the signer bonds swap strategy update process.
     /// @dev Must be followed by a finalizeSignerBondsSwapStrategyUpdate after
     ///      the governance delay elapses.
@@ -426,6 +505,68 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 auctionLengthChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the liquidation notifier reward
+    ///         amount parameter can be updated.
+    /// @return Remaining time in seconds.
+    function getLiquidationNotifierRewardAmountUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                notifierRewards.liquidationNotifierRewardAmountChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the liquidation notifier reward
+    ///         percentage parameter can be updated.
+    /// @return Remaining time in seconds.
+    function getLiquidationNotifierRewardPercentageUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                notifierRewards
+                    .liquidationNotifierRewardPercentageChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the liquidated notifier reward
+    ///         amount parameter can be updated.
+    /// @return Remaining time in seconds.
+    function getLiquidatedNotifierRewardAmountUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                notifierRewards.liquidatedNotifierRewardAmountChangeInitiated,
+                GOVERNANCE_TIME_DELAY
+            );
+    }
+
+    /// @notice Get the time remaining until the liquidated notifier reward
+    ///         percentage parameter can be updated.
+    /// @return Remaining time in seconds.
+    function getLiquidatedNotifierRewardPercentageUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                notifierRewards
+                    .liquidatedNotifierRewardPercentageChangeInitiated,
                 GOVERNANCE_TIME_DELAY
             );
     }
