@@ -106,9 +106,9 @@ describeFn("System -- multiple partial fills", () => {
         tbtcDeposit1.address
       )
       auction = new ethers.Contract(auctionAddress, Auction.abi, governance)
-      await tbtcToken.connect(bidder1).approve(auction.address, lotSize)
+      await tbtcToken.connect(bidder1).approve(auction.address, to1e18(2))
       bidder1InitialBalance = await tbtcToken.balanceOf(bidder1.address)
-      await tbtcToken.connect(bidder2).approve(auction.address, lotSize)
+      await tbtcToken.connect(bidder2).approve(auction.address, to1e18(3))
       bidder2InitialBalance = await tbtcToken.balanceOf(bidder2.address)
       bidder2InitCollateralBalance = await collateralToken.balanceOf(
         bidder2.address
