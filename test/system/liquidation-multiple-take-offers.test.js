@@ -176,7 +176,7 @@ describeFn("System -- multiple partial fills", () => {
       expect(parseInt(tx.gasLimit)).to.be.lessThan(370000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(180000)
+      expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(181000)
     })
   })
 })
