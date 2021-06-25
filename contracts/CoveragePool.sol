@@ -231,7 +231,13 @@ contract CoveragePool is Ownable {
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
-    /// @notice Calculates the amount of COV tokens for a grant.
+    /// @notice Calculates the amount of COV tokens for a grant. COV tokens are
+    ///         granted as reward for the notifier reporting about deposit
+    ///         liquidation start or deposit being liquidated outside of the
+    ///         coverage pool. The exact amount of COV grant is set by the
+    ///         governance and can be either a fixed amount or a percentage
+    ///         of the total COV supply. This function is used in the latter
+    ///         case.
     /// @param portionToGrant Portion to grant in the range [0, 1] multiplied
     ///        by FLOATING_POINT_DIVISOR.
     function covAmountToGrant(uint256 portionToGrant)
