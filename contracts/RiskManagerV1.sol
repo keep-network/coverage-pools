@@ -724,7 +724,7 @@ library RiskManagerV1Rewards {
     function beginLiquidationNotifierRewardAmountUpdate(
         Storage storage self,
         uint256 _newLiquidationNotifierRewardAmount
-    ) external {
+    ) internal {
         /* solhint-disable not-rely-on-time */
         self
             .newLiquidationNotifierRewardAmount = _newLiquidationNotifierRewardAmount;
@@ -738,7 +738,7 @@ library RiskManagerV1Rewards {
 
     /// @notice Finalizes the liquidation notifier reward amount update process.
     function finalizeLiquidationNotifierRewardAmountUpdate(Storage storage self)
-        external
+        internal
     {
         self.liquidationNotifierRewardAmount = self
             .newLiquidationNotifierRewardAmount;
@@ -757,7 +757,7 @@ library RiskManagerV1Rewards {
     function beginLiquidationNotifierRewardPercentageUpdate(
         Storage storage self,
         uint256 _newLiquidationNotifierRewardPercentage
-    ) external {
+    ) internal {
         /* solhint-disable not-rely-on-time */
         require(
             _newLiquidationNotifierRewardPercentage <=
@@ -778,7 +778,7 @@ library RiskManagerV1Rewards {
     /// @notice Finalizes the liquidation notifier reward percentage update process.
     function finalizeLiquidationNotifierRewardPercentageUpdate(
         Storage storage self
-    ) external {
+    ) internal {
         self.liquidationNotifierRewardPercentage = self
             .newLiquidationNotifierRewardPercentage;
         emit LiquidationNotifierRewardPercentageUpdated(
@@ -794,7 +794,7 @@ library RiskManagerV1Rewards {
     function beginLiquidatedNotifierRewardAmountUpdate(
         Storage storage self,
         uint256 _newLiquidatedNotifierRewardAmount
-    ) external {
+    ) internal {
         /* solhint-disable not-rely-on-time */
         self
             .newLiquidatedNotifierRewardAmount = _newLiquidatedNotifierRewardAmount;
@@ -808,7 +808,7 @@ library RiskManagerV1Rewards {
 
     /// @notice Finalizes the liquidated notifier reward amount update process.
     function finalizeLiquidatedNotifierRewardAmountUpdate(Storage storage self)
-        external
+        internal
     {
         self.liquidatedNotifierRewardAmount = self
             .newLiquidatedNotifierRewardAmount;
@@ -827,7 +827,7 @@ library RiskManagerV1Rewards {
     function beginLiquidatedNotifierRewardPercentageUpdate(
         Storage storage self,
         uint256 _newLiquidatedNotifierRewardPercentage
-    ) external {
+    ) internal {
         /* solhint-disable not-rely-on-time */
         require(
             _newLiquidatedNotifierRewardPercentage <=
@@ -848,7 +848,7 @@ library RiskManagerV1Rewards {
     /// @notice Finalizes the liquidated notifier reward percentage update process.
     function finalizeLiquidatedNotifierRewardPercentageUpdate(
         Storage storage self
-    ) external {
+    ) internal {
         self.liquidatedNotifierRewardPercentage = self
             .newLiquidatedNotifierRewardPercentage;
         emit LiquidatedNotifierRewardPercentageUpdated(
@@ -868,7 +868,7 @@ library RiskManagerV1Rewards {
     function getLiquidationNotifierReward(
         Storage storage self,
         CoveragePool coveragePool
-    ) external view returns (uint256) {
+    ) internal view returns (uint256) {
         if (self.liquidationNotifierRewardAmount > 0) {
             return self.liquidationNotifierRewardAmount;
         }
@@ -889,7 +889,7 @@ library RiskManagerV1Rewards {
     function getLiquidatedNotifierReward(
         Storage storage self,
         CoveragePool coveragePool
-    ) external view returns (uint256) {
+    ) internal view returns (uint256) {
         if (self.liquidatedNotifierRewardAmount > 0) {
             return self.liquidatedNotifierRewardAmount;
         }

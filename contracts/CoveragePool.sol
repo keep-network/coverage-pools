@@ -235,7 +235,7 @@ contract CoveragePool is Ownable {
     /// @param portionToGrant Portion to grant in the range [0, 1] multiplied
     ///        by FLOATING_POINT_DIVISOR.
     function covAmountToGrant(uint256 portionToGrant)
-        public
+        external
         view
         returns (uint256)
     {

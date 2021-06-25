@@ -26,10 +26,6 @@ function setBondAuctionThreshold(newThreshold) {
 
 async function initContracts(swapStrategy) {
   const auctionLength = 86400 // 24h
-  // Only deposits with at least 75% of bonds offered on bond auction will be
-  // accepted by the risk manager.
-  const bondAuctionThreshold = 75
-  const notifierReward = to1e18(5)
 
   const rewardsManager = await ethers.getSigner(1)
 
@@ -91,8 +87,7 @@ async function initContracts(swapStrategy) {
     signerBondsSwapStrategy.address,
     masterAuction.address,
     auctionLength,
-    bondAuctionThreshold,
-    notifierReward
+    bondAuctionThreshold
   )
   await riskManagerV1.deployed()
   // reset to default value, since most of the tests use 66% threshold

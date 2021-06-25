@@ -16,7 +16,8 @@ const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
 const bondAuctionThreshold = 100
 const bondedAmount = to1e18(10)
-const notifierReward = to1e18(5)
+const liquidationNotifierReward = to1e18(2)
+const liquidatedNotifierReward = to1e18(3)
 
 describe("RiskManagerV1", () => {
   let tbtcToken
@@ -70,8 +71,7 @@ describe("RiskManagerV1", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold,
-      notifierReward
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 
@@ -86,6 +86,16 @@ describe("RiskManagerV1", () => {
       to: depositStub.address,
       value: bondedAmount,
     })
+
+    await riskManagerV1.beginLiquidationNotifierRewardAmountUpdate(
+      liquidationNotifierReward
+    )
+    await riskManagerV1.beginLiquidatedNotifierRewardAmountUpdate(
+      liquidatedNotifierReward
+    )
+    await increaseTime(43200)
+    await riskManagerV1.finalizeLiquidationNotifierRewardAmountUpdate()
+    await riskManagerV1.finalizeLiquidatedNotifierRewardAmountUpdate()
   })
 
   describe("notifyLiquidation", () => {
@@ -164,7 +174,7 @@ describe("RiskManagerV1", () => {
             it("should reward the notifier with asset pool shares", async () => {
               await expect(notifyLiquidationTx)
                 .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                .withArgs(notifier.address, notifierReward)
+                .withArgs(notifier.address, liquidationNotifierReward)
             })
 
             it("should create an auction ", async () => {
@@ -207,7 +217,7 @@ describe("RiskManagerV1", () => {
               it("should reward the notifier with asset pool shares", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                  .withArgs(notifier.address, notifierReward)
+                  .withArgs(notifier.address, liquidationNotifierReward)
               })
 
               it("should create an auction ", async () => {
@@ -253,7 +263,7 @@ describe("RiskManagerV1", () => {
               it("should reward the notifier with asset pool shares", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                  .withArgs(notifier.address, notifierReward)
+                  .withArgs(notifier.address, liquidationNotifierReward)
               })
 
               it("should not create an auction", async () => {
@@ -303,7 +313,7 @@ describe("RiskManagerV1", () => {
               it("should reward the notifier with asset pool shares", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                  .withArgs(notifier.address, notifierReward)
+                  .withArgs(notifier.address, liquidationNotifierReward)
               })
 
               it("should not create an auction", async () => {
@@ -425,7 +435,7 @@ describe("RiskManagerV1", () => {
 
         await expect(tx)
           .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-          .withArgs(notifier.address, notifierReward)
+          .withArgs(notifier.address, liquidatedNotifierReward)
       })
     })
   })
@@ -791,88 +801,6 @@ describe("RiskManagerV1", () => {
         ).to.be.revertedWith("Change not initiated")
       })
     })
-  })
-
-  describe("beginNotifierRewardUpdate", () => {
-    context("when the caller is the owner", () => {
-      const currentNotifierReward = notifierReward
-      const newNotifierReward = to1e18(7)
-      let tx
-
-      beforeEach(async () => {
-        tx = await riskManagerV1
-          .connect(owner)
-          .beginNotifierRewardUpdate(newNotifierReward)
-      })
-
-      it("should not update the notifier reward", async () => {
-        expect(await riskManagerV1.notifierReward()).to.be.equal(
-          currentNotifierReward
-        )
-      })
-
-      it("should start the governance delay timer", async () => {
-        expect(
-          await riskManagerV1.getRemainingNotifierRewardUpdateTime()
-        ).to.be.equal(43200) // 12h contract governance delay
-      })
-
-      it("should emit the NotifierRewardUpdateStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        await expect(tx)
-          .to.emit(riskManagerV1, "NotifierRewardUpdateStarted")
-          .withArgs(newNotifierReward, blockTimestamp)
-      })
-    })
-
-    context("when the caller is not the owner", () => {
-      it("should revert", async () => {
-        await expect(
-          riskManagerV1.connect(notifier).beginNotifierRewardUpdate(to1e18(7))
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-  })
-
-  describe("finalizeNotifierRewardUpdate", () => {
-    const newNotifierReward = to1e18(7)
-
-    context(
-      "when the update process is initialized, governance delay passed, " +
-        "and the caller is the owner",
-      () => {
-        let tx
-
-        beforeEach(async () => {
-          await riskManagerV1
-            .connect(owner)
-            .beginNotifierRewardUpdate(newNotifierReward)
-
-          await increaseTime(43200) // +12h contract governance delay
-
-          tx = await riskManagerV1.connect(owner).finalizeNotifierRewardUpdate()
-        })
-
-        it("should update the notifier reward", async () => {
-          expect(await riskManagerV1.notifierReward()).to.be.equal(
-            newNotifierReward
-          )
-        })
-
-        it("should emit NotifierRewardUpdated event", async () => {
-          await expect(tx)
-            .to.emit(riskManagerV1, "NotifierRewardUpdated")
-            .withArgs(newNotifierReward)
-        })
-
-        it("should reset the governance delay timer", async () => {
-          await expect(
-            riskManagerV1.getRemainingNotifierRewardUpdateTime()
-          ).to.be.revertedWith("Change not initiated")
-        })
-      }
-    )
   })
 
   describe("withdrawSignerBonds", () => {

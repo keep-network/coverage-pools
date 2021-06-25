@@ -1,7 +1,7 @@
 const chai = require("chai")
 const expect = chai.expect
 
-const { ZERO_ADDRESS, to1e18 } = require("./helpers/contract-test-helpers")
+const { ZERO_ADDRESS } = require("./helpers/contract-test-helpers")
 
 describe("SignerBondsManualSwap", () => {
   let governance
@@ -33,8 +33,7 @@ describe("SignerBondsManualSwap", () => {
       signerBondsManualSwap.address,
       fakeAddress,
       86400,
-      75,
-      to1e18(5)
+      75
     )
     await riskManagerV1.deployed()
 

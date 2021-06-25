@@ -142,7 +142,7 @@ describeFn("System -- buying a deposit with surplus", () => {
       // partial offer in cov pool. 2.5 TBTC left on Risk Manager and this auction
       // is on offer for 1 TBTC so it should be sufficient to buy it out.
       surplusTx = await riskManagerV1.notifyLiquidation(tbtcDeposit3.address, {
-        gasLimit: 350000,
+        gasLimit: 360000,
       })
 
       // Risk Manager should not open a new auction for tbtcDeposit3.
@@ -161,12 +161,12 @@ describeFn("System -- buying a deposit with surplus", () => {
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(surplusTx.gasLimit)).to.be.equal(350000)
+      await expect(parseInt(surplusTx.gasLimit)).to.be.equal(360000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(
         surplusTx.hash
       )
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(290000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(302000)
     })
   })
 })
