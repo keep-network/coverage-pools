@@ -191,7 +191,8 @@ contract CoveragePool is Ownable {
     /// @notice Grants asset pool shares by minting a given amount of the
     ///         underwriter tokens for the recipient address. In result, the
     ///         recipient obtains part of the pool ownership without depositing
-    ///         any collateral tokens.
+    ///         any collateral tokens. Shares are usually granted for notifiers
+    ///         reporting about various contract state changes.
     /// @dev Can be called only by an approved risk manager.
     /// @param recipient Address of the underwriter tokens recipient.
     /// @param covAmount Amount of the underwriter tokens which should be minted.
