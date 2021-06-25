@@ -28,8 +28,4 @@ contract CoveragePoolStub {
             (portionToGrant * covTotalSupply) /
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
-
-    function setCovTotalSupply(uint256 _covTotalSupply) external {
-        covTotalSupply = _covTotalSupply;
-    }
 }
