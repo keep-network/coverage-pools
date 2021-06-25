@@ -116,6 +116,38 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     );
     event BondAuctionThresholdUpdated(uint256 bondAuctionThreshold);
 
+    event LiquidationNotifierRewardAmountUpdateStarted(
+        uint256 liquidationNotifierRewardAmount,
+        uint256 timestamp
+    );
+    event LiquidationNotifierRewardAmountUpdated(
+        uint256 liquidationNotifierRewardAmount
+    );
+
+    event LiquidationNotifierRewardPercentageUpdateStarted(
+        uint256 liquidationNotifierRewardPercentage,
+        uint256 timestamp
+    );
+    event LiquidationNotifierRewardPercentageUpdated(
+        uint256 liquidationNotifierRewardPercentage
+    );
+
+    event LiquidatedNotifierRewardAmountUpdateStarted(
+        uint256 liquidatedNotifierRewardAmount,
+        uint256 timestamp
+    );
+    event LiquidatedNotifierRewardAmountUpdated(
+        uint256 liquidatedNotifierRewardAmount
+    );
+
+    event LiquidatedNotifierRewardPercentageUpdateStarted(
+        uint256 liquidatedNotifierRewardPercentage,
+        uint256 timestamp
+    );
+    event LiquidatedNotifierRewardPercentageUpdated(
+        uint256 liquidatedNotifierRewardPercentage
+    );
+
     event SignerBondsSwapStrategyUpdateStarted(
         address indexed signerBondsSwapStrategy,
         uint256 timestamp
@@ -321,6 +353,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     function beginLiquidationNotifierRewardAmountUpdate(
         uint256 _newLiquidationNotifierRewardAmount
     ) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        emit LiquidationNotifierRewardAmountUpdateStarted(
+            _newLiquidationNotifierRewardAmount,
+            block.timestamp
+        );
+
         rewards.beginLiquidationNotifierRewardAmountUpdate(
             _newLiquidationNotifierRewardAmount
         );
@@ -336,6 +374,10 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             rewards.liquidationNotifierRewardAmountChangeInitiated
         )
     {
+        emit LiquidationNotifierRewardAmountUpdated(
+            rewards.newLiquidationNotifierRewardAmount
+        );
+
         rewards.finalizeLiquidationNotifierRewardAmountUpdate();
     }
 
@@ -348,6 +390,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     function beginLiquidationNotifierRewardPercentageUpdate(
         uint256 _newLiquidationNotifierRewardPercentage
     ) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        emit LiquidationNotifierRewardPercentageUpdateStarted(
+            _newLiquidationNotifierRewardPercentage,
+            block.timestamp
+        );
+
         rewards.beginLiquidationNotifierRewardPercentageUpdate(
             _newLiquidationNotifierRewardPercentage
         );
@@ -363,6 +411,10 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             rewards.liquidationNotifierRewardPercentageChangeInitiated
         )
     {
+        emit LiquidationNotifierRewardPercentageUpdated(
+            rewards.newLiquidationNotifierRewardPercentage
+        );
+
         rewards.finalizeLiquidationNotifierRewardPercentageUpdate();
     }
 
@@ -373,6 +425,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     function beginLiquidatedNotifierRewardAmountUpdate(
         uint256 _newLiquidatedNotifierRewardAmount
     ) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        emit LiquidatedNotifierRewardAmountUpdateStarted(
+            _newLiquidatedNotifierRewardAmount,
+            block.timestamp
+        );
+
         rewards.beginLiquidatedNotifierRewardAmountUpdate(
             _newLiquidatedNotifierRewardAmount
         );
@@ -388,6 +446,10 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             rewards.liquidatedNotifierRewardAmountChangeInitiated
         )
     {
+        emit LiquidatedNotifierRewardAmountUpdated(
+            rewards.newLiquidatedNotifierRewardAmount
+        );
+
         rewards.finalizeLiquidatedNotifierRewardAmountUpdate();
     }
 
@@ -400,6 +462,12 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     function beginLiquidatedNotifierRewardPercentageUpdate(
         uint256 _newLiquidatedNotifierRewardPercentage
     ) external onlyOwner {
+        /* solhint-disable-next-line not-rely-on-time */
+        emit LiquidatedNotifierRewardPercentageUpdateStarted(
+            _newLiquidatedNotifierRewardPercentage,
+            block.timestamp
+        );
+
         rewards.beginLiquidatedNotifierRewardPercentageUpdate(
             _newLiquidatedNotifierRewardPercentage
         );
@@ -415,6 +483,10 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
             rewards.liquidatedNotifierRewardPercentageChangeInitiated
         )
     {
+        emit LiquidatedNotifierRewardPercentageUpdated(
+            rewards.newLiquidatedNotifierRewardPercentage
+        );
+
         rewards.finalizeLiquidatedNotifierRewardPercentageUpdate();
     }
 
@@ -507,7 +579,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Get the time remaining until the liquidation notifier reward
     ///         amount parameter can be updated.
     /// @return Remaining time in seconds.
-    function getLiquidationNotifierRewardAmountUpdateTime()
+    function getRemainingLiquidationNotifierRewardAmountUpdateTime()
         external
         view
         returns (uint256)
@@ -522,7 +594,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Get the time remaining until the liquidation notifier reward
     ///         percentage parameter can be updated.
     /// @return Remaining time in seconds.
-    function getLiquidationNotifierRewardPercentageUpdateTime()
+    function getRemainingLiquidationNotifierRewardPercentageUpdateTime()
         external
         view
         returns (uint256)
@@ -537,7 +609,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Get the time remaining until the liquidated notifier reward
     ///         amount parameter can be updated.
     /// @return Remaining time in seconds.
-    function getLiquidatedNotifierRewardAmountUpdateTime()
+    function getRemainingLiquidatedNotifierRewardAmountUpdateTime()
         external
         view
         returns (uint256)
@@ -552,7 +624,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Get the time remaining until the liquidated notifier reward
     ///         percentage parameter can be updated.
     /// @return Remaining time in seconds.
-    function getLiquidatedNotifierRewardPercentageUpdateTime()
+    function getRemainingLiquidatedNotifierRewardPercentageUpdateTime()
         external
         view
         returns (uint256)
@@ -686,38 +758,6 @@ library RiskManagerV1Rewards {
         uint256 liquidatedNotifierRewardPercentageChangeInitiated;
     }
 
-    event LiquidationNotifierRewardAmountUpdateStarted(
-        uint256 liquidationNotifierRewardAmount,
-        uint256 timestamp
-    );
-    event LiquidationNotifierRewardAmountUpdated(
-        uint256 liquidationNotifierRewardAmount
-    );
-
-    event LiquidationNotifierRewardPercentageUpdateStarted(
-        uint256 liquidationNotifierRewardPercentage,
-        uint256 timestamp
-    );
-    event LiquidationNotifierRewardPercentageUpdated(
-        uint256 liquidationNotifierRewardPercentage
-    );
-
-    event LiquidatedNotifierRewardAmountUpdateStarted(
-        uint256 liquidatedNotifierRewardAmount,
-        uint256 timestamp
-    );
-    event LiquidatedNotifierRewardAmountUpdated(
-        uint256 liquidatedNotifierRewardAmount
-    );
-
-    event LiquidatedNotifierRewardPercentageUpdateStarted(
-        uint256 liquidatedNotifierRewardPercentage,
-        uint256 timestamp
-    );
-    event LiquidatedNotifierRewardPercentageUpdated(
-        uint256 liquidatedNotifierRewardPercentage
-    );
-
     /// @notice Begins the liquidation notifier reward amount update process.
     /// @param _newLiquidationNotifierRewardAmount New liquidation notifier
     ///        reward amount.
@@ -729,10 +769,6 @@ library RiskManagerV1Rewards {
         self
             .newLiquidationNotifierRewardAmount = _newLiquidationNotifierRewardAmount;
         self.liquidationNotifierRewardAmountChangeInitiated = block.timestamp;
-        emit LiquidationNotifierRewardAmountUpdateStarted(
-            _newLiquidationNotifierRewardAmount,
-            block.timestamp
-        );
         /* solhint-enable not-rely-on-time */
     }
 
@@ -742,9 +778,6 @@ library RiskManagerV1Rewards {
     {
         self.liquidationNotifierRewardAmount = self
             .newLiquidationNotifierRewardAmount;
-        emit LiquidationNotifierRewardAmountUpdated(
-            self.newLiquidationNotifierRewardAmount
-        );
         self.newLiquidationNotifierRewardAmount = 0;
         self.liquidationNotifierRewardAmountChangeInitiated = 0;
     }
@@ -768,10 +801,6 @@ library RiskManagerV1Rewards {
             .newLiquidationNotifierRewardPercentage = _newLiquidationNotifierRewardPercentage;
         self.liquidationNotifierRewardPercentageChangeInitiated = block
             .timestamp;
-        emit LiquidationNotifierRewardPercentageUpdateStarted(
-            _newLiquidationNotifierRewardPercentage,
-            block.timestamp
-        );
         /* solhint-enable not-rely-on-time */
     }
 
@@ -781,9 +810,6 @@ library RiskManagerV1Rewards {
     ) internal {
         self.liquidationNotifierRewardPercentage = self
             .newLiquidationNotifierRewardPercentage;
-        emit LiquidationNotifierRewardPercentageUpdated(
-            self.newLiquidationNotifierRewardPercentage
-        );
         self.newLiquidationNotifierRewardPercentage = 0;
         self.liquidationNotifierRewardPercentageChangeInitiated = 0;
     }
@@ -799,10 +825,6 @@ library RiskManagerV1Rewards {
         self
             .newLiquidatedNotifierRewardAmount = _newLiquidatedNotifierRewardAmount;
         self.liquidatedNotifierRewardAmountChangeInitiated = block.timestamp;
-        emit LiquidatedNotifierRewardAmountUpdateStarted(
-            _newLiquidatedNotifierRewardAmount,
-            block.timestamp
-        );
         /* solhint-enable not-rely-on-time */
     }
 
@@ -812,9 +834,6 @@ library RiskManagerV1Rewards {
     {
         self.liquidatedNotifierRewardAmount = self
             .newLiquidatedNotifierRewardAmount;
-        emit LiquidatedNotifierRewardAmountUpdated(
-            self.newLiquidatedNotifierRewardAmount
-        );
         self.newLiquidatedNotifierRewardAmount = 0;
         self.liquidatedNotifierRewardAmountChangeInitiated = 0;
     }
@@ -838,10 +857,6 @@ library RiskManagerV1Rewards {
             .newLiquidatedNotifierRewardPercentage = _newLiquidatedNotifierRewardPercentage;
         self.liquidatedNotifierRewardPercentageChangeInitiated = block
             .timestamp;
-        emit LiquidatedNotifierRewardPercentageUpdateStarted(
-            _newLiquidatedNotifierRewardPercentage,
-            block.timestamp
-        );
         /* solhint-enable not-rely-on-time */
     }
 
@@ -851,9 +866,6 @@ library RiskManagerV1Rewards {
     ) internal {
         self.liquidatedNotifierRewardPercentage = self
             .newLiquidatedNotifierRewardPercentage;
-        emit LiquidatedNotifierRewardPercentageUpdated(
-            self.newLiquidatedNotifierRewardPercentage
-        );
         self.newLiquidatedNotifierRewardPercentage = 0;
         self.liquidatedNotifierRewardPercentageChangeInitiated = 0;
     }
