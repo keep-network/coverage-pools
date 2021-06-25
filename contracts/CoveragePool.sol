@@ -188,6 +188,21 @@ contract CoveragePool is Ownable {
         assetPool.claim(recipient, amountToSeize(portionToSeize));
     }
 
+    /// @notice Grants asset pool shares by minting a given amount of the
+    ///         underwriter tokens for the recipient address. In result, the
+    ///         recipient obtains part of the pool ownership without depositing
+    ///         any collateral tokens. Shares are usually granted for notifiers
+    ///         reporting about various contract state changes.
+    /// @dev Can be called only by an approved risk manager.
+    /// @param recipient Address of the underwriter tokens recipient.
+    /// @param covAmount Amount of the underwriter tokens which should be minted.
+    function grantAssetPoolShares(address recipient, uint256 covAmount)
+        external
+        onlyApprovedRiskManager
+    {
+        assetPool.grantShares(recipient, covAmount);
+    }
+
     /// @notice Returns the time remaining until the risk manager approval
     ///         process can be finalized
     /// @param riskManager Risk manager in the process of approval
@@ -214,6 +229,27 @@ contract CoveragePool is Ownable {
     {
         return
             (collateralToken.balanceOf(address(assetPool)) * portionToSeize) /
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
+    }
+
+    /// @notice Calculates the amount of COV tokens for a grant. COV tokens are
+    ///         granted as reward for the notifier reporting about deposit
+    ///         liquidation start or deposit being liquidated outside of the
+    ///         coverage pool. The exact amount of COV grant is set by the
+    ///         governance and can be either a fixed amount or a percentage
+    ///         of the total COV supply. This function is used in the latter
+    ///         case.
+    /// @param portionToGrant Portion to grant in the range [0, 1] multiplied
+    ///        by FLOATING_POINT_DIVISOR.
+    function covAmountToGrant(uint256 portionToGrant)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 covTotalSupply = assetPool.underwriterToken().totalSupply();
+
+        return
+            (portionToGrant * covTotalSupply) /
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 }

@@ -394,6 +394,22 @@ contract AssetPool is Ownable, IAssetPool {
         withdrawalTimeoutChangeInitiated = 0;
     }
 
+    /// @notice Grants pool shares by minting a given amount of the underwriter
+    ///         tokens for the recipient address. In result, the recipient
+    ///         obtains part of the pool ownership without depositing any
+    ///         collateral tokens. Shares are usually granted for notifiers
+    ///         reporting about various contract state changes.
+    /// @dev Can be called only by the contract owner.
+    /// @param recipient Address of the underwriter tokens recipient.
+    /// @param covAmount Amount of the underwriter tokens which should be minted.
+    function grantShares(address recipient, uint256 covAmount)
+        external
+        onlyOwner
+    {
+        rewardsPool.withdraw();
+        underwriterToken.mint(recipient, covAmount);
+    }
+
     /// @notice Returns the remaining time that has to pass before the contract
     ///         owner will be able to finalize withdrawal delay update.
     ///         Bear in mind the contract owner may decide to wait longer and
