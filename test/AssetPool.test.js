@@ -922,6 +922,51 @@ describe("AssetPool", () => {
     })
   })
 
+  describe("totalValue", () => {
+    context("when there is nothing in the pool", () => {
+      it("should return zero", async () => {
+        expect(await assetPool.totalValue()).to.equal(to1e18(0))
+      })
+    })
+
+    context("when there are deposits in the pool", () => {
+      const depositedUnderwriter1 = to1e18(100)
+      const depositedUnderwriter2 = to1e18(50)
+
+      beforeEach(async () => {
+        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
+        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+      })
+
+      context("when rewards were not allocated", () => {
+        it("should return the current pool's collateral balance", async () => {
+          expect(await assetPool.totalValue()).to.equal(to1e18(150))
+        })
+      })
+
+      context("when rewards were allocated", () => {
+        const allocatedReward = to1e18(70)
+
+        beforeEach(async () => {
+          await collateralToken
+            .connect(rewardManager)
+            .approve(rewardsPool.address, allocatedReward)
+          await rewardsPool.connect(rewardManager).topUpReward(allocatedReward)
+          await increaseTime(86400) // +1 day
+        })
+
+        it("should return the current pool's collateral balance and rewards earned", async () => {
+          // 70 / 7  = 10 reward tokens released every day
+          // 100 + 50 + 10 = 160
+          expect(await assetPool.totalValue()).to.be.closeTo(
+            to1e18(160),
+            assertionPrecision
+          )
+        })
+      })
+    })
+  })
+
   describe("approveNewAssetPoolUpgrade", () => {
     let newAssetPool
 

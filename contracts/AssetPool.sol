@@ -428,6 +428,14 @@ contract AssetPool is Ownable, IAssetPool {
             );
     }
 
+    /// @notice Returns the current collateral token balance of the asset pool
+    ///         plus the reward amount (in collateral token) earned by the asset
+    ///         pool and not yet withdrawn to the asset pool.
+    /// @return The total value of asset pool in collateral token.
+    function totalValue() external view returns (uint256) {
+        return collateralToken.balanceOf(address(this)) + rewardsPool.earned();
+    }
+
     /// @notice The time it takes to initiate and complete the withdrawal from
     ///         the pool plus 2 days to make a decision. This governance delay
     ///         should be used for all changes directly affecting underwriter
