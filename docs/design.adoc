@@ -314,3 +314,31 @@ liquidating deposits still attractive for arbitraging bots.
 |12 hours
 |Governance can chose which strategy should be used by tBTC v1 risk manager for
 depositing ETH signer bonds purchased from tBTC to the asset pool.
+|===
+
+== Notifier rewards
+
+Each notifier reporting about deposit liquidation start (`notifyLiquidation`)
+or about a deposit being liquidated outside of the coverage pool
+(`notifyLiquidated`) can be rewarded with COV tokens. Those tokens represent a
+part of the asset pool ownership. The amount of token reward is set by
+the governance. It can be determined either as a fixed amount or as a
+percentage of the total COV supply. Current values of reward parameters can
+be viewed using the following methods of the risk manager:
+
+* For `notifyLiquidation` rewards:
+** `liquidationNotifierRewardAmount`: determines the fixed amount of COV tokens
+which is granted as reward for reporting about a deposit liquidation process.
+** `liquidationNotifierRewardPercentage`: determines the percentage of the
+total COV supply which is granted as reward for reporting about a deposit
+liquidation process.
+* For `notifyLiquidated` rewards:
+** `liquidatedNotifierRewardAmount`: determines the fixed amount of COV tokens
+which is granted as reward for reporting about a deposit being liquidated
+outside of the coverage pool.
+** `liquidatedNotifierRewardPercentage`: determines the percentage of the
+total COV supply which is granted as reward for reporting about a deposit
+being liquidated outside of the coverage pool.
+
+If both fixed amount and percentage values are set and bigger than zero,
+the fixed amount reward takes precedence.
