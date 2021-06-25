@@ -89,7 +89,7 @@ describeFn("System -- buying a deposit with surplus", () => {
           tbtcDeposit2.address
         )
         const auctionAddress3 = await riskManagerV1.depositToAuction(
-          tbtcDeposit2.address
+          tbtcDeposit3.address
         )
         expect(auctionAddress2).to.be.equal(ZERO_ADDRESS)
         expect(auctionAddress3).to.be.equal(ZERO_ADDRESS)
@@ -99,42 +99,51 @@ describeFn("System -- buying a deposit with surplus", () => {
 
   describe("when buying auction with surplus TBTC funds", () => {
     let surplusTx
+    let auction
 
     before(async () => {
+      // create auction for deposit2
       await riskManagerV1.notifyLiquidation(tbtcDeposit2.address)
 
       const auctionAddress = await riskManagerV1.depositToAuction(
         tbtcDeposit2.address
       )
+      // auction for deposit2
+      auction = new ethers.Contract(auctionAddress, Auction.abi, governance)
 
-      const auction = new ethers.Contract(
-        auctionAddress,
-        Auction.abi,
-        governance
-      )
       const bidder1Take = lotSize.div(2) // 5 / 2 = 2.5 TBTC
       await tbtcToken.connect(bidder1).approve(auction.address, bidder1Take)
-
-      // bidder1 takes a partial offer on a cov pool auction
+      // bidder1 takes partial offer on a cov pool auction
       await auction.connect(bidder1).takeOffer(bidder1Take)
 
       await tbtcToken.connect(bidder2).approve(tbtcDeposit2.address, lotSize)
-      // buying deposit2 outside the coverage pool
+      // bidder2 buys deposit2 outside the coverage pool
       await tbtcDeposit2.connect(bidder2).purchaseSignerBondsAtAuction()
     })
 
-    it("should have TBTC funds for partially selling an auction for deposit2", async () => {
+    it("should set deposit2 status as liquidated", async () => {
+      expect(await tbtcDeposit2.currentState()).to.equal(11) // LIQUIDATED
+    })
+
+    it("should have TBTC funds on RiskManagerV1 for partially selling an auction for deposit2", async () => {
       const tbtcSurplus = await tbtcToken.balanceOf(riskManagerV1.address)
       expect(tbtcSurplus).to.be.equal(lotSize.div(2))
+    })
 
+    it("should not release surplus without notifying on liquidated deposit2", async () => {
       const tbtcSurplusTracking = await riskManagerV1.tbtcSurplus()
       expect(tbtcSurplusTracking).to.be.equal(0) // notifyLiquidated() was not called yet
     })
 
-    it("should buy deposit2 outside the coverage pool", async () => {
+    it("should notify on liquidated deposit2 and release surplus", async () => {
       await riskManagerV1.notifyLiquidated(tbtcDeposit2.address)
 
-      expect(await tbtcDeposit2.currentState()).to.equal(11) // LIQUIDATED
+      const tbtcSurplusTracking = await riskManagerV1.tbtcSurplus()
+      expect(tbtcSurplusTracking).to.be.equal(lotSize.div(2)) // notifyLiquidated() was called
+    })
+
+    it("should early close cov pool auction for deposit2", async () => {
+      expect(await auction.isOpen()).to.be.false
     })
 
     it("should buy deposit3 with surplus TBTC without opening an auction", async () => {
