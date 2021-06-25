@@ -131,8 +131,7 @@ describeFn("System -- multiple partial fills", () => {
       expect(await auction.isOpen()).to.be.false
     })
 
-    it("should liquidate the deposit", async () => {
-      // Bidders spent their TBTC.
+    it("should decrease the amount of TBTC for bidders", async () => {
       const bidder1CurrentBalance = await tbtcToken.balanceOf(bidder1.address)
       const bidder2CurrentBalance = await tbtcToken.balanceOf(bidder2.address)
       expect(bidder1InitialBalance.sub(bidder1CurrentBalance)).to.be.equal(
@@ -141,11 +140,13 @@ describeFn("System -- multiple partial fills", () => {
       expect(bidder2InitialBalance.sub(bidder2CurrentBalance)).to.be.equal(
         lotSize.mul(60).div(100)
       )
+    })
 
-      // Deposit has been liquidated.
+    it("should liquidate the deposit", async () => {
       expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
+    })
 
-      // Signer bonds should land on the risk manager contract.
+    it("should transfer ether from signer bonds to risk manager", async () => {
       await expect(tx).to.changeEtherBalance(riskManagerV1, bondedAmount)
     })
 
