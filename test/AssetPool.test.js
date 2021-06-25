@@ -28,6 +28,11 @@ describe("AssetPool", () => {
 
   const underwriterInitialCollateralBalance = to1e18(1000000)
 
+  // expected withdrawal delay in seconds
+  const withdrawalDelay = 21 * 24 * 3600
+  // expected withdrawal timeout in seconds
+  const withdrawalTimeout = 2 * 24 * 3600
+
   beforeEach(async () => {
     coveragePool = await ethers.getSigner(1)
     rewardManager = await ethers.getSigner(2)
@@ -430,8 +435,7 @@ describe("AssetPool", () => {
           await assetPool
             .connect(underwriter1)
             .initiateWithdrawal(amount.sub(10))
-          // wait for 14 days for withdrawal delay to pass
-          await increaseTime(14 * 24 * 3600)
+          await increaseTime(withdrawalDelay)
         })
 
         context("when adding more tokens to the withdrawal", async () => {
@@ -513,7 +517,7 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
 
-        await increaseTime(14 * 86400 - 1) // 14 days - 1 sec
+        await increaseTime(withdrawalDelay - 1)
       })
 
       it("should revert", async () => {
@@ -533,7 +537,7 @@ describe("AssetPool", () => {
           .connect(underwriter1)
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
-        await increaseTime((14 + 2) * 86400) // 14 + 2 days
+        await increaseTime(withdrawalDelay + withdrawalTimeout)
       })
 
       it("should revert", async () => {
@@ -554,7 +558,7 @@ describe("AssetPool", () => {
           .connect(underwriter1)
           .approve(assetPool.address, amount)
         await assetPool.connect(underwriter1).initiateWithdrawal(amount)
-        await increaseTime(14 * 86400) // 14 days
+        await increaseTime(withdrawalDelay)
         const tx = await assetPool.completeWithdrawal(underwriter1.address)
 
         expect(tx)
@@ -603,7 +607,7 @@ describe("AssetPool", () => {
             .connect(underwriter4)
             .initiateWithdrawal(depositedUnderwriter4)
 
-          await increaseTime(14 * 86400) // 14 days
+          await increaseTime(withdrawalDelay)
         })
 
         it("should let all underwriters withdraw their original collateral amounts", async () => {
@@ -670,7 +674,7 @@ describe("AssetPool", () => {
             .connect(underwriter3)
             .initiateWithdrawal(coverageMintedUnderwriter3)
 
-          await increaseTime(14 * 86400) // 14 days
+          await increaseTime(withdrawalDelay)
           await assetPool.completeWithdrawal(underwriter1.address)
           await assetPool.completeWithdrawal(underwriter2.address)
           await assetPool.completeWithdrawal(underwriter3.address)
@@ -756,7 +760,7 @@ describe("AssetPool", () => {
             .connect(underwriter3)
             .initiateWithdrawal(coverageMintedUnderwriter3)
 
-          await increaseTime(14 * 86400) // 14 days
+          await increaseTime(withdrawalDelay)
           await assetPool.completeWithdrawal(underwriter1.address)
           await assetPool.completeWithdrawal(underwriter2.address)
           await assetPool.completeWithdrawal(underwriter3.address)
@@ -867,7 +871,7 @@ describe("AssetPool", () => {
               .connect(underwriter3)
               .initiateWithdrawal(coverageMintedUnderwriter3)
 
-            await increaseTime(14 * 86400) // 14 days
+            await increaseTime(withdrawalDelay)
             await assetPool.completeWithdrawal(underwriter1.address)
             await assetPool.completeWithdrawal(underwriter2.address)
             await assetPool.completeWithdrawal(underwriter3.address)
@@ -1191,19 +1195,16 @@ describe("AssetPool", () => {
       })
 
       it("should not update withdrawal delay", async () => {
-        // 1209600 sec = 14 days, default value
-        expect(await assetPool.withdrawalDelay()).to.equal(1209600)
+        expect(await assetPool.withdrawalDelay()).to.equal(withdrawalDelay)
       })
 
       it("should start the governance delay timer", async () => {
-        // 14 days (withdrawal delay) +
+        // 21 days (withdrawal delay) +
         // 2 days (withdrawal timeout) +
         // 2 days additional delay
         expect(
           await assetPool.getRemainingWithdrawalDelayUpdateTime()
-        ).to.equal(
-          1555200 // 18 days
-        )
+        ).to.equal(withdrawalDelay + withdrawalTimeout + 2 * 24 * 3600)
       })
 
       it("should emit WithdrawalDelayUpdateStarted event", async () => {
@@ -1318,14 +1319,12 @@ describe("AssetPool", () => {
       })
 
       it("should start the governance delay timer", async () => {
-        // 14 days (withdrawal delay) +
+        // 21 days (withdrawal delay) +
         // 2 days (withdrawal timeout) +
         // 2 days additional delay
         expect(
           await assetPool.getRemainingWithdrawalTimeoutUpdateTime()
-        ).to.equal(
-          1555200 // 18 days
-        )
+        ).to.equal(withdrawalDelay + withdrawalTimeout + 2 * 24 * 3600)
       })
 
       it("should emit WithdrawalTimeoutUpdateStarted event", async () => {

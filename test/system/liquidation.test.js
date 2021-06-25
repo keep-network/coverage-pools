@@ -7,11 +7,10 @@ const {
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
+const { underwriterAddress, bidderAddress1 } = require("./constants.js")
 const { initContracts, setBondAuctionThreshold } = require("./init-contracts")
-const { bidderAddress1 } = require("./constants.js")
 
 const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
-
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
@@ -31,10 +30,13 @@ describeFn("System -- liquidation", () => {
   const lotSize = to1e18(5)
   // signers have bonded 290.81 ETH
   const bondedAmount = BigNumber.from("290810391624000000000")
-  // 75% of the deposit is exposed on auction in the liquidation moment
+  // deposit's auction must offer 75% of bonds to be accepted by risk manager
   const bondedAmountPercentage = BigNumber.from("75")
+  // amount of collateral deposited to asset pool is 200k KEEP tokens
+  const collateralAmount = to1e18(200000)
 
   let tbtcToken
+  let collateralToken
   let underwriterToken
   let assetPool
   let coveragePool
@@ -52,6 +54,7 @@ describeFn("System -- liquidation", () => {
     setBondAuctionThreshold(bondedAmountPercentage)
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
+    collateralToken = contracts.collateralToken
     underwriterToken = contracts.underwriterToken
     assetPool = contracts.assetPool
     signerBondsSwapStrategy = contracts.signerBondsSwapStrategy
@@ -66,6 +69,7 @@ describeFn("System -- liquidation", () => {
       .connect(governance)
       .approveFirstRiskManager(riskManagerV1.address)
 
+    underwriter = await impersonateAccount(underwriterAddress)
     bidder = await impersonateAccount(bidderAddress1)
   })
 
@@ -117,6 +121,15 @@ describeFn("System -- liquidation", () => {
       auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
       bidderInitialBalance = await tbtcToken.balanceOf(bidder.address)
+
+      // Deposit collateral tokens in the asset pool
+      await collateralToken
+        .connect(underwriter)
+        .approve(assetPool.address, collateralAmount)
+      await assetPool.connect(underwriter).deposit(collateralAmount)
+
+      // Wait 30% of the auction length and take offer
+      await increaseTime(25920)
       tx = await auction.takeOffer(lotSize)
     })
 
@@ -132,18 +145,36 @@ describeFn("System -- liquidation", () => {
       // Deposit has been liquidated.
       expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
 
-      // Signer bonds should land on the risk manager contract.
+      // The percentage of signer bonds that should be sent to the risk manager
+      // contract consists of the initial 66% and a portion of the remaining 34%
+      // that depends on the time passed before take offer. The percentage
+      // (rounded to the whole number) is therefore equal to:
+      // (66 + 34 * ((25920 + 22870)/86400)) = 85
       await expect(tx).to.changeEtherBalance(
         riskManagerV1,
-        bondedAmount.mul(bondedAmountPercentage).div(100)
+        bondedAmount.mul(85).div(100)
+      )
+    })
+
+    it("should transfer collateral tokens to the bidder", async () => {
+      expect(await collateralToken.balanceOf(bidder.address)).to.be.closeTo(
+        to1e18(60000), // 30% of the initial asset pool
+        to1e18(100) // 100 KEEP tokens precision
+      )
+    })
+
+    it("should adjust asset pool's collateral tokens after the claim", async () => {
+      expect(await collateralToken.balanceOf(assetPool.address)).to.be.closeTo(
+        to1e18(140000), // 70% of the initial asset pool
+        to1e18(100) // 100 KEEP tokens precision
       )
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(500000)
+      await expect(parseInt(tx.gasLimit)).to.be.lessThan(516000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(243000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(255000)
     })
   })
 })
