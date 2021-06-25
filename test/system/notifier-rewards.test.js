@@ -182,7 +182,7 @@ describeFn("System -- notifier rewards", () => {
 
       it("should be rewarded with percentage-based amount of asset pool shares", async () => {
         expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          covTotalSupply.div(50) // liquidationNotifierRewardPercentage is 2%
+          to1e18(20) // liquidationNotifierRewardPercentage is 2%
         )
       })
     })
@@ -277,7 +277,7 @@ describeFn("System -- notifier rewards", () => {
 
       it("should be rewarded with percentage-based amount of asset pool shares", async () => {
         expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          covTotalSupply.div(25) // liquidatedNotifierRewardPercentage is 4%
+          to1e18(40) // liquidatedNotifierRewardPercentage is 4%
         )
       })
     })
