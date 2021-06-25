@@ -657,6 +657,34 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         return openAuctionsCount > 0;
     }
 
+    /// @return Current value of the liquidation notifier reward amount.
+    function liquidationNotifierRewardAmount() external view returns (uint256) {
+        return rewards.liquidationNotifierRewardAmount;
+    }
+
+    /// @return Current value of the liquidation notifier reward percentage.
+    function liquidationNotifierRewardPercentage()
+        external
+        view
+        returns (uint256)
+    {
+        return rewards.liquidationNotifierRewardPercentage;
+    }
+
+    /// @return Current value of the liquidated notifier reward amount.
+    function liquidatedNotifierRewardAmount() external view returns (uint256) {
+        return rewards.liquidatedNotifierRewardAmount;
+    }
+
+    /// @return Current value of the liquidated notifier reward percentage.
+    function liquidatedNotifierRewardPercentage()
+        external
+        view
+        returns (uint256)
+    {
+        return rewards.liquidatedNotifierRewardPercentage;
+    }
+
     /// @notice Cleans up auction and deposit data and executes deposit liquidation.
     /// @dev This function is invoked when Auctioneer determines that an auction
     ///      is eligible to be closed. It cannot be called on-demand outside
