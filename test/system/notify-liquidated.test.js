@@ -107,10 +107,10 @@ describeFn("System -- notify liquidated", () => {
     })
 
     it("should consume a reasonable amount of gas", async () => {
-      await expect(parseInt(tx.gasLimit)).to.be.lessThan(180000)
+      await expect(parseInt(tx.gasLimit)).to.be.lessThan(180500)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(160000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(162000)
     })
   })
 })
