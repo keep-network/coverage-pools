@@ -925,7 +925,7 @@ describe("AssetPool", () => {
   describe("totalValue", () => {
     context("when there is nothing in the pool", () => {
       it("should return zero", async () => {
-        expect(await assetPool.totalValue()).to.equal(to1e18(0))
+        expect(await assetPool.totalValue()).to.equal(0)
       })
     })
 
