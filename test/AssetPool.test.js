@@ -315,6 +315,18 @@ describe("AssetPool", () => {
           await collateralToken.balanceOf(claimRecipient.address)
         ).to.equal(to1e18(90))
       })
+
+      it("should emit CoverageClaimed event", async () => {
+        const claimRecipient = await ethers.getSigner(15)
+        const claimAmount = to1e18(91)
+        const tx = await assetPool
+          .connect(coveragePool)
+          .claim(claimRecipient.address, claimAmount)
+
+        await expect(tx)
+          .to.emit(assetPool, "CoverageClaimed")
+          .withArgs(claimRecipient.address, claimAmount, await lastBlockTime())
+      })
     })
 
     context("when rewards were allocated", () => {
