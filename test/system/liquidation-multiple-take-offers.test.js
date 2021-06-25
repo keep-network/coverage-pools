@@ -91,7 +91,7 @@ describeFn("System -- multiple partial fills", () => {
     })
   })
 
-  describe("when auction has been fully filled will multiple partial fills", () => {
+  describe("when auction has been fully filled with multiple partial fills", () => {
     let auction
     let tx
     let bidder1InitialBalance
@@ -149,13 +149,13 @@ describeFn("System -- multiple partial fills", () => {
       await expect(tx).to.changeEtherBalance(riskManagerV1, bondedAmount)
     })
 
-    it("should transfer collateral tokens to the first bidder", async () => {
+    it("should transfer collateral tokens to bidder1", async () => {
       expect(await collateralToken.balanceOf(bidder1.address)).to.be.equal(
         to1e18(80000) // 40% of the asset pool
       )
     })
 
-    it("should transfer collateral tokens to the second bidder", async () => {
+    it("should transfer collateral tokens to bidder2", async () => {
       const currentCollateralBalance = await collateralToken.balanceOf(
         bidder2.address
       )
