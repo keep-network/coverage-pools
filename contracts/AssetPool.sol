@@ -64,6 +64,8 @@ contract AssetPool is Ownable, IAssetPool {
     mapping(address => uint256) public withdrawalInitiatedTimestamp;
     mapping(address => uint256) public pendingWithdrawal;
 
+    event CoverageClaimed(address recipient, uint256 amount, uint256 timestamp);
+
     event WithdrawalInitiated(
         address indexed underwriter,
         uint256 covAmount,
@@ -321,6 +323,7 @@ contract AssetPool is Ownable, IAssetPool {
     /// @notice Allows the coverage pool to demand coverage from the asset hold
     ///         by this pool and send it to the provided recipient address.
     function claim(address recipient, uint256 amount) external onlyOwner {
+        emit CoverageClaimed(recipient, amount, block.timestamp);
         rewardsPool.withdraw();
         collateralToken.safeTransfer(recipient, amount);
     }
@@ -438,6 +441,14 @@ contract AssetPool is Ownable, IAssetPool {
                 withdrawalTimeoutChangeInitiated,
                 withdrawalGovernanceDelay()
             );
+    }
+
+    /// @notice Returns the current collateral token balance of the asset pool
+    ///         plus the reward amount (in collateral token) earned by the asset
+    ///         pool and not yet withdrawn to the asset pool.
+    /// @return The total value of asset pool in collateral token.
+    function totalValue() external view returns (uint256) {
+        return collateralToken.balanceOf(address(this)) + rewardsPool.earned();
     }
 
     /// @notice The time it takes to initiate and complete the withdrawal from
