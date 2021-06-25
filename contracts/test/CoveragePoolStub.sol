@@ -18,14 +18,4 @@ contract CoveragePoolStub {
     {
         emit AssetPoolSharesGranted(recipient, covAmount);
     }
-
-    function covAmountToGrant(uint256 portionToGrant)
-        external
-        view
-        returns (uint256)
-    {
-        return
-            (portionToGrant * covTotalSupply) /
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
-    }
 }
