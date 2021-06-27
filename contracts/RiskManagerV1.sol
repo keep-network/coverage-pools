@@ -88,8 +88,8 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
 
-    IERC20 public tbtcToken;
-    ITBTCDepositToken public tbtcDepositToken;
+    IERC20 public immutable tbtcToken;
+    ITBTCDepositToken public immutable tbtcDepositToken;
     // tBTC surplus collected from early closed auctions.
     uint256 public tbtcSurplus;
 
