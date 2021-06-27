@@ -31,8 +31,8 @@ contract RewardsPool is Ownable {
 
     uint256 public constant DURATION = 7 days;
 
-    IERC20 public rewardToken;
-    address public assetPool;
+    IERC20 public immutable rewardToken;
+    address public immutable assetPool;
 
     // timestamp of the current reward interval end or the timestamp of the
     // last interval end in case a new reward interval has not been allocated
