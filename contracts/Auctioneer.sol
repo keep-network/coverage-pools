@@ -50,6 +50,7 @@ contract Auctioneer is CloneFactory {
 
     constructor(CoveragePool _coveragePool, address _masterAuction) {
         coveragePool = _coveragePool;
+        // slither-disable-next-line missing-zero-check
         masterAuction = _masterAuction;
     }
 
