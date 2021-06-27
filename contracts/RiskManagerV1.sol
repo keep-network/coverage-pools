@@ -25,15 +25,14 @@ import "./interfaces/IRiskManager.sol";
 
 /// @notice tBTC v1 Deposit contract interface.
 /// @dev This is an interface with just a few function signatures of a main
-///      contract from tBTC. For more info and function description
-///      please see:
+///      Deposit contract from tBTC. tBTC deposit contract functions declared in
+///      this interface are used by RiskManagerV1 contract to interact with tBTC
+///      v1 deposits. For more information about tBTC Deposit please see:
 ///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface IDeposit {
     function withdrawFunds() external;
 
     function purchaseSignerBondsAtAuction() external;
-
-    function notifyRedemptionSignatureTimedOut() external;
 
     function currentState() external view returns (uint256);
 
@@ -46,8 +45,7 @@ interface IDeposit {
 
 /// @notice tBTC v1 deposit token interface.
 /// @dev This is an interface with just a few function signatures of a main
-///      contract from tBTC. For more info and function description
-///      please see:
+///      contract from tBTC. For more information about tBTC Deposit please see:
 ///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/system/TBTCDepositToken.sol
 interface ITBTCDepositToken {
     function exists(uint256 _tokenId) external view returns (bool);

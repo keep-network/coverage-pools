@@ -42,9 +42,18 @@ async function initContracts(swapStrategy) {
     "IUniswapV2Router",
     uniswapV2RouterAddress
   )
-  const tbtcDeposit1 = await ethers.getContractAt("IDeposit", depositAddress1)
-  const tbtcDeposit2 = await ethers.getContractAt("IDeposit", depositAddress2)
-  const tbtcDeposit3 = await ethers.getContractAt("IDeposit", depositAddress3)
+  const tbtcDeposit1 = await ethers.getContractAt(
+    "ITBTCDeposit",
+    depositAddress1
+  )
+  const tbtcDeposit2 = await ethers.getContractAt(
+    "ITBTCDeposit",
+    depositAddress2
+  )
+  const tbtcDeposit3 = await ethers.getContractAt(
+    "ITBTCDeposit",
+    depositAddress3
+  )
 
   const AssetPool = await ethers.getContractFactory("AssetPool")
   const assetPool = await AssetPool.deploy(
