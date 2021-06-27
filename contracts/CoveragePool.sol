@@ -219,19 +219,6 @@ contract CoveragePool is Ownable {
             );
     }
 
-    /// @notice Calculates amount of tokens to be seized from the coverage pool.
-    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
-    function amountToSeize(uint256 portionToSeize)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            (collateralToken.balanceOf(address(assetPool)) * portionToSeize) /
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
-    }
-
     /// @notice Calculates the amount of COV tokens for a grant. COV tokens are
     ///         granted as reward for the notifier reporting about deposit
     ///         liquidation start or deposit being liquidated outside of the
@@ -250,6 +237,19 @@ contract CoveragePool is Ownable {
 
         return
             (portionToGrant * covTotalSupply) /
+            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
+    }
+
+    /// @notice Calculates amount of tokens to be seized from the coverage pool.
+    /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
+    ///        multiplied by FLOATING_POINT_DIVISOR.
+    function amountToSeize(uint256 portionToSeize)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            (collateralToken.balanceOf(address(assetPool)) * portionToSeize) /
             CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 }

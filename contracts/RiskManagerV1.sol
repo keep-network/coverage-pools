@@ -759,6 +759,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 ///         All parameters can be updated using a two-phase process.
 /// @dev The client contract should take care of authorizations or governance
 ///      delays according to their needs.
+/* solhint-disable-next-line ordering */
 library RiskManagerV1Rewards {
     struct Storage {
         // Fixed amount of COV tokens which should be given as reward for the
