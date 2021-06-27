@@ -48,9 +48,14 @@ contract RewardsPool is Ownable {
     event RewardToppedUp(uint256 amount);
     event RewardWithdrawn(uint256 amount);
 
-    constructor(IERC20 _rewardToken, AssetPool _assetPool) {
+    constructor(
+        IERC20 _rewardToken,
+        AssetPool _assetPool,
+        address owner
+    ) {
         rewardToken = _rewardToken;
         assetPool = address(_assetPool);
+        transferOwnership(owner);
     }
 
     /// @notice Transfers the provided reward amount into RewardsPool and
