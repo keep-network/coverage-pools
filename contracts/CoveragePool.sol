@@ -30,8 +30,8 @@ import "./interfaces/IAssetPoolUpgrade.sol";
 /// @dev Coverage pool contract is owned by the governance. Coverage pool is the
 ///      owner of the asset pool contract.
 contract CoveragePool is Ownable {
-    AssetPool public assetPool;
-    IERC20 public collateralToken;
+    AssetPool public immutable assetPool;
+    IERC20 public immutable collateralToken;
 
     bool public firstRiskManagerApproved = false;
 
