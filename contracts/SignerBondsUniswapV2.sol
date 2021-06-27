@@ -71,10 +71,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // One basis point is equivalent to 1/100th of a percent.
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
-    IUniswapV2Router public uniswapRouter;
-    IUniswapV2Pair public uniswapPair;
-    address public assetPool;
-    address public collateralToken;
+    IUniswapV2Router public immutable uniswapRouter;
+    IUniswapV2Pair public immutable uniswapPair;
+    address public immutable assetPool;
+    address public immutable collateralToken;
 
     // Determines the maximum allowed price impact for the swap transaction.
     // If transaction's price impact is higher, transaction will be reverted.
@@ -97,12 +97,13 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     constructor(IUniswapV2Router _uniswapRouter, CoveragePool _coveragePool) {
         uniswapRouter = _uniswapRouter;
         assetPool = address(_coveragePool.assetPool());
-        collateralToken = address(_coveragePool.collateralToken());
+        address _collateralToken = address(_coveragePool.collateralToken());
+        collateralToken = _collateralToken;
         uniswapPair = IUniswapV2Pair(
             computePairAddress(
                 _uniswapRouter.factory(),
                 _uniswapRouter.WETH(),
-                collateralToken
+                _collateralToken
             )
         );
     }
