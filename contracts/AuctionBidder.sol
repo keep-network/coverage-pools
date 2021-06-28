@@ -22,7 +22,7 @@ import "./CoveragePool.sol";
 ///         contract offers additional features for bidders to decide if their
 ///         requirements for making a purchase are satisfied.
 contract AuctionBidder {
-    CoveragePool public coveragePool;
+    CoveragePool public immutable coveragePool;
 
     constructor(CoveragePool _coveragePool) {
         coveragePool = _coveragePool;

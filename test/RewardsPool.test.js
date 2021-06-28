@@ -26,9 +26,12 @@ describe("RewardsPool", () => {
     await rewardToken.deployed()
 
     const RewardsPool = await ethers.getContractFactory("RewardsPool")
-    pool = await RewardsPool.deploy(rewardToken.address, assetPool.address)
+    pool = await RewardsPool.deploy(
+      rewardToken.address,
+      assetPool.address,
+      rewardManager.address
+    )
     await pool.deployed()
-    await pool.transferOwnership(rewardManager.address)
 
     await rewardToken.mint(rewardManager.address, to1e18(500000))
     await rewardToken.mint(thirdParty.address, to1e18(500000))

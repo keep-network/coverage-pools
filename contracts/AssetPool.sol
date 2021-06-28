@@ -35,10 +35,10 @@ contract AssetPool is Ownable, IAssetPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for UnderwriterToken;
 
-    IERC20 public collateralToken;
-    UnderwriterToken public underwriterToken;
+    IERC20 public immutable collateralToken;
+    UnderwriterToken public immutable underwriterToken;
 
-    RewardsPool public rewardsPool;
+    RewardsPool public immutable rewardsPool;
 
     IAssetPoolUpgrade public newAssetPool;
 
@@ -121,8 +121,7 @@ contract AssetPool is Ownable, IAssetPool {
         collateralToken = _collateralToken;
         underwriterToken = _underwriterToken;
 
-        rewardsPool = new RewardsPool(_collateralToken, this);
-        rewardsPool.transferOwnership(rewardsManager);
+        rewardsPool = new RewardsPool(_collateralToken, this, rewardsManager);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and

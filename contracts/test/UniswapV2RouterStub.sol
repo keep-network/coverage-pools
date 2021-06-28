@@ -42,11 +42,12 @@ contract UniswapV2RouterStub is IUniswapV2Router {
 
     /// @dev Always assumes there are two elements in the path and
     ///      WETH is the first one.
-    function getAmountsOut(
-        uint256 amountIn,
-        /* solhint-disable-next-line no-unused-vars */
-        address[] calldata path
-    ) external view override returns (uint256[] memory amounts) {
+    function getAmountsOut(uint256 amountIn, address[] calldata)
+        external
+        view
+        override
+        returns (uint256[] memory amounts)
+    {
         amounts = new uint256[](2);
         amounts[0] = amountIn;
         amounts[1] = (amountIn * exchangeRate * 997) / 1000; // simulate 0.3% fee

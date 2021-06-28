@@ -28,11 +28,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
-    address public masterAuction;
+    address public immutable masterAuction;
     mapping(address => bool) public openAuctions;
     uint256 public openAuctionsCount;
 
-    CoveragePool public coveragePool;
+    CoveragePool public immutable coveragePool;
 
     event AuctionCreated(
         address indexed tokenAccepted,
@@ -49,9 +49,8 @@ contract Auctioneer is CloneFactory {
     event AuctionClosed(address indexed auction);
 
     constructor(CoveragePool _coveragePool, address _masterAuction) {
-        require(_masterAuction != address(0), "Invalid master auction address");
-        require(masterAuction == address(0), "Auctioneer already initialized");
         coveragePool = _coveragePool;
+        // slither-disable-next-line missing-zero-check
         masterAuction = _masterAuction;
     }
 

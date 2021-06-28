@@ -88,8 +88,8 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
 
-    IERC20 public tbtcToken;
-    ITBTCDepositToken public tbtcDepositToken;
+    IERC20 public immutable tbtcToken;
+    ITBTCDepositToken public immutable tbtcDepositToken;
     // tBTC surplus collected from early closed auctions.
     uint256 public tbtcSurplus;
 
@@ -759,6 +759,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 ///         All parameters can be updated using a two-phase process.
 /// @dev The client contract should take care of authorizations or governance
 ///      delays according to their needs.
+/* solhint-disable-next-line ordering */
 library RiskManagerV1Rewards {
     struct Storage {
         // Fixed amount of COV tokens which should be given as reward for the

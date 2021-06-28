@@ -31,8 +31,8 @@ contract RewardsPool is Ownable {
 
     uint256 public constant DURATION = 7 days;
 
-    IERC20 public rewardToken;
-    address public assetPool;
+    IERC20 public immutable rewardToken;
+    address public immutable assetPool;
 
     // timestamp of the current reward interval end or the timestamp of the
     // last interval end in case a new reward interval has not been allocated
@@ -48,9 +48,14 @@ contract RewardsPool is Ownable {
     event RewardToppedUp(uint256 amount);
     event RewardWithdrawn(uint256 amount);
 
-    constructor(IERC20 _rewardToken, AssetPool _assetPool) {
+    constructor(
+        IERC20 _rewardToken,
+        AssetPool _assetPool,
+        address owner
+    ) {
         rewardToken = _rewardToken;
         assetPool = address(_assetPool);
+        transferOwnership(owner);
     }
 
     /// @notice Transfers the provided reward amount into RewardsPool and
