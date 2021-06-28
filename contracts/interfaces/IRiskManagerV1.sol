@@ -12,6 +12,8 @@
 
 // SPDX-License-Identifier: MIT
 
+pragma solidity 0.8.4;
+
 /// @title Interface for tBTC v1 Risk Manager
 /// @notice Risk Manager is a smart contract with the exclusive right to claim
 ///         coverage from the coverage pool. Demanding coverage is akin to
