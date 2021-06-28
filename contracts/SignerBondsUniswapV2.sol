@@ -14,10 +14,11 @@
 
 pragma solidity 0.8.4;
 
-import "./interfaces/IRiskManager.sol";
+import "./interfaces/IRiskManagerV1.sol";
 import "./RiskManagerV1.sol";
 import "./CoveragePool.sol";
 import "./CoveragePoolConstants.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @notice Interface for the Uniswap v2 router.
@@ -191,7 +192,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @param riskManager Address of the risk manager which holds the bonds.
     /// @param amount Amount to swap.
     function swapSignerBondsOnUniswapV2(
-        IRiskManager riskManager,
+        IRiskManagerV1 riskManager,
         uint256 amount
     ) external {
         require(amount > 0, "Amount must be greater than 0");

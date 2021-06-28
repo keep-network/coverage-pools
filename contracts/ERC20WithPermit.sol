@@ -14,9 +14,9 @@
 
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./interfaces/IERC20WithPermit.sol";
+
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title  ERC20WithPermit
 /// @notice Burnable ERC20 token with EIP2612 permit functionality. Users can

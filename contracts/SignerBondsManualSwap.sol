@@ -14,8 +14,9 @@
 
 pragma solidity 0.8.4;
 
-import "./interfaces/IRiskManager.sol";
+import "./interfaces/IRiskManagerV1.sol";
 import "./RiskManagerV1.sol";
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title SignerBondsManualSwap
@@ -37,7 +38,7 @@ contract SignerBondsManualSwap is ISignerBondsSwapStrategy, Ownable {
     ///        that will be responsible for swapping ETH and depositing
     ///        collateral to the coverage pool.
     function withdrawSignerBonds(
-        IRiskManager riskManager,
+        IRiskManagerV1 riskManager,
         uint256 amount,
         address payable recipient
     ) external onlyOwner {

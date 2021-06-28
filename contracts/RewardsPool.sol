@@ -14,14 +14,14 @@
 
 pragma solidity 0.8.4;
 
+import "./AssetPool.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./AssetPool.sol";
-
-/// @title RewardsPool
+/// @title Rewards Pool
 /// @notice RewardsPool accepts a single reward token and releases it to the
 ///         AssetPool over time in one week reward intervals. The owner of this
 ///         contract is the reward distribution address funding it with reward
@@ -61,7 +61,7 @@ contract RewardsPool is Ownable {
     /// @notice Transfers the provided reward amount into RewardsPool and
     ///         creates a new, one-week reward interval starting from now.
     ///         Reward tokens from the previous reward interval that unlocked
-    ///         over the time will be available for withdrawal immediatelly.
+    ///         over the time will be available for withdrawal immediately.
     ///         Reward tokens from the previous interval that has not been yet
     ///         unlocked, are added to the new interval being created.
     /// @dev This function can be called only by the owner given that it creates

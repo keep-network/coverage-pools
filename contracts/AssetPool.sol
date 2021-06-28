@@ -14,17 +14,17 @@
 
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./interfaces/IAssetPool.sol";
 import "./interfaces/IAssetPoolUpgrade.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 import "./GovernanceUtils.sol";
 
-/// @title AssetPool
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/// @title Asset Pool
 /// @notice Asset pool is a component of a Coverage Pool. Asset Pool
 ///         accepts a single ERC20 token as collateral, and returns an
 ///         underwriter token. For example, an asset pool might accept deposits
@@ -42,21 +42,22 @@ contract AssetPool is Ownable, IAssetPool {
 
     IAssetPoolUpgrade public newAssetPool;
 
-    // The time it takes the underwriter to withdraw their collateral
-    // and rewards from the pool. This is the time that needs to pass between
-    // initiating and completing the withdrawal. During that time, underwriter
-    // is still earning rewards and their share of the pool is still a subject
-    // of a possible coverage claim.
+    /// @notice The time it takes the underwriter to withdraw their collateral
+    ///         and rewards from the pool. This is the time that needs to pass
+    ///         between initiating and completing the withdrawal. During that
+    ///         time, underwriter is still earning rewards and their share of
+    ///         the pool is still a subject of a possible coverage claim.
     uint256 public withdrawalDelay = 21 days;
     uint256 public newWithdrawalDelay;
     uint256 public withdrawalDelayChangeInitiated;
-    // The time the underwriter has after the withdrawal delay passed to
-    // complete the withdrawal. During that time, underwriter is still earning
-    // rewards and their share of the pool is still a subject of a possible
-    // coverage claim.
-    // After the withdrawal timeout elapses, tokens stay in the pool
-    // and the underwriters has to initiate the withdrawal again and wait for
-    // the full withdrawal delay to complete the withdrawal.
+
+    /// @notice The time the underwriter has after the withdrawal delay passed
+    ///         to complete the withdrawal. During that time, underwriter is
+    ///         still earning rewards and their share of the pool is still
+    ///         a subject of a possible coverage claim.
+    ///         After the withdrawal timeout elapses, tokens stay in the pool
+    ///         and the underwriter has to initiate the withdrawal again and
+    ///         wait for the full withdrawal delay to complete the withdrawal.
     uint256 public withdrawalTimeout = 2 days;
     uint256 public newWithdrawalTimeout;
     uint256 public withdrawalTimeoutChangeInitiated;
@@ -96,10 +97,10 @@ contract AssetPool is Ownable, IAssetPool {
     );
     event WithdrawalTimeoutUpdated(uint256 withdrawalTimeout);
 
-    /// @notice Reverts if the withdrawl governance delay has not passed yet or
+    /// @notice Reverts if the withdrawal governance delay has not passed yet or
     ///         if the change was not yet initiated.
     /// @param changeInitiatedTimestamp The timestamp at which the change has
-    ///        been initiated.
+    ///        been initiated
     modifier onlyAfterWithdrawalGovernanceDelay(
         uint256 changeInitiatedTimestamp
     ) {
@@ -240,14 +241,15 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Transfers collateral tokens to a new Asset Pool which previously
-    ///         was approved by the governance.
+    ///         was approved by the governance. Upgrade does not have to obey
+    ///         withdrawal delay.
     ///         Old underwriter tokens are burned in favor of new tokens minted
     ///         in a new Asset Pool. New tokens are sent directly to the
     ///         underwriter from a new Asset Pool.
     /// @param covAmount Amount of underwriter tokens used to calculate collateral
-    ///                  tokens which are transferred to a new asset pool.
+    ///                  tokens which are transferred to a new asset pool
     /// @param _newAssetPool New Asset Pool address to check validity with the one
-    ///                      that was approved by the governance.
+    ///                      that was approved by the governance
     function upgradeToNewAssetPool(uint256 covAmount, address _newAssetPool)
         external
     {
@@ -304,7 +306,8 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Allows governance to set a new asset pool so the underwriters
-    ///         can move their collateral tokens to a new asset pool.
+    ///         can move their collateral tokens to a new asset pool without
+    ///         having to wait for the withdrawal delay.
     function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
         external
         onlyOwner
@@ -328,7 +331,7 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Lets the contract owner to begin an update of withdrawal delay
-    ///         paramter value. Withdrawal delay is the time it takes the
+    ///         parameter value. Withdrawal delay is the time it takes the
     ///         underwriter to withdraw their collateral and rewards from the
     ///         pool. This is the time that needs to pass between initiating and
     ///         completing the withdrawal. The change needs to be finalized with
@@ -365,7 +368,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
     ///         governance delay passes.
-    /// @param  _newWithdrawalTimeout The new value of the withdrawal timeout.
+    /// @param  _newWithdrawalTimeout The new value of the withdrawal timeout
     function beginWithdrawalTimeoutUpdate(uint256 _newWithdrawalTimeout)
         external
         onlyOwner
@@ -399,8 +402,8 @@ contract AssetPool is Ownable, IAssetPool {
     ///         collateral tokens. Shares are usually granted for notifiers
     ///         reporting about various contract state changes.
     /// @dev Can be called only by the contract owner.
-    /// @param recipient Address of the underwriter tokens recipient.
-    /// @param covAmount Amount of the underwriter tokens which should be minted.
+    /// @param recipient Address of the underwriter tokens recipient
+    /// @param covAmount Amount of the underwriter tokens which should be minted
     function grantShares(address recipient, uint256 covAmount)
         external
         onlyOwner

@@ -14,10 +14,9 @@
 
 pragma solidity 0.8.4;
 
-import "./AssetPool.sol";
-
 import "./interfaces/IUnderwriterToken.sol";
 import "./ERC20WithPermit.sol";
+import "./AssetPool.sol";
 
 /// @title  UnderwriterToken
 /// @notice Underwriter tokens represent an ownership share in the underlying
