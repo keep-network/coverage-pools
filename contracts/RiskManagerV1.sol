@@ -101,7 +101,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     uint256 public newBondAuctionThreshold;
     uint256 public bondAuctionThresholdChangeInitiated;
 
-    /// @notice The length with wich every new auction is opened. Auction length
+    /// @notice The length with which every new auction is opened. Auction length
     ///         is the amount of time it takes for the auction to get to 100%
     ///         of all collateral on offer, in seconds. This parameter value
     ///         should be updated and kept up to date based on the coverage pool
@@ -380,7 +380,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     /// @notice Begins the auction length update process.
     /// @dev Can be called only by the contract owner. The auction length should
     ///      be adjusted very carefully. Total value locked of the coverage pool
-    ///      and minimum possible auction amount needs to be taken into account.
+    ///      and minimum possible auction amount need to be taken into account.
     /// @param _newAuctionLength New auction length in seconds
     function beginAuctionLengthUpdate(uint256 _newAuctionLength)
         external

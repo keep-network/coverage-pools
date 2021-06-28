@@ -44,7 +44,7 @@ contract AssetPool is Ownable, IAssetPool {
 
     /// @notice The time it takes the underwriter to withdraw their collateral
     ///         and rewards from the pool. This is the time that needs to pass
-    ///         betweenin itiating and completing the withdrawal. During that
+    ///         between initiating and completing the withdrawal. During that
     ///         time, underwriter is still earning rewards and their share of
     ///         the pool is still a subject of a possible coverage claim.
     uint256 public withdrawalDelay = 21 days;
@@ -56,7 +56,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         still earning rewards and their share of the pool is still
     ///         a subject of a possible coverage claim.
     ///         After the withdrawal timeout elapses, tokens stay in the pool
-    ///         and the underwriters has to initiate the withdrawal again and
+    ///         and the underwriter has to initiate the withdrawal again and
     ///         wait for the full withdrawal delay to complete the withdrawal.
     uint256 public withdrawalTimeout = 2 days;
     uint256 public newWithdrawalTimeout;
