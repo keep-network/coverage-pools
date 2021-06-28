@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "./AssetPool.sol";
 
-/// @title RewardsPool
+/// @title Rewards Pool
 /// @notice RewardsPool accepts a single reward token and releases it to the
 ///         AssetPool over time in one week reward intervals. The owner of this
 ///         contract is the reward distribution address funding it with reward

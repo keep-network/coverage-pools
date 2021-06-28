@@ -23,7 +23,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./interfaces/IAssetPoolUpgrade.sol";
 
-/// @title CoveragePool
+/// @title Coverage Pool
 /// @notice A contract that manages a single asset pool. Handles approving and
 ///         unapproving of risk managers and allows them to seize funds from the
 ///         asset pool if they are approved.
@@ -58,7 +58,7 @@ contract CoveragePool is Ownable {
     /// @notice Approves the first risk manager
     /// @dev Can be called only by the contract owner. Can be called only once.
     ///      Does not require any further calls to any functions.
-    /// @param riskManager Risk manager that will be approved.
+    /// @param riskManager Risk manager that will be approved
     function approveFirstRiskManager(address riskManager) external onlyOwner {
         require(
             !firstRiskManagerApproved,
@@ -72,7 +72,7 @@ contract CoveragePool is Ownable {
     /// @dev Can be called only by the contract owner. For a risk manager to be
     ///      approved, a call to `finalizeRiskManagerApproval` must follow
     ///      (after a governance delay).
-    /// @param riskManager Risk manager that will be approved.
+    /// @param riskManager Risk manager that will be approved
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
@@ -83,7 +83,7 @@ contract CoveragePool is Ownable {
     /// @notice Finalizes risk manager approval process.
     /// @dev Can be called only by the contract owner. Must be preceded with a
     ///      call to beginRiskManagerApproval and a governance delay must elapse.
-    /// @param riskManager Risk manager that will be approved.
+    /// @param riskManager Risk manager that will be approved
     function finalizeRiskManagerApproval(address riskManager)
         external
         onlyOwner
@@ -106,14 +106,17 @@ contract CoveragePool is Ownable {
 
     /// @notice Unapproves the risk manager. The change takes effect immediately.
     /// @dev Can be called only by the contract owner.
-    /// @param riskManager Risk manager that will be unapproved.
+    /// @param riskManager Risk manager that will be unapproved
     function unapproveRiskManager(address riskManager) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
         emit RiskManagerUnapproved(riskManager, block.timestamp);
         delete approvedRiskManagers[riskManager];
     }
 
-    /// @notice Approves upgradeability of a new asset pool.
+    /// @notice Approves upgradeability to the new asset pool.
+    ///         Allows governance to set a new asset pool so the underwriters
+    ///         can move their collateral tokens to a new asset pool without
+    ///         having to wait for the withdrawal delay.
     /// @param _newAssetPool New asset pool
     function approveNewAssetPoolUpgrade(IAssetPoolUpgrade _newAssetPool)
         external
@@ -151,7 +154,7 @@ contract CoveragePool is Ownable {
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
     ///         governance delay passes.
-    /// @param  newWithdrawalTimeout The new value of the withdrawal timeout.
+    /// @param  newWithdrawalTimeout The new value of the withdrawal timeout
     function beginWithdrawalTimeoutUpdate(uint256 newWithdrawalTimeout)
         external
         onlyOwner
@@ -172,9 +175,9 @@ contract CoveragePool is Ownable {
     /// @dev `portionToSeize` value was multiplied by `FLOATING_POINT_DIVISOR`
     ///      for calculation precision purposes. Further calculations in this
     ///      function will need to take this divisor into account.
-    /// @param recipient Address that will receive the pool's seized funds.
+    /// @param recipient Address that will receive the pool's seized funds
     /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by `FLOATING_POINT_DIVISOR`.
+    ///        multiplied by `FLOATING_POINT_DIVISOR`
     function seizeFunds(address recipient, uint256 portionToSeize)
         external
         onlyApprovedRiskManager
@@ -194,8 +197,8 @@ contract CoveragePool is Ownable {
     ///         any collateral tokens. Shares are usually granted for notifiers
     ///         reporting about various contract state changes.
     /// @dev Can be called only by an approved risk manager.
-    /// @param recipient Address of the underwriter tokens recipient.
-    /// @param covAmount Amount of the underwriter tokens which should be minted.
+    /// @param recipient Address of the underwriter tokens recipient
+    /// @param covAmount Amount of the underwriter tokens which should be minted
     function grantAssetPoolShares(address recipient, uint256 covAmount)
         external
         onlyApprovedRiskManager
@@ -242,7 +245,7 @@ contract CoveragePool is Ownable {
 
     /// @notice Calculates amount of tokens to be seized from the coverage pool.
     /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
-    ///        multiplied by FLOATING_POINT_DIVISOR.
+    ///        multiplied by FLOATING_POINT_DIVISOR
     function amountToSeize(uint256 portionToSeize)
         public
         view
