@@ -21,7 +21,7 @@ import "./GovernanceUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IRiskManager.sol";
+import "./interfaces/IRiskManagerV1.sol";
 
 /// @title tBTC v1 Deposit contract interface
 /// @notice This is an interface with just a few function signatures of a main
@@ -75,7 +75,7 @@ interface ISignerBondsSwapStrategy {
 ///         in liquidation and signer bonds on offer reached the specific
 ///         threshold. In practice, it means no one is willing to purchase
 ///         signer bonds for that deposit on tBTC side.
-contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
+contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using RiskManagerV1Rewards for RiskManagerV1Rewards.Storage;
 
@@ -255,7 +255,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ///         coverage pool as a reward - underwriter tokens are transferred
     ///         to the notifier's address.
     /// @param  depositAddress liquidating tBTC deposit address
-    function notifyLiquidation(address depositAddress) external {
+    function notifyLiquidation(address depositAddress) external override {
         require(
             tbtcDepositToken.exists(uint256(uint160(depositAddress))),
             "Address is not a deposit contract"
@@ -314,7 +314,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ///         a share in the coverage pool as a reward - underwriter tokens
     ///         are transferred to the notifier's address.
     /// @param  depositAddress liquidated tBTC Deposit address
-    function notifyLiquidated(address depositAddress) external {
+    function notifyLiquidated(address depositAddress) external override {
         require(
             depositToAuction[depositAddress] != address(0),
             "No auction for given deposit"
