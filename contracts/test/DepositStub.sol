@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "../RiskManagerV1.sol";
 
-/// @dev tBTC v1 deposit interace with a subset of functions used by unit and
+/// @dev tBTC v1 deposit interface with a subset of functions used by unit and
 ///      system tests. For more information about tBTC Deposit, please see:
 ///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/deposit/Deposit.sol
 interface ITBTCDeposit is IDeposit {
@@ -16,7 +16,7 @@ interface ITBTCDeposit is IDeposit {
 /// @dev Stub contract simulating - in a simplified way - behavior of tBTC v1
 ///      deposit when it comes to purchasing signer bonds. This is _not_
 ///      a complete tBTC v1 Deposit implementation.
-contract DepositStub is IDeposit {
+contract DepositStub is ITBTCDeposit {
     using SafeERC20 for IERC20;
 
     enum States {
@@ -78,7 +78,7 @@ contract DepositStub is IDeposit {
         currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
 
-    function notifyRedemptionSignatureTimedOut() external {
+    function notifyRedemptionSignatureTimedOut() external override {
         currentState = uint256(States.LIQUIDATION_IN_PROGRESS);
     }
 
