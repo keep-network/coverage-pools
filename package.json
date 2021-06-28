@@ -22,6 +22,7 @@
   "name": "@keep-network/coverage-pool",
   "scripts": {
     "build": "hardhat compile",
+    "coverage": "NODE_ENV=system-test hardhat coverage",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix:js": "eslint . --fix",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
