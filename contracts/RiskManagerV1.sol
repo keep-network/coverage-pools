@@ -81,7 +81,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
 
     /// @notice Governance delay that needs to pass before any risk manager
     ///         parameter change initiated by the governance takes effect.
-    uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
+    uint256 public constant GOVERNANCE_DELAY = 12 hours;
 
     // See https://github.com/keep-network/tbtc/blob/v1.1.0/solidity/contracts/deposit/DepositStates.sol
     uint256 public constant DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE = 9;
@@ -95,7 +95,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     ///         from. The value can be updated by the governance in two steps.
     ///         First step is to begin the update process with the new value
     ///         and the second step is to finalize it after
-    ///         `GOVERNANCE_TIME_DELAY` has passed.
+    ///         `GOVERNANCE_DELAY` has passed.
     uint256 public bondAuctionThreshold; // percentage
     uint256 public newBondAuctionThreshold;
     uint256 public bondAuctionThresholdChangeInitiated;
@@ -110,7 +110,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     ///         The value can be updated by the governance in two steps.
     ///         First step is to begin the update process with the new value
     ///         and the second step is to finalize it after
-    ///         `GOVERNANCE_TIME_DELAY` has passed.
+    ///         `GOVERNANCE_DELAY` has passed.
     uint256 public auctionLength;
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
@@ -120,7 +120,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     ///         The value can be updated by the governance in two steps.
     ///         First step is to begin the update process with the new value
     ///         and the second step is to finalize it after
-    ///         `GOVERNANCE_TIME_DELAY` has passed.
+    ///         `GOVERNANCE_DELAY` has passed.
     ISignerBondsSwapStrategy public signerBondsSwapStrategy;
     ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
     uint256 public signerBondsSwapStrategyInitiated;
@@ -206,7 +206,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         require(changeInitiatedTimestamp > 0, "Change not initiated");
         require(
             /* solhint-disable-next-line not-rely-on-time */
-            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_TIME_DELAY,
+            block.timestamp - changeInitiatedTimestamp >= GOVERNANCE_DELAY,
             "Governance delay has not elapsed"
         );
         _;
@@ -617,7 +617,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 bondAuctionThresholdChangeInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
@@ -632,7 +632,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 auctionLengthChangeInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
@@ -647,7 +647,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 rewards.liquidationNotifierRewardAmountChangeInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
@@ -662,7 +662,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 rewards.liquidationNotifierRewardPercentageChangeInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
@@ -677,7 +677,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 rewards.liquidatedNotifierRewardAmountChangeInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
@@ -692,7 +692,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 rewards.liquidatedNotifierRewardPercentageChangeInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
@@ -707,7 +707,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return
             GovernanceUtils.getRemainingChangeTime(
                 signerBondsSwapStrategyInitiated,
-                GOVERNANCE_TIME_DELAY
+                GOVERNANCE_DELAY
             );
     }
 
