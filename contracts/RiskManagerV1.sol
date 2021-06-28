@@ -23,8 +23,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IRiskManager.sol";
 
-/// @notice tBTC v1 Deposit contract interface.
-/// @dev This is an interface with just a few function signatures of a main
+/// @title tBTC v1 Deposit contract interface
+/// @notice This is an interface with just a few function signatures of a main
 ///      Deposit contract from tBTC. tBTC deposit contract functions declared in
 ///      this interface are used by RiskManagerV1 contract to interact with tBTC
 ///      v1 deposits. For more information about tBTC Deposit please see:
@@ -43,58 +43,103 @@ interface IDeposit {
     function auctionValue() external view returns (uint256);
 }
 
-/// @notice tBTC v1 deposit token interface.
-/// @dev This is an interface with just a few function signatures of a main
+/// @title tBTC v1 deposit token (TDT) interface
+/// @notice This is an interface with just a few function signatures of a main
 ///      contract from tBTC. For more information about tBTC Deposit please see:
 ///      https://github.com/keep-network/tbtc/blob/solidity/v1.1.0/solidity/contracts/system/TBTCDepositToken.sol
 interface ITBTCDepositToken {
     function exists(uint256 _tokenId) external view returns (bool);
 }
 
-/// @title ISignerBondsSwapStrategy
-/// @notice Represents a signer bonds swap strategy.
-/// @dev This interface is meant to abstract the underlying signer bonds
-///      swap strategy and make it interchangeable for the governance.
+/// @title Signer bonds swap strategy
+/// @notice This interface is meant to abstract the underlying signer bonds
+///         swap strategy and make it interchangeable for the governance.
+///         Risk manager uses the strategy to swap ETH from tBTC deposit
+///         purchased signer bonds back into collateral token accepted by
+///         coverage pool.
 interface ISignerBondsSwapStrategy {
     /// @notice Notifies the strategy about signer bonds purchase.
     /// @param amount Amount of purchased signer bonds.
     function onSignerBondsPurchased(uint256 amount) external;
 }
 
-/// @title RiskManagerV1 for tBTCv1
+/// @title Risk Manager for tBTC v1
+/// @notice Risk Manager is a smart contract with the exclusive right to claim
+///         coverage from the coverage pool. Demanding coverage is akin to
+///         filing a claim in traditional insurance and processing your own
+///         claim. The risk manager holds an incredibly privileged position,
+///         because the ability to claim coverage of an arbitrarily large
+///         position could bankrupt the coverage pool.
+///         tBTC v1 risk manager demands coverage by opening an auction for TBTC
+///         and liquidating portion of the coverage pool when tBTC v1 deposit is
+///         in liquidation and signer bonds on offer reached the specific
+///         threshold. In practice, it means no one is willing to purchase
+///         signer bonds for that deposit on tBTC side.
 contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using RiskManagerV1Rewards for RiskManagerV1Rewards.Storage;
 
+    /// @notice Governance delay that needs to pass before any risk manager
+    ///         parameter change initiated by the governance takes effect.
     uint256 public constant GOVERNANCE_TIME_DELAY = 12 hours;
 
+    // See https://github.com/keep-network/tbtc/blob/v1.1.0/solidity/contracts/deposit/DepositStates.sol
     uint256 public constant DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE = 9;
     uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
     uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
-    // Coverage pool auction will not be opened if the deposit's bond auction
-    // offers a bond percentage lower than this threshold.
-    // Risk manager should open a coverage pool auction for only those deposits
-    // that nobody else is willing to purchase. The default value can be updated
-    // by the governance in two steps. First step is to begin the update process
-    // with the new value and the second step is to finalize it after
-    // GOVERNANCE_TIME_DELAY has passed.
-    uint256 public bondAuctionThreshold; // percent
+
+    /// @notice Coverage pool auction will not be opened if the deposit's bond
+    ///         auction offers a bond percentage lower than this threshold.
+    ///         Risk manager should open a coverage pool auction for only those
+    //          tBTC deposits that nobody else is willing to purchase bonds
+    ///         from. The value can be updated by the governance in two steps.
+    ///         First step is to begin the update process with the new value
+    ///         and the second step is to finalize it after
+    ///         `GOVERNANCE_TIME_DELAY` has passed.
+    uint256 public bondAuctionThreshold; // percentage
     uint256 public newBondAuctionThreshold;
     uint256 public bondAuctionThresholdChangeInitiated;
 
+    /// @notice The length with wich every new auction is opened. Auction length
+    ///         is the amount of time it takes for the auction to get to 100%
+    ///         of all collateral on offer, in seconds. This parameter value
+    ///         should be updated and kept up to date based on the coverage pool
+    ///         TVL and tBTC v1 minimum lot size allowed so that a new auction
+    ///         does not liquidate too much too early. Auction length is the
+    ///         same, no matter tBTC deposit lot size.
+    ///         The value can be updated by the governance in two steps.
+    ///         First step is to begin the update process with the new value
+    ///         and the second step is to finalize it after
+    ///         `GOVERNANCE_TIME_DELAY` has passed.
     uint256 public auctionLength;
     uint256 public newAuctionLength;
     uint256 public auctionLengthChangeInitiated;
 
-    IERC20 public immutable tbtcToken;
-    ITBTCDepositToken public immutable tbtcDepositToken;
-    // tBTC surplus collected from early closed auctions.
-    uint256 public tbtcSurplus;
-
+    /// @notice The strategy used to swap ETH from tBTC deposit purchased signer
+    ///         bonds into an asset accepted by coverage pool as collateral.
+    ///         The value can be updated by the governance in two steps.
+    ///         First step is to begin the update process with the new value
+    ///         and the second step is to finalize it after
+    ///         `GOVERNANCE_TIME_DELAY` has passed.
     ISignerBondsSwapStrategy public signerBondsSwapStrategy;
     ISignerBondsSwapStrategy public newSignerBondsSwapStrategy;
     uint256 public signerBondsSwapStrategyInitiated;
 
+    IERC20 public immutable tbtcToken;
+    ITBTCDepositToken public immutable tbtcDepositToken;
+
+    /// @notice TBTC surplus collected from early closed auctions.
+    ///         When tBTC deposit gets liquidated outside of coverage pools and
+    ///         an auction was opened earlier by the risk manager for that
+    ///         deposit, it might happen that the auction was partially filled
+    ///         and some TBTC from that auction has accumulated. In such a case,
+    ///         TBTC surplus left on the risk manager can be used to purchase
+    ///         signer bonds from another liquidating tBTC deposit in the future
+    ///         assuming enough surplus will accumulate up to that point.
+    uint256 public tbtcSurplus;
+
+    /// @notice Keeps track of notifier rewards for those calling
+    ///         `notifyLiquidation` and `notifyLiquidated`.
     RiskManagerV1Rewards.Storage public rewards;
 
     // deposit in liquidation => opened coverage pool auction
@@ -105,14 +150,22 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     event NotifiedLiquidated(address indexed deposit, address notifier);
     event NotifiedLiquidation(address indexed deposit, address notifier);
 
-    event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
-    event AuctionLengthUpdated(uint256 auctionLength);
-
     event BondAuctionThresholdUpdateStarted(
         uint256 bondAuctionThreshold,
         uint256 timestamp
     );
     event BondAuctionThresholdUpdated(uint256 bondAuctionThreshold);
+
+    event AuctionLengthUpdateStarted(uint256 auctionLength, uint256 timestamp);
+    event AuctionLengthUpdated(uint256 auctionLength);
+
+    event SignerBondsSwapStrategyUpdateStarted(
+        address indexed signerBondsSwapStrategy,
+        uint256 timestamp
+    );
+    event SignerBondsSwapStrategyUpdated(
+        address indexed signerBondsSwapStrategy
+    );
 
     event LiquidationNotifierRewardAmountUpdateStarted(
         uint256 liquidationNotifierRewardAmount,
@@ -146,15 +199,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         uint256 liquidatedNotifierRewardPercentage
     );
 
-    event SignerBondsSwapStrategyUpdateStarted(
-        address indexed signerBondsSwapStrategy,
-        uint256 timestamp
-    );
-    event SignerBondsSwapStrategyUpdated(
-        address indexed signerBondsSwapStrategy
-    );
-
-    /// @notice Reverts if called before the delay elapses.
+    /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
     ///        of the change.
     modifier onlyAfterGovernanceDelay(uint256 changeInitiatedTimestamp) {
@@ -167,8 +212,8 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         _;
     }
 
-    /// @notice Reverts if called by any account other than the signer bonds
-    ///         swap strategy.
+    /// @notice Reverts if called by any account other than the current signer
+    ///         bonds swap strategy.
     modifier onlySignerBondsSwapStrategy() {
         require(
             msg.sender == address(signerBondsSwapStrategy),
@@ -193,13 +238,23 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         bondAuctionThreshold = _bondAuctionThreshold;
     }
 
-    /// @notice Receive ETH from tBTC for purchasing & withdrawing signer bonds
-    //
+    /// @notice Receives ETH from tBTC for purchasing and withdrawing deposit
+    ///         signer bonds.
     //slither-disable-next-line locked-ether
     receive() external payable {}
 
-    /// @notice Creates an auction for tbtc deposit in liquidation state.
-    /// @param  depositAddress tBTC Deposit address
+    /// @notice Notifies the risk manager about tBTC deposit in liquidation
+    ///         state for which signer bonds on offer passed the threshold
+    ///         expected by the risk manager. In practice, it means no one else
+    ///         is willing to purchase signer bonds from that deposit so the
+    ///         risk manager should open an auction to collect TBTC and purchase
+    ///         those bonds liquidating part of the coverage pool. If there is
+    ///         enough TBTC surplus from earlier auctions accumulated by the
+    ///         risk manager, bonds are purchased right away without opening an
+    ///         auction. Notifier calling this function receives a share in the
+    ///         coverage pool as a reward - underwriter tokens are transferred
+    ///         to the notifier's address.
+    /// @param  depositAddress liquidating tBTC deposit address
     function notifyLiquidation(address depositAddress) external {
         require(
             tbtcDepositToken.exists(uint256(uint160(depositAddress))),
@@ -227,7 +282,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
-        // Reward the notifier by giving them some shares of the asset pool.
+        // Reward the notifier by giving them some share of the pool.
         uint256 notifierReward =
             rewards.getLiquidationNotifierReward(coveragePool);
         if (notifierReward > 0) {
@@ -250,8 +305,15 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         auctionToDeposit[auctionAddress] = depositAddress;
     }
 
-    /// @notice Closes an auction early.
-    /// @param  depositAddress tBTC Deposit address
+    /// @notice Notifies the risk manager about tBTC deposit liquidated outside
+    ///         the coverage pool for which the risk manager opened an auction
+    ///         earlier (as a result of `notifyLiquidation` call). Function
+    ///         closes the auction early and collects TBTC surplus from the
+    ///         auction in case the auction was partially taken before the
+    ///         deposit got liquidated. Notifier calling this function receives
+    ///         a share in the coverage pool as a reward - underwriter tokens
+    ///         are transferred to the notifier's address.
+    /// @param  depositAddress liquidated tBTC Deposit address
     function notifyLiquidated(address depositAddress) external {
         require(
             depositToAuction[depositAddress] != address(0),
@@ -275,7 +337,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
         // slither-disable-next-line reentrancy-benign
         tbtcSurplus += amountTransferred;
 
-        // Reward the notifier by giving them some shares of the asset pool.
+        // Reward the notifier by giving them some share of the pool.
         uint256 notifierReward =
             rewards.getLiquidatedNotifierReward(coveragePool);
         if (notifierReward > 0) {
@@ -285,7 +347,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
     /// @notice Begins the bond auction threshold update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newBondAuctionThreshold New bond auction threshold in percent.
+    /// @param _newBondAuctionThreshold New bond auction threshold in percent
     function beginBondAuctionThresholdUpdate(uint256 _newBondAuctionThreshold)
         external
         onlyOwner
@@ -318,7 +380,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @dev Can be called only by the contract owner. The auction length should
     ///      be adjusted very carefully. Total value locked of the coverage pool
     ///      and minimum possible auction amount needs to be taken into account.
-    /// @param _newAuctionLength New auction length in seconds.
+    /// @param _newAuctionLength New auction length in seconds
     function beginAuctionLengthUpdate(uint256 _newAuctionLength)
         external
         onlyOwner
@@ -347,7 +409,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Begins the liquidation notifier reward amount update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newLiquidationNotifierRewardAmount New liquidation notifier
-    ///        reward amount.
+    ///        reward amount
     function beginLiquidationNotifierRewardAmountUpdate(
         uint256 _newLiquidationNotifierRewardAmount
     ) external onlyOwner {
@@ -419,7 +481,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Begins the liquidated notifier reward amount update process.
     /// @dev Can be called only by the contract owner.
     /// @param _newLiquidatedNotifierRewardAmount New liquidated notifier
-    ///        reward amount.
+    ///        reward amount
     function beginLiquidatedNotifierRewardAmountUpdate(
         uint256 _newLiquidatedNotifierRewardAmount
     ) external onlyOwner {
@@ -436,7 +498,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
 
     /// @notice Finalizes the liquidated notifier reward amount update process.
     /// @dev Can be called only by the contract owner, after the governance
-    ///      delay elapses.
+    ///      delay elapses
     function finalizeLiquidatedNotifierRewardAmountUpdate()
         external
         onlyOwner
@@ -491,7 +553,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     /// @notice Begins the signer bonds swap strategy update process.
     /// @dev Must be followed by a finalizeSignerBondsSwapStrategyUpdate after
     ///      the governance delay elapses.
-    /// @param _newSignerBondsSwapStrategy The new signer bonds swap strategy.
+    /// @param _newSignerBondsSwapStrategy The new signer bonds swap strategy
     function beginSignerBondsSwapStrategyUpdate(
         ISignerBondsSwapStrategy _newSignerBondsSwapStrategy
     ) external onlyOwner {
@@ -530,7 +592,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ///      This method should typically be used as part of the swap logic.
     ///      Third-party calls may block funds on the strategy contract in case
     ///      that strategy is not able to perform the swap.
-    /// @param amount Amount of signer bonds being withdrawn.
+    /// @param amount Amount of signer bonds being withdrawn
     function withdrawSignerBonds(uint256 amount)
         external
         override
@@ -689,7 +751,7 @@ contract RiskManagerV1 is IRiskManager, Auctioneer, Ownable {
     ///      the Auctioneer contract. By the time this function is called, all
     ///      the TBTC tokens for the coverage pool auction should be transferred
     ///      to this contract in order to buy signer bonds.
-    /// @param auction Coverage pool auction.
+    /// @param auction Coverage pool auction
     function onAuctionFullyFilled(Auction auction) internal override {
         IDeposit deposit = IDeposit(auctionToDeposit[address(auction)]);
         // Make sure the deposit was not liquidated outside of Coverage Pool
