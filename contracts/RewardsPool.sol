@@ -61,7 +61,7 @@ contract RewardsPool is Ownable {
     /// @notice Transfers the provided reward amount into RewardsPool and
     ///         creates a new, one-week reward interval starting from now.
     ///         Reward tokens from the previous reward interval that unlocked
-    ///         over the time will be available for withdrawal immediatelly.
+    ///         over the time will be available for withdrawal immediately.
     ///         Reward tokens from the previous interval that has not been yet
     ///         unlocked, are added to the new interval being created.
     /// @dev This function can be called only by the owner given that it creates

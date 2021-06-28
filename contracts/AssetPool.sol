@@ -97,7 +97,7 @@ contract AssetPool is Ownable, IAssetPool {
     );
     event WithdrawalTimeoutUpdated(uint256 withdrawalTimeout);
 
-    /// @notice Reverts if the withdrawl governance delay has not passed yet or
+    /// @notice Reverts if the withdrawal governance delay has not passed yet or
     ///         if the change was not yet initiated.
     /// @param changeInitiatedTimestamp The timestamp at which the change has
     ///        been initiated
@@ -331,7 +331,7 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Lets the contract owner to begin an update of withdrawal delay
-    ///         paramter value. Withdrawal delay is the time it takes the
+    ///         parameter value. Withdrawal delay is the time it takes the
     ///         underwriter to withdraw their collateral and rewards from the
     ///         pool. This is the time that needs to pass between initiating and
     ///         completing the withdrawal. The change needs to be finalized with

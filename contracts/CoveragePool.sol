@@ -125,7 +125,7 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Lets the governance to begin an update of withdrawal delay
-    ///         paramter value. Withdrawal delay is the time it takes the
+    ///         parameter value. Withdrawal delay is the time it takes the
     ///         underwriter to withdraw their collateral and rewards from the
     ///         pool. This is the time that needs to pass between initiating and
     ///         completing the withdrawal. The change needs to be finalized with
