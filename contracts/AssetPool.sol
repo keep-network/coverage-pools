@@ -14,15 +14,15 @@
 
 pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-
 import "./interfaces/IAssetPool.sol";
 import "./interfaces/IAssetPoolUpgrade.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 import "./GovernanceUtils.sol";
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Asset Pool
 /// @notice Asset pool is a component of a Coverage Pool. Asset Pool
@@ -43,7 +43,7 @@ contract AssetPool is Ownable, IAssetPool {
     IAssetPoolUpgrade public newAssetPool;
 
     /// @notice The time it takes the underwriter to withdraw their collateral
-    ///         and rewards from the pool. This is the time that needs to pass 
+    ///         and rewards from the pool. This is the time that needs to pass
     ///         betweenin itiating and completing the withdrawal. During that
     ///         time, underwriter is still earning rewards and their share of
     ///         the pool is still a subject of a possible coverage claim.
@@ -51,9 +51,9 @@ contract AssetPool is Ownable, IAssetPool {
     uint256 public newWithdrawalDelay;
     uint256 public withdrawalDelayChangeInitiated;
 
-    /// @notice The time the underwriter has after the withdrawal delay passed 
+    /// @notice The time the underwriter has after the withdrawal delay passed
     ///         to complete the withdrawal. During that time, underwriter is
-    ///         still earning rewards and their share of the pool is still 
+    ///         still earning rewards and their share of the pool is still
     ///         a subject of a possible coverage claim.
     ///         After the withdrawal timeout elapses, tokens stay in the pool
     ///         and the underwriters has to initiate the withdrawal again and

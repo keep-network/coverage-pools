@@ -14,14 +14,13 @@
 
 pragma solidity 0.8.4;
 
+import "./interfaces/IAssetPoolUpgrade.sol";
 import "./AssetPool.sol";
 import "./CoveragePoolConstants.sol";
 import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-import "./interfaces/IAssetPoolUpgrade.sol";
 
 /// @title Coverage Pool
 /// @notice A contract that manages a single asset pool. Handles approving and

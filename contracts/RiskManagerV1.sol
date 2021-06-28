@@ -14,14 +14,15 @@
 
 pragma solidity 0.8.4;
 
+import "./interfaces/IRiskManagerV1.sol";
 import "./Auctioneer.sol";
 import "./Auction.sol";
 import "./CoveragePoolConstants.sol";
 import "./GovernanceUtils.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IRiskManagerV1.sol";
 
 /// @title tBTC v1 Deposit contract interface
 /// @notice This is an interface with just a few function signatures of a main

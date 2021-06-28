@@ -14,12 +14,12 @@
 
 pragma solidity 0.8.4;
 
+import "./AssetPool.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-import "./AssetPool.sol";
 
 /// @title Rewards Pool
 /// @notice RewardsPool accepts a single reward token and releases it to the
