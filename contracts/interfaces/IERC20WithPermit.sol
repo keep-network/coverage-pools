@@ -16,7 +16,7 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/// @title  IERC20WithPermit
+/// @title  ERC20 with `permit` interface
 /// @notice Burnable ERC20 token with EIP2612 permit functionality. Users can
 ///         authorize a transfer of their token with a signature conforming
 ///         EIP712 standard instead of an on-chain transaction from their
