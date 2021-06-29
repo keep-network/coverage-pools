@@ -19,6 +19,9 @@ module.exports = {
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
     },
+    local: {
+      url: "http://localhost:8545"
+    }
   },
 
   namedAccounts: {
