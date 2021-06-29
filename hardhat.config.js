@@ -6,7 +6,9 @@ module.exports = {
   solidity: {
     version: "0.7.6",
   },
-
+  paths: {
+    artifacts: "./build",
+  },
   networks: {
     hardhat: {
       forking: {
