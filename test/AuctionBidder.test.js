@@ -1,11 +1,12 @@
 const chai = require("chai")
-
 const expect = chai.expect
+
+const hre = require("hardhat")
 const { to1ePrecision, to1e18 } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
-const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
-const CoveragePoolJSON = require("../artifacts/contracts/CoveragePool.sol/CoveragePool.json")
+const AuctionJSON = hre.artifacts.readArtifactSync("Auction")
+const CoveragePoolJSON = hre.artifacts.readArtifactSync("CoveragePool")
 
 const { BigNumber } = ethers
 
