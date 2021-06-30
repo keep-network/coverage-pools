@@ -28,7 +28,7 @@ const describeFn =
 // deposit2 outside the coverage pool. Next step is notifying the risk manager
 // about liquidated deposit2 so it can early close the opened auction. The
 // second deposit3 is bought with surplus TBTC from the auction that put
-// on offer deposit2 A new auction for deposit3 will not be opened.
+// on offer deposit2. A new auction for deposit3 will not be opened.
 // At the end of the scenario, the risk manager should keep the surplus of TBTC
 // for potential next deposit buy outs.
 
@@ -123,6 +123,21 @@ describeFn("System -- buying a deposit with surplus", () => {
 
     it("should set deposit2 status as liquidated", async () => {
       expect(await tbtcDeposit2.currentState()).to.equal(11) // LIQUIDATED
+    })
+
+    it("should revert on liquidated auction with partial offer", async () => {
+      const bidder1Take = lotSize.div(5) // 5 / 5 = 1 TBTC
+      await tbtcToken.connect(bidder1).approve(auction.address, bidder1Take)
+      await expect(
+        auction.connect(bidder1).takeOffer(bidder1Take)
+      ).to.be.revertedWith("Deposit liquidation is not in progress")
+    })
+
+    it("should revert on liquidated auction with full offer", async () => {
+      await tbtcToken.connect(bidder1).approve(auction.address, lotSize)
+      await expect(
+        auction.connect(bidder1).takeOffer(lotSize)
+      ).to.be.revertedWith("Deposit liquidation is not in progress")
     })
 
     it("should have TBTC funds on RiskManagerV1 for partially selling an auction for deposit2", async () => {
