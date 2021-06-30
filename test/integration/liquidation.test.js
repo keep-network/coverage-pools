@@ -130,7 +130,11 @@ describe("Integration -- liquidation", () => {
     const auctionAddress = await riskManagerV1.depositToAuction(
       tbtcDeposit.address
     )
-    const auction = await ethers.getContractAt("Auction", auctionAddress, bidder)
+    const auction = await ethers.getContractAt(
+      "Auction",
+      auctionAddress,
+      bidder
+    )
     await tbtcToken.connect(bidder).approve(auction.address, lotSize)
     return auction
   }

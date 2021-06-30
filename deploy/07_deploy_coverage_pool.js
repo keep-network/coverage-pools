@@ -9,7 +9,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     args: [AssetPool.address],
     log: true,
   })
-  
+
   const assetPool = await ethers.getContractAt("AssetPool", AssetPool.address)
   const underwriterToken = await ethers.getContractAt(
     "UnderwriterToken",
