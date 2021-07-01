@@ -12,29 +12,27 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+pragma solidity 0.8.4;
 
 import "./AssetPool.sol";
 
-/// @title RewardsPool
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/// @title Rewards Pool
 /// @notice RewardsPool accepts a single reward token and releases it to the
 ///         AssetPool over time in one week reward intervals. The owner of this
 ///         contract is the reward distribution address funding it with reward
 ///         tokens.
 contract RewardsPool is Ownable {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     uint256 public constant DURATION = 7 days;
 
-    IERC20 public rewardToken;
-    address public assetPool;
+    IERC20 public immutable rewardToken;
+    address public immutable assetPool;
 
     // timestamp of the current reward interval end or the timestamp of the
     // last interval end in case a new reward interval has not been allocated
@@ -50,15 +48,20 @@ contract RewardsPool is Ownable {
     event RewardToppedUp(uint256 amount);
     event RewardWithdrawn(uint256 amount);
 
-    constructor(IERC20 _rewardToken, AssetPool _assetPool) {
+    constructor(
+        IERC20 _rewardToken,
+        AssetPool _assetPool,
+        address owner
+    ) {
         rewardToken = _rewardToken;
         assetPool = address(_assetPool);
+        transferOwnership(owner);
     }
 
     /// @notice Transfers the provided reward amount into RewardsPool and
     ///         creates a new, one-week reward interval starting from now.
     ///         Reward tokens from the previous reward interval that unlocked
-    ///         over the time will be available for withdrawal immediatelly.
+    ///         over the time will be available for withdrawal immediately.
     ///         Reward tokens from the previous interval that has not been yet
     ///         unlocked, are added to the new interval being created.
     /// @dev This function can be called only by the owner given that it creates
@@ -70,13 +73,13 @@ contract RewardsPool is Ownable {
         if (block.timestamp >= intervalFinish) {
             // see https://github.com/crytic/slither/issues/844
             // slither-disable-next-line divide-before-multiply
-            rewardRate = reward.div(DURATION);
+            rewardRate = reward / DURATION;
         } else {
-            uint256 remaining = intervalFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(DURATION);
+            uint256 remaining = intervalFinish - block.timestamp;
+            uint256 leftover = remaining * rewardRate;
+            rewardRate = (reward + leftover) / DURATION;
         }
-        intervalFinish = block.timestamp.add(DURATION);
+        intervalFinish = block.timestamp + DURATION;
         lastUpdateTime = block.timestamp;
         /* solhint-enable avoid-low-level-calls */
 
@@ -97,9 +100,8 @@ contract RewardsPool is Ownable {
     /// tokens.
     function earned() public view returns (uint256) {
         return
-            rewardAccumulated.add(
-                lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate)
-            );
+            rewardAccumulated +
+            ((lastTimeRewardApplicable() - lastUpdateTime) * rewardRate);
     }
 
     /// @notice Returns the timestamp at which a reward was last time applicable.

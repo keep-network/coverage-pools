@@ -12,15 +12,15 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
-import "./Auctioneer.sol";
 import "./interfaces/IAuction.sol";
+import "./Auctioneer.sol";
 import "./CoveragePoolConstants.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+
+import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Auction
 /// @notice A contract to run a linear falling-price auction against a diverse
@@ -37,7 +37,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 ///       profitable to close.
 contract Auction is IAuction {
     using SafeERC20 for IERC20;
-    using SafeMath for uint256;
 
     struct AuctionStorage {
         IERC20 tokenAccepted;
@@ -144,22 +143,20 @@ contract Auction is IAuction {
         );
 
         uint256 portionToSeize =
-            amountOnOffer.mul(amountToTransfer).div(self.amountOutstanding);
+            (amountOnOffer * amountToTransfer) / self.amountOutstanding;
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             // Time passed since the auction start or the last takeOffer call
             // with a partial fill.
             uint256 timePassed =
                 /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp.sub(self.startTime).sub(self.startTimeOffset);
+                block.timestamp - self.startTime - self.startTimeOffset;
 
             // Ratio of the auction's amount included in this takeOffer call to
             // the whole outstanding auction amount.
             uint256 ratioAmountPaid =
-                CoveragePoolConstants
-                    .FLOATING_POINT_DIVISOR
-                    .mul(amountToTransfer)
-                    .div(self.amountOutstanding);
+                (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
+                    amountToTransfer) / self.amountOutstanding;
             // We will shift the start time offset and increase the velocity pool
             // depleting rate proportionally to the fraction of the outstanding
             // amount paid in this function call so that the auction can offer
@@ -167,18 +164,17 @@ contract Auction is IAuction {
             // taker has.
             //
             //slither-disable-next-line divide-before-multiply
-            self.startTimeOffset = self.startTimeOffset.add(
-                timePassed.mul(ratioAmountPaid).div(
-                    CoveragePoolConstants.FLOATING_POINT_DIVISOR
-                )
-            );
-            self.velocityPoolDepletingRate = CoveragePoolConstants
-                .FLOATING_POINT_DIVISOR
-                .mul(self.auctionLength)
-                .div(self.auctionLength.sub(self.startTimeOffset));
+            self.startTimeOffset =
+                self.startTimeOffset +
+                ((timePassed * ratioAmountPaid) /
+                    CoveragePoolConstants.FLOATING_POINT_DIVISOR);
+            self.velocityPoolDepletingRate =
+                (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
+                    self.auctionLength) /
+                (self.auctionLength - self.startTimeOffset);
         }
 
-        self.amountOutstanding = self.amountOutstanding.sub(amountToTransfer);
+        self.amountOutstanding -= amountToTransfer;
 
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
@@ -210,9 +206,9 @@ contract Auction is IAuction {
 
     /// @notice How much of the collateral pool can currently be purchased at
     ///         auction, across all assets.
-    /// @dev _onOffer().div(FLOATING_POINT_DIVISOR) returns a portion of the
+    /// @dev _onOffer() / FLOATING_POINT_DIVISOR) returns a portion of the
     ///      collateral pool. Ex. if 35% available of the collateral pool,
-    ///      then _onOffer().div(FLOATING_POINT_DIVISOR) returns 0.35
+    ///      then _onOffer() / FLOATING_POINT_DIVISOR) returns 0.35
     /// @return the ratio of the collateral pool currently on offer
     function onOffer() external view override returns (uint256, uint256) {
         return (_onOffer(), CoveragePoolConstants.FLOATING_POINT_DIVISOR);
@@ -223,7 +219,7 @@ contract Auction is IAuction {
     }
 
     function amountTransferred() external view returns (uint256) {
-        return self.amountDesired.sub(self.amountOutstanding);
+        return self.amountDesired - self.amountOutstanding;
     }
 
     function isOpen() external view returns (bool) {
@@ -234,7 +230,8 @@ contract Auction is IAuction {
     ///      after an auction has closed.
     function harikari() internal {
         require(!isMasterContract, "Master contract can not harikari");
-        address payable addr = address(uint160(address(self.auctioneer)));
+        address payable addr =
+            payable(address(uint160(address(self.auctioneer))));
         delete self;
         selfdestruct(addr);
     }
@@ -251,13 +248,12 @@ contract Auction is IAuction {
 
         return
             /* solhint-disable-next-line not-rely-on-time */
-            (block.timestamp.sub(self.startTime.add(self.startTimeOffset)))
-                .mul(self.velocityPoolDepletingRate)
-                .div(self.auctionLength);
+            ((block.timestamp - (self.startTime + self.startTimeOffset)) *
+                self.velocityPoolDepletingRate) / self.auctionLength;
     }
 
     function _isAuctionOver() internal view returns (bool) {
         /* solhint-disable-next-line not-rely-on-time */
-        return block.timestamp >= self.startTime.add(self.auctionLength);
+        return block.timestamp >= self.startTime + self.auctionLength;
     }
 }

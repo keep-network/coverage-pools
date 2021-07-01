@@ -4,7 +4,11 @@ require("hardhat-deploy")
 
 module.exports = {
   solidity: {
-    version: "0.7.6",
+    compilers: [
+      {
+        version: "0.8.4",
+      },
+    ],
   },
   paths: {
     artifacts: "./build",
@@ -33,5 +37,8 @@ module.exports = {
     rewardManager: {
       default: 1,
     },
+  },
+  mocha: {
+    timeout: 30000,
   },
 }

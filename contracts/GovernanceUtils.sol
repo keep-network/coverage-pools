@@ -12,27 +12,26 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.4;
+pragma solidity <0.9.0;
 
-/// @title Asset Pool interface
-/// @notice Asset Pool accepts a single ERC20 token as collateral, and returns
-///         an underwriter token. For example, an asset pool might accept deposits
-///         in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
-///         represent an ownership share in the underlying collateral of the
-///         Asset Pool.
-interface IAssetPool {
-    /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints underwriter tokens representing pool's ownership.
-    /// @dev Before calling this function, collateral token needs to have the
-    ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) external;
-
-    /// @notice Initiates the withdrawal of collateral and rewards from the pool.
-    /// @dev Before calling this function, underwriter token needs to have the
-    ///      required amount accepted to transfer to the asset pool.
-    function initiateWithdrawal(uint256 covAmount) external;
-
-    /// @notice Completes the previously initiated withdrawal for the
-    ///         underwriter.
-    function completeWithdrawal(address underwriter) external;
+library GovernanceUtils {
+    /// @notice Gets the time remaining until the governable parameter update
+    ///         can be committed.
+    /// @param changeTimestamp Timestamp indicating the beginning of the change.
+    /// @param delay Governance delay.
+    /// @return Remaining time in seconds.
+    function getRemainingChangeTime(uint256 changeTimestamp, uint256 delay)
+        internal
+        view
+        returns (uint256)
+    {
+        require(changeTimestamp > 0, "Change not initiated");
+        /* solhint-disable-next-line not-rely-on-time */
+        uint256 elapsed = block.timestamp - changeTimestamp;
+        if (elapsed >= delay) {
+            return 0;
+        } else {
+            return delay - elapsed;
+        }
+    }
 }

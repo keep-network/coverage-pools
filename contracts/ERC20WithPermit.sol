@@ -12,12 +12,11 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.8.0;
-
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+pragma solidity 0.8.4;
 
 import "./interfaces/IERC20WithPermit.sol";
+
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title  ERC20WithPermit
 /// @notice Burnable ERC20 token with EIP2612 permit functionality. Users can
@@ -31,8 +30,6 @@ import "./interfaces/IERC20WithPermit.sol";
 ///         EIP2612 token implementation other than Uniswap V2 which this
 ///         code is based on.
 contract ERC20WithPermit is Ownable, IERC20WithPermit {
-    using SafeMath for uint256;
-
     mapping(address => uint256) public override balanceOf;
     mapping(address => mapping(address => uint256)) public override allowance;
 
@@ -74,15 +71,13 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
         address recipient,
         uint256 amount
     ) external override returns (bool) {
-        if (allowance[sender][msg.sender] != uint256(-1)) {
-            _approve(
-                sender,
-                msg.sender,
-                allowance[sender][msg.sender].sub(
-                    amount,
-                    "Transfer amount exceeds allowance"
-                )
+        uint256 currentAllowance = allowance[sender][msg.sender];
+        if (currentAllowance != type(uint256).max) {
+            require(
+                currentAllowance >= amount,
+                "Transfer amount exceeds allowance"
             );
+            _approve(sender, msg.sender, currentAllowance - amount);
         }
         _transfer(sender, recipient, amount);
         return true;
@@ -146,8 +141,8 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
 
     function mint(address recipient, uint256 amount) external onlyOwner {
         require(recipient != address(0), "Mint to the zero address");
-        totalSupply = totalSupply.add(amount);
-        balanceOf[recipient] = balanceOf[recipient].add(amount);
+        totalSupply += amount;
+        balanceOf[recipient] += amount;
         emit Transfer(address(0), recipient, amount);
     }
 
@@ -156,14 +151,9 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
     }
 
     function burnFrom(address account, uint256 amount) external override {
-        _approve(
-            account,
-            msg.sender,
-            allowance[account][msg.sender].sub(
-                amount,
-                "Burn amount exceeds allowance"
-            )
-        );
+        uint256 currentAllowance = allowance[account][msg.sender];
+        require(currentAllowance >= amount, "Burn amount exceeds allowance");
+        _approve(account, msg.sender, currentAllowance - amount);
         _burn(account, amount);
     }
 
@@ -177,11 +167,10 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
     }
 
     function _burn(address account, uint256 amount) internal {
-        balanceOf[account] = balanceOf[account].sub(
-            amount,
-            "Burn amount exceeds balance"
-        );
-        totalSupply = totalSupply.sub(amount);
+        uint256 currentBalance = balanceOf[account];
+        require(currentBalance >= amount, "Burn amount exceeds balance");
+        balanceOf[account] = currentBalance - amount;
+        totalSupply -= amount;
         emit Transfer(account, address(0), amount);
     }
 
@@ -192,11 +181,10 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
     ) private {
         require(sender != address(0), "Transfer from the zero address");
         require(recipient != address(0), "Transfer to the zero address");
-        balanceOf[sender] = balanceOf[sender].sub(
-            amount,
-            "Transfer amount exceeds balance"
-        );
-        balanceOf[recipient] = balanceOf[recipient].add(amount);
+        uint256 senderBalance = balanceOf[sender];
+        require(senderBalance >= amount, "Transfer amount exceeds balance");
+        balanceOf[sender] = senderBalance - amount;
+        balanceOf[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -226,7 +214,7 @@ contract ERC20WithPermit is Ownable, IERC20WithPermit {
             );
     }
 
-    function chainId() private pure returns (uint256 id) {
+    function chainId() private view returns (uint256 id) {
         /* solhint-disable-next-line no-inline-assembly */
         assembly {
             id := chainid()

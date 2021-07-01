@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "../interfaces/IAuction.sol";
 
 contract AuctionStub is IAuction {
-    event TakeOffer(uint256 amount);
-
     uint256 public divisor;
     uint256 public offer;
     uint256 public amountOutstanding;
+
+    event TakeOffer(uint256 amount);
 
     /// @dev Simulates calling Auction.takeOffer(amount) from the
     ///      AuctionBidder contract.

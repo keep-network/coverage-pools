@@ -12,11 +12,12 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CoveragePool.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Auctioneer
@@ -28,10 +29,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract Auctioneer is CloneFactory {
     // Holds the address of the auction contract
     // which will be used as a master contract for cloning.
-    address public masterAuction;
+    address public immutable masterAuction;
     mapping(address => bool) public openAuctions;
+    uint256 public openAuctionsCount;
 
-    CoveragePool public coveragePool;
+    CoveragePool public immutable coveragePool;
 
     event AuctionCreated(
         address indexed tokenAccepted,
@@ -48,9 +50,8 @@ contract Auctioneer is CloneFactory {
     event AuctionClosed(address indexed auction);
 
     constructor(CoveragePool _coveragePool, address _masterAuction) {
-        require(_masterAuction != address(0), "Invalid master auction address");
-        require(masterAuction == address(0), "Auctioneer already initialized");
         coveragePool = _coveragePool;
+        // slither-disable-next-line missing-zero-check
         masterAuction = _masterAuction;
     }
 
@@ -89,7 +90,7 @@ contract Auctioneer is CloneFactory {
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
         // defined in Auction.sol
         //
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         coveragePool.seizeFunds(auctionTaker, portionToSeize);
 
         if (auction.isOpen()) {
@@ -99,6 +100,7 @@ contract Auctioneer is CloneFactory {
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
+            openAuctionsCount -= 1;
         }
     }
 
@@ -127,6 +129,7 @@ contract Auctioneer is CloneFactory {
         );
 
         openAuctions[cloneAddress] = true;
+        openAuctionsCount += 1;
 
         emit AuctionCreated(
             address(tokenAccepted),
@@ -151,11 +154,12 @@ contract Auctioneer is CloneFactory {
 
         uint256 amountTransferred = auction.amountTransferred();
 
-        //slither-disable-next-line reentrancy-no-eth,reentrancy-events
+        //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         auction.earlyClose();
 
         emit AuctionClosed(auctionAddress);
         delete openAuctions[auctionAddress];
+        openAuctionsCount -= 1;
 
         return amountTransferred;
     }

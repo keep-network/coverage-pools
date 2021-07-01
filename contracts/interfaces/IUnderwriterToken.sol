@@ -12,11 +12,11 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 import "./IERC20WithPermit.sol";
 
-/// @title  IUnderwriterToken
+/// @title  Underwriter Token
 /// @notice Underwriter tokens represent an ownership share in the underlying
 ///         collateral of the asset-specific pool. Underwriter tokens are minted
 ///         when a user deposits ERC20 tokens into asset-specific pool and they

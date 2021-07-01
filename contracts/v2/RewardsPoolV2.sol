@@ -12,9 +12,8 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title RewardTokenMinting
@@ -27,8 +26,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///      a specific part of the functionality of the RewardPool and should be
 ///      used only as a RewardPool parent contract.
 abstract contract RewardTokenMinting {
-    using SafeMath for uint256;
-
     // Reward rate per Asset Pool address.
     // Reward rate is 1e18 precision number.
     mapping(address => uint256) public rewardRates;
@@ -48,11 +45,9 @@ abstract contract RewardTokenMinting {
 
     function earned(address assetPool) public view returns (uint256) {
         return
-            rewardRates[assetPool]
-                .mul(
-                tokenPerRateUnit().sub(poolTokenPerRateUnitPaid[assetPool])
-            )
-                .add(poolTokens[assetPool]);
+            rewardRates[assetPool] *
+            (tokenPerRateUnit() - poolTokenPerRateUnitPaid[assetPool]) +
+            poolTokens[assetPool];
     }
 
     function updateReward(address assetPool) internal {
@@ -65,10 +60,9 @@ abstract contract RewardTokenMinting {
 
     function tokenPerRateUnit() internal view returns (uint256) {
         return
-            tokenPerRateUnitAccumulated.add(
-                /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp.sub(lastUpdateTime)
-            );
+            tokenPerRateUnitAccumulated +
+            (/* solhint-disable-next-line not-rely-on-time */
+            block.timestamp - lastUpdateTime);
     }
 }
 

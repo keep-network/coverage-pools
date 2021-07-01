@@ -82,21 +82,23 @@ might decide to end an auction early if coverage is no longer needed.
 Underwriters can deposit into the pool at any time and they can top up their
 positions at any time with no initialization period. 
 
-There is a fixed, non-governable, two-week withdrawal period for underwriters.
-During this period, underwriters are earning rewards but their positions are
+There is a governable withdrawal delay for underwriters. Once the underwriter
+initiates a withdrawal, they need to wait for the entire delay period before
+they are able to complete the withdrawal and claim their position.
+During this period, underwriters are earning rewards and their positions are
 also a subject of potential claims from the risk manager. Such a delay is needed
 so that malicious underwriters can not trick the system by withdrawing their
 positions immediately, just before the claim from the risk manager.
 
-It takes 14 days at minimum for the underwriter to withdraw their collateral and
-rewards. After 14 days from initiating the withdrawal, the underwriter has 7
-days to complete the withdrawal. After 7 days, graceful withdrawal timeout
-passes and part of underwriter's rewards and collateral is slowly getting seized
-by the pool - more and more over the time. Seizing is needed to avoid malicious
-underwriters free-riding the pool - being able to exit at any moment and still
-earning rewards. After additional 63 days (70 days from the time withdrawal
-delay passed), 99% of tokens is seized by the pool and 1% of tokens is sent
-to the notifier who completed the withdrawal on behalf of the underwriter.
+After the withdrawal delay elapses underwriters need to complete the withdrawal
+by submitting another transaction. Anyone can do it on their behalf.
+Underwriters need to complete the withdrawal before a withdrawal
+timeout elapses. Once the withdrawal timeout elapses and underwriter does not
+complete the withdrawal, tokens stay in the pool and the underwriter has to
+initiate the withdrawal and wait for the entire withdrawal delay one more time.
+
+Withdrawal delay and withdrawal timeout are both governable parameters.
+Initially, they are set to 14 and 2 days respectively.
 
 Before asset pool balance sheet changes during deposit, withdrawal, or claim
 operations, asset pool withdraws unlocked rewards from the rewards pool.
@@ -261,6 +263,33 @@ surplus value allows for it. For example:
   opening an auction, risk manager purchases signer bonds reducing the surplus
   to 0.1 TBTC.
 
+=== Notifier rewards
+
+Each notifier reporting about deposit liquidation start (`notifyLiquidation`)
+or about a deposit being liquidated outside of the coverage pool
+(`notifyLiquidated`) can be rewarded with COV tokens. Those tokens represent a
+part of the asset pool ownership. The amount of token reward is set by
+the governance. It can be determined either as a fixed amount or as a
+percentage of the total COV supply. Current values of reward parameters can
+be viewed using the following methods of the risk manager:
+
+* For `notifyLiquidation` rewards:
+** `liquidationNotifierRewardAmount`: determines the fixed amount of COV tokens
+which is granted as reward for reporting about a deposit liquidation process.
+** `liquidationNotifierRewardPercentage`: determines the percentage of the
+total COV supply which is granted as reward for reporting about a deposit
+liquidation process.
+* For `notifyLiquidated` rewards:
+** `liquidatedNotifierRewardAmount`: determines the fixed amount of COV tokens
+which is granted as reward for reporting about a deposit being liquidated
+outside of the coverage pool.
+** `liquidatedNotifierRewardPercentage`: determines the percentage of the
+total COV supply which is granted as reward for reporting about a deposit
+being liquidated outside of the coverage pool.
+
+If both fixed amount and percentage values are set and bigger than zero,
+the fixed amount reward takes precedence.
+
 == Upgradeability
 
 All coverage pool contracts are non-upgradeable and there are few governable
@@ -281,9 +310,20 @@ The governance included in the system design follows two principles:
 |===
 |Parameter |Time delay|Description
 
+|Withdrawal delay 
+|Withdrawal delay + Withdrawal timeout + 2 days
+|The time the underwriter needs to wait between initiating and completing the
+withdrawal
+
+|Withdrawal timeout 
+|Withdrawal delay + Withdrawal timeout + 2 days
+|The time the underwriter has to complete the withdrawal once the withdrawal
+delay elapses.
+
 |Approved risk managers
-|30 days
-|Governance can approve and unapprove a risk manager.
+|Withdrawal delay + Withdrawal timeout + 2 days
+|Governance can approve and unapprove risk managers. The former requires
+a governance delay. The latter takes effect immediately.
 
 |Auction length
 |12 hours
@@ -301,3 +341,27 @@ liquidating deposits still attractive for arbitraging bots.
 |12 hours
 |Governance can chose which strategy should be used by tBTC v1 risk manager for
 depositing ETH signer bonds purchased from tBTC to the asset pool.
+
+|Deposit liquidation notifier reward amount
+|12 hours
+|Governance can set a fixed amount of COV tokens given as reward for reporting
+about a deposit liquidation start.
+
+|Deposit liquidation notifier reward percentage
+|12 hours
+|Governance can set a percentage of the total COV supply given as reward for
+reporting about a deposit liquidation start. If the fixed amount reward is
+set in the same time, this parameter is not taken into account.
+
+|Deposit liquidated notifier reward amount
+|12 hours
+|Governance can set a fixed amount of COV tokens given as reward for reporting
+about a deposit being liquidated outside of the coverage pool.
+
+|Deposit liquidated notifier reward percentage
+|12 hours
+|Governance can set a percentage of the total COV supply given as reward for
+reporting about a deposit being liquidated outside of the coverage pool. If the
+fixed amount reward is set in the same time, this parameter is not taken
+into account.
+|===

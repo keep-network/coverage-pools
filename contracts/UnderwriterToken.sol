@@ -12,12 +12,11 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.8.0;
-
-import "./AssetPool.sol";
+pragma solidity 0.8.4;
 
 import "./interfaces/IUnderwriterToken.sol";
 import "./ERC20WithPermit.sol";
+import "./AssetPool.sol";
 
 /// @title  UnderwriterToken
 /// @notice Underwriter tokens represent an ownership share in the underlying

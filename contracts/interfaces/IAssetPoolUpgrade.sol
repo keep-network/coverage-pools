@@ -12,8 +12,11 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
+/// @title Asset Pool upgrade interface
+/// @notice Interface that has to be implemented by an Asset Pool accepting
+///         upgrades from another asset pool.
 interface IAssetPoolUpgrade {
     /// @notice Accepts the given underwriter with collateral tokens amount as a
     ///         deposit. In exchange new underwriter tokens will be calculated,
