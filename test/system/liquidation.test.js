@@ -7,6 +7,9 @@ const {
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
+const hre = require("hardhat")
+
+const Auction = hre.artifacts.readArtifactSync("Auction")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
@@ -152,7 +155,7 @@ describeFn("System -- liquidation", () => {
       const auctionAddress = await riskManagerV1.depositToAuction(
         tbtcDeposit.address
       )
-      auction = await ethers.getContractAt("Auction", auctionAddress, bidder)
+      auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
       await tbtcToken.connect(bidder).approve(auction.address, lotSize)
       bidderInitialBalance = await tbtcToken.balanceOf(bidder.address)
       tx = await auction.takeOffer(lotSize)
