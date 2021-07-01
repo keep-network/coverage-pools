@@ -184,6 +184,10 @@ describeFn("System -- buying a deposit with surplus", () => {
       expect(tbtcSurplusTracking).to.be.equal(to1ePrecision(15, 17))
     })
 
+    it("should set deposit3 status as liquidated", async () => {
+      expect(await tbtcDeposit3.currentState()).to.equal(11) // LIQUIDATED
+    })
+
     it("should consume a reasonable amount of gas", async () => {
       await expect(parseInt(surplusTx.gasLimit)).to.be.equal(360000)
 
