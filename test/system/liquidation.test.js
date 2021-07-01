@@ -7,7 +7,9 @@ const {
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
-const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
+const hre = require("hardhat")
+
+const Auction = hre.artifacts.readArtifactSync("Auction")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip

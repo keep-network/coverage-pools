@@ -6,7 +6,9 @@ module.exports = {
   solidity: {
     version: "0.7.6",
   },
-
+  paths: {
+    artifacts: "./build",
+  },
   networks: {
     hardhat: {
       forking: {
@@ -18,6 +20,9 @@ module.exports = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
+    },
+    local: {
+      url: "http://localhost:8545",
     },
   },
 

@@ -1,10 +1,12 @@
 const chai = require("chai")
 const expect = chai.expect
+const hre = require("hardhat")
 const { BigNumber } = ethers
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const { to1e18, lastBlockTime } = require("./helpers/contract-test-helpers")
-const CoveragePool = require("../artifacts/contracts/CoveragePool.sol/CoveragePool.json")
-const IUniswapV2Pair = require("../artifacts/contracts/SignerBondsUniswapV2.sol/IUniswapV2Pair.json")
+
+const CoveragePool = hre.artifacts.readArtifactSync("CoveragePool")
+const IUniswapV2Pair = hre.artifacts.readArtifactSync("IUniswapV2Pair")
 
 describe("SignerBondsUniswapV2", () => {
   let governance

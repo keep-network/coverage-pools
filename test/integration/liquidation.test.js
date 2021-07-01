@@ -1,8 +1,8 @@
 const { expect } = require("chai")
+const hre = require("hardhat")
 const { to1e18 } = require("../helpers/contract-test-helpers")
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
-const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
-const ITBTCDepositToken = require("../../artifacts/contracts/RiskManagerV1.sol/ITBTCDepositToken.json")
+const ITBTCDepositToken = hre.artifacts.readArtifactSync("ITBTCDepositToken")
 
 describe("Integration -- liquidation", () => {
   const auctionLength = 86400 // 24h
@@ -130,7 +130,11 @@ describe("Integration -- liquidation", () => {
     const auctionAddress = await riskManagerV1.depositToAuction(
       tbtcDeposit.address
     )
-    const auction = new ethers.Contract(auctionAddress, Auction.abi, bidder)
+    const auction = await ethers.getContractAt(
+      "Auction",
+      auctionAddress,
+      bidder
+    )
     await tbtcToken.connect(bidder).approve(auction.address, lotSize)
     return auction
   }

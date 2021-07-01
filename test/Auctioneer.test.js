@@ -7,8 +7,6 @@ const {
   increaseTime,
 } = require("./helpers/contract-test-helpers")
 
-const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
-
 const auctionLength = 86400 // 24h in sec
 const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 const testTokensToMint = to1e18(1)
@@ -84,7 +82,7 @@ describe("Auctioneer", () => {
       const events = pastEvents(receipt, auctioneer, "AuctionCreated")
       auctionAddress = events[0].args["auctionAddress"]
 
-      auction = new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
+      auction = await ethers.getContractAt("Auction", auctionAddress, owner)
 
       await testToken
         .connect(bidder)
@@ -252,7 +250,7 @@ describe("Auctioneer", () => {
       const events = pastEvents(receipt, auctioneer, "AuctionCreated")
       auctionAddress = events[0].args["auctionAddress"]
 
-      auction = new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
+      auction = await ethers.getContractAt("Auction", auctionAddress, owner)
 
       await testToken
         .connect(bidder)
