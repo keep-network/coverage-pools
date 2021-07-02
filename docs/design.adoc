@@ -98,7 +98,7 @@ complete the withdrawal, tokens stay in the pool and the underwriter has to
 initiate the withdrawal and wait for the entire withdrawal delay one more time.
 
 Withdrawal delay and withdrawal timeout are both governable parameters.
-Initially, they are set to 14 and 2 days respectively.
+Initially, they are set to 21 and 2 days respectively.
 
 Before asset pool balance sheet changes during deposit, withdrawal, or claim
 operations, asset pool withdraws unlocked rewards from the rewards pool.
@@ -113,7 +113,7 @@ COV_toMint = collateral_toDeposit * COV_totalSupply / collateral_totalDeposited
 ```
 
 The three scenarios below illustrate how deposit and withdrawal works, and how 
-coverage claim affects the asset pool. For simplicity, a two-week withdrawal 
+coverage claim affects the asset pool. For simplicity, a three-week withdrawal 
 period has been omitted.
 
 === Scenario 1
