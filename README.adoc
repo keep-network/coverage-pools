@@ -106,17 +106,22 @@ yarn deploy --network <network>
 
 If contracts haven't been built yet or changes occurred, this task will build
 the contracts before running the deployment script. Once the deployment
-terminates, a new `deployments` directory containing all deployment info
-will be created. It can be directly used by dApps or other client code as it
-contains deployment details like chain ID, transaction hash, ABI or address for
-each contract. There is also a possibility to run the deployment with export
-mode enabled:
+terminates, a new `deployments` directory containing all deployment info will be
+created. It can be directly used by dApps or other client code as it contains
+deployment details like chain ID, transaction hash, ABI or address for each
+contract.
+
+==== Export mode
+
+There is also a possibility to run the deployment with export mode enabled:
 ```
 yarn deploy --network <network> --export ./export.json
 ```
 which produces a handy summary file containing deployment info for all
 contracts in one place. However, it doesn't contain the deployment transaction
 hash making it inappropriate for some use cases relying on this field.
+
+==== External dependencies
 
 The deployment script deals with external contract dependencies using
 environment variables. In case an address is not provided, the script deploys
@@ -133,6 +138,8 @@ external dependencies. Specific env variables are:
 - `INITIAL_SWAP_STRATEGY`: Allows setting the initial swap strategy which will
   be used by the risk manager. This should be the name of one of the
   `ISignerBondsSwapStrategy` implementations.
+
+==== Deployment scripts structure and tags
 
 The deployment script is divided into multiple sub-scripts placed in the
 `deploy` directory. It uses the
