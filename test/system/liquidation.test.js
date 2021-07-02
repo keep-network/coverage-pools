@@ -137,14 +137,18 @@ describeFn("System -- liquidation", () => {
       expect(await auction.isOpen()).to.be.false
     })
 
-    it("should liquidate the deposit", async () => {
-      // Auction bidder has spend their TBTC.
+    it("should spend bidder's TBTC", async () => {
+      // Auction bidder has spent their TBTC.
       const bidderCurrentBalance = await tbtcToken.balanceOf(bidder.address)
       expect(bidderInitialBalance.sub(bidderCurrentBalance)).to.equal(lotSize)
+    })
 
+    it("should liquidate the deposit", async () => {
       // Deposit has been liquidated.
       expect(await tbtcDeposit1.currentState()).to.equal(11) // LIQUIDATED
+    })
 
+    it("should send ETH from purchased bonds to the risk manager", async () => {
       // The percentage of signer bonds that should be sent to the risk manager
       // contract consists of the initial 66% and a portion of the remaining 34%
       // that depends on the time passed before take offer. The percentage
