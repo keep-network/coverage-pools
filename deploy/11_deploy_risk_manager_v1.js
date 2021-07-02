@@ -4,14 +4,14 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const TBTCToken = await deployments.get("TBTCToken")
   const TBTCDepositToken = await deployments.get("TBTCDepositToken")
   const CoveragePool = await deployments.get("CoveragePool")
-  const SignerBondsEscrow = await deployments.get("SignerBondsEscrow")
+  const SignerBondsManualSwap = await deployments.get("SignerBondsManualSwap")
   const SignerBondsUniswapV2 = await deployments.get("SignerBondsUniswapV2")
   const MasterAuction = await deployments.get("MasterAuction")
 
   const auctionLength = 86400 // 24h
   const bondAuctionThreshold = 100
   const initialSwapStrategy =
-    process.env.INITIAL_SWAP_STRATEGY || "SignerBondsEscrow"
+    process.env.INITIAL_SWAP_STRATEGY || "SignerBondsManualSwap"
 
   log(`using ${initialSwapStrategy} as initial risk manager's swap strategy`)
 
@@ -21,7 +21,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
       TBTCToken.address,
       TBTCDepositToken.address,
       CoveragePool.address,
-      { SignerBondsEscrow, SignerBondsUniswapV2 }[initialSwapStrategy].address,
+      { SignerBondsManualSwap, SignerBondsUniswapV2 }[initialSwapStrategy]
+        .address,
       MasterAuction.address,
       auctionLength,
       bondAuctionThreshold,
@@ -35,7 +36,7 @@ module.exports.dependencies = [
   "TBTCToken",
   "TBTCDepositToken",
   "CoveragePool",
-  "SignerBondsEscrow",
+  "SignerBondsManualSwap",
   "SignerBondsUniswapV2",
   "MasterAuction",
 ]

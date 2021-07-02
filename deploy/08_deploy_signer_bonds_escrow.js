@@ -2,10 +2,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  await deploy("SignerBondsEscrow", {
+  await deploy("SignerBondsManualSwap", {
     from: deployer,
     log: true,
   })
 }
 
-module.exports.tags = ["SignerBondsEscrow"]
+module.exports.tags = ["SignerBondsManualSwap"]
