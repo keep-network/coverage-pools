@@ -20,7 +20,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
   before(async () => {
     await resetFork(startingBlock)
 
-    const governance = await ethers.getSigner(0)
+    const governance = (await ethers.getSigners())[0]
 
     const contracts = await initContracts("SignerBondsUniswapV2")
     collateralToken = contracts.collateralToken

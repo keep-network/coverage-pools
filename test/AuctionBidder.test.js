@@ -16,8 +16,8 @@ describe("AuctionBidder", () => {
   let auctionBidder
 
   before(async () => {
-    owner = await ethers.getSigner(0)
-    bidder = await ethers.getSigner(1)
+    owner = (await ethers.getSigners())[0]
+    bidder = (await ethers.getSigners())[1]
 
     mockAuction = await deployMockContract(owner, AuctionJSON.abi)
     mockCoveragePool = await deployMockContract(owner, CoveragePoolJSON.abi)

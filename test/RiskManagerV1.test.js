@@ -33,9 +33,9 @@ describe("RiskManagerV1", () => {
   let coveragePoolStub
 
   beforeEach(async () => {
-    owner = await ethers.getSigner(0)
-    notifier = await ethers.getSigner(1)
-    bidder = await ethers.getSigner(2)
+    owner = (await ethers.getSigners())[0]
+    notifier = (await ethers.getSigners())[1]
+    bidder = (await ethers.getSigners())[2]
 
     const TestToken = await ethers.getContractFactory("TestToken")
     tbtcToken = await TestToken.deploy()

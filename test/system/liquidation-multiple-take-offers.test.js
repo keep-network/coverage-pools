@@ -52,7 +52,7 @@ describeFn("System -- multiple partial fills", () => {
   before(async () => {
     await resetFork(startingBlock)
 
-    governance = await ethers.getSigner(0)
+    governance = (await ethers.getSigners())[0]
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken
     collateralToken = contracts.collateralToken

@@ -31,9 +31,9 @@ describe("Auction", () => {
     const Auction = await ethers.getContractFactory("Auction")
     const CoveragePoolStub = await ethers.getContractFactory("CoveragePoolStub")
 
-    owner = await ethers.getSigner(0)
-    bidder1 = await ethers.getSigner(1)
-    bidder2 = await ethers.getSigner(2)
+    owner = (await ethers.getSigners())[0]
+    bidder1 = (await ethers.getSigners())[1]
+    bidder2 = (await ethers.getSigners())[2]
 
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()

@@ -39,10 +39,10 @@ describeFn("System -- notifier rewards", () => {
   let rewardsManager
 
   beforeEach(async () => {
-    governance = await ethers.getSigner(0)
-    notifier = await ethers.getSigner(1)
-    otherNotifier = await ethers.getSigner(2)
-    rewardsManager = await ethers.getSigner(3)
+    governance = (await ethers.getSigners())[0]
+    notifier = (await ethers.getSigners())[1]
+    otherNotifier = (await ethers.getSigners())[2]
+    rewardsManager = (await ethers.getSigners())[3]
 
     const TestToken = await ethers.getContractFactory("TestToken")
     tbtcToken = await TestToken.deploy()

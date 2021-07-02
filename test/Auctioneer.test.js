@@ -20,8 +20,8 @@ describe("Auctioneer", () => {
   let testToken
 
   beforeEach(async () => {
-    owner = await ethers.getSigner(0)
-    bidder = await ethers.getSigner(1)
+    owner = (await ethers.getSigners())[0]
+    bidder = (await ethers.getSigners())[1]
 
     const AuctioneerStub = await ethers.getContractFactory("AuctioneerStub")
     const TestToken = await ethers.getContractFactory("TestToken")

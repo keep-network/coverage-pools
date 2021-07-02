@@ -52,8 +52,8 @@ describeFn("System -- buying a deposit with surplus", () => {
 
   before(async () => {
     await resetFork(startingBlock)
-    governance = await ethers.getSigner(0)
-    rewardsManager = await ethers.getSigner(1)
+    governance = (await ethers.getSigners())[0]
+    rewardsManager = (await ethers.getSigners())[1]
 
     const contracts = await initContracts("SignerBondsManualSwap")
     tbtcToken = contracts.tbtcToken

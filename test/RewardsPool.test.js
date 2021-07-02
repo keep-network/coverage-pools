@@ -17,9 +17,9 @@ describe("RewardsPool", () => {
   let thirdParty
 
   beforeEach(async () => {
-    rewardManager = await ethers.getSigner(1)
-    assetPool = await ethers.getSigner(2)
-    thirdParty = await ethers.getSigner(3)
+    rewardManager = (await ethers.getSigners())[1]
+    assetPool = (await ethers.getSigners())[2]
+    thirdParty = (await ethers.getSigners())[3]
 
     const TestToken = await ethers.getContractFactory("TestToken")
     rewardToken = await TestToken.deploy()

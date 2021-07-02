@@ -10,8 +10,8 @@ describe("SignerBondsManualSwap", () => {
   let riskManagerV1
 
   beforeEach(async () => {
-    governance = await ethers.getSigner(0)
-    recipient = await ethers.getSigner(1)
+    governance = (await ethers.getSigners())[0]
+    recipient = (await ethers.getSigners())[1]
 
     const SignerBondsManualSwap = await ethers.getContractFactory(
       "SignerBondsManualSwap"

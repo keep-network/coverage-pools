@@ -32,9 +32,9 @@ describe("AssetPool", () => {
   const withdrawalTimeout = 2 * 24 * 3600
 
   beforeEach(async () => {
-    coveragePool = await ethers.getSigner(1)
-    rewardManager = await ethers.getSigner(2)
-    thirdParty = await ethers.getSigner(3)
+    coveragePool = (await ethers.getSigners())[1]
+    rewardManager = (await ethers.getSigners())[2]
+    thirdParty = (await ethers.getSigners())[3]
 
     const TestToken = await ethers.getContractFactory("TestToken")
     collateralToken = await TestToken.deploy()
@@ -64,7 +64,7 @@ describe("AssetPool", () => {
     await collateralToken.mint(rewardManager.address, to1e18(1000000))
 
     const createUnderwriterWithTokens = async (index) => {
-      const underwriter = await ethers.getSigner(index)
+      const underwriter = (await ethers.getSigners())[index]
       await collateralToken.mint(
         underwriter.address,
         underwriterInitialCollateralBalance
@@ -305,7 +305,7 @@ describe("AssetPool", () => {
 
     context("when done by the owner", () => {
       it("should transfer claimed tokens to the recipient", async () => {
-        const claimRecipient = await ethers.getSigner(15)
+        const claimRecipient = (await ethers.getSigners())[15]
         await assetPool
           .connect(coveragePool)
           .claim(claimRecipient.address, to1e18(90))
@@ -315,7 +315,7 @@ describe("AssetPool", () => {
       })
 
       it("should emit CoverageClaimed event", async () => {
-        const claimRecipient = await ethers.getSigner(15)
+        const claimRecipient = (await ethers.getSigners())[15]
         const claimAmount = to1e18(91)
         const tx = await assetPool
           .connect(coveragePool)
@@ -340,7 +340,7 @@ describe("AssetPool", () => {
       })
 
       it("should first transfer released rewards to asset pool", async () => {
-        const claimRecipient = await ethers.getSigner(15)
+        const claimRecipient = (await ethers.getSigners())[15]
         // 70 / 7  = 10 reward tokens released every day
         // 200 + 10 tokens in the asset pool
         // 205 claimed (more than deposited!), 5 stays in the pool
@@ -1044,7 +1044,7 @@ describe("AssetPool", () => {
 
     context("when a new asset pool address does not match", () => {
       it("should revert", async () => {
-        const fakeAssetPool = await ethers.getSigner(5)
+        const fakeAssetPool = (await ethers.getSigners())[5]
         await assetPool
           .connect(coveragePool)
           .approveNewAssetPoolUpgrade(fakeAssetPool.address)

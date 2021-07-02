@@ -27,7 +27,7 @@ function setBondAuctionThreshold(newThreshold) {
 async function initContracts(swapStrategy) {
   const auctionLength = 86400 // 24h
 
-  const rewardsManager = await ethers.getSigner(1)
+  const rewardsManager = (await ethers.getSigners())[1]
 
   const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
   const underwriterToken = await UnderwriterToken.deploy(

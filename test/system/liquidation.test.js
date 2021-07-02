@@ -51,7 +51,7 @@ describeFn("System -- liquidation", () => {
   before(async () => {
     await resetFork(startingBlock)
 
-    governance = await ethers.getSigner(0)
+    governance = (await ethers.getSigners())[0]
 
     setBondAuctionThreshold(bondedAmountPercentage)
     const contracts = await initContracts("SignerBondsManualSwap")
