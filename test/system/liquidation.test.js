@@ -163,14 +163,14 @@ describeFn("System -- liquidation", () => {
     it("should transfer collateral tokens to the bidder", async () => {
       expect(await collateralToken.balanceOf(bidder.address)).to.be.closeTo(
         to1e18(60000), // 30% of the initial asset pool
-        to1e18(100) // 100 KEEP tokens precision
+        to1e18(20) // 20 KEEP tokens precision
       )
     })
 
     it("should adjust asset pool's collateral tokens after the claim", async () => {
       expect(await collateralToken.balanceOf(assetPool.address)).to.be.closeTo(
         to1e18(140000), // 70% of the initial asset pool
-        to1e18(100) // 100 KEEP tokens precision
+        to1e18(20) // 20 KEEP tokens precision
       )
     })
 
