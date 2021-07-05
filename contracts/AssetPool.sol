@@ -131,6 +131,7 @@ contract AssetPool is Ownable, IAssetPool {
     function receiveApproval(
         address from,
         uint256 amount,
+        uint256 minAmountToMint,
         address token,
         bytes calldata
     ) external {
@@ -140,15 +141,18 @@ contract AssetPool is Ownable, IAssetPool {
             "Unsupported collateral token"
         );
 
-        _deposit(from, amount);
+        _deposit(from, amount, minAmountToMint);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) external override {
-        _deposit(msg.sender, amount);
+    function deposit(uint256 amountToDeposit, uint256 minAmountToMint)
+        external
+        override
+    {
+        _deposit(msg.sender, amountToDeposit, minAmountToMint);
     }
 
     /// @notice Initiates the withdrawal of collateral and rewards from the
@@ -464,7 +468,11 @@ contract AssetPool is Ownable, IAssetPool {
         return withdrawalDelay + withdrawalTimeout + 2 days;
     }
 
-    function _deposit(address depositor, uint256 amount) internal {
+    function _deposit(
+        address depositor,
+        uint256 amountToDeposit,
+        uint256 minAmountToMint
+    ) internal {
         require(depositor != address(this), "Self-deposit not allowed");
 
         rewardsPool.withdraw();
@@ -474,11 +482,21 @@ contract AssetPool is Ownable, IAssetPool {
 
         uint256 toMint;
         if (covSupply == 0) {
-            toMint = amount;
+            toMint = amountToDeposit;
         } else {
-            toMint = (amount * covSupply) / collateralBalance;
+            toMint = (amountToDeposit * covSupply) / collateralBalance;
         }
+
+        require(
+            minAmountToMint <= toMint,
+            "Amount to mint is smaller than the required minimum"
+        );
+
         underwriterToken.mint(depositor, toMint);
-        collateralToken.safeTransferFrom(depositor, address(this), amount);
+        collateralToken.safeTransferFrom(
+            depositor,
+            address(this),
+            amountToDeposit
+        );
     }
 }
