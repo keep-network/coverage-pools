@@ -227,6 +227,29 @@ describe("AssetPool", () => {
         ).to.be.closeTo("45454545454545454545", assertionPrecision)
       })
     })
+
+    context(
+      "when collateral tokens sent to asset pool outside of cov pools",
+      () => {
+        beforeEach(async () => {
+          // Deposit some small amount of collateral tokens so that the amount
+          // of underwriter tokens is not 0
+          await assetPool.connect(underwriter1).deposit(1)
+          // Send collateral tokens to the asset pool outside cov pools
+          await collateralToken
+            .connect(underwriter2)
+            .transfer(assetPool.address, to1e18(10))
+        })
+
+        it("should revert", async () => {
+          // Reverts if amount deposited * total underwriter supply < collateral
+          // balance of asset pool
+          await expect(
+            assetPool.connect(underwriter1).deposit(to1e18(10))
+          ).to.be.revertedWith("Minted amount would be 0")
+        })
+      }
+    )
   })
 
   describe("receiveApproval", () => {

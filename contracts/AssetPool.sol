@@ -478,6 +478,8 @@ contract AssetPool is Ownable, IAssetPool {
         } else {
             toMint = (amount * covSupply) / collateralBalance;
         }
+        require(toMint > 0, "Minted amount would be 0");
+
         underwriterToken.mint(depositor, toMint);
         collateralToken.safeTransferFrom(depositor, address(this), amount);
     }
