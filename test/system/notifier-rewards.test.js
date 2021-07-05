@@ -1,9 +1,5 @@
 const { expect } = require("chai")
-const {
-  to1e18,
-  to1ePrecision,
-  increaseTime,
-} = require("../helpers/contract-test-helpers")
+const { to1e18, increaseTime } = require("../helpers/contract-test-helpers")
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
 const ITBTCDepositToken = require("../../artifacts/contracts/RiskManagerV1.sol/ITBTCDepositToken.json")
 
@@ -19,9 +15,7 @@ describeFn("System -- notifier rewards", () => {
   const bondAuctionThreshold = 100
   const covTotalSupply = to1e18(1000)
   const liquidationNotifierRewardAmount = to1e18(2)
-  const liquidationNotifierRewardPercentage = to1ePrecision(2, 16) // 2%
   const liquidatedNotifierRewardAmount = to1e18(3)
-  const liquidatedNotifierRewardPercentage = to1ePrecision(4, 16) // 4%
 
   let tbtcToken
   let underwriterToken
@@ -109,7 +103,7 @@ describeFn("System -- notifier rewards", () => {
       await depositStub.notifyUndercollateralizedLiquidation()
     })
 
-    context("when both reward amount and percentage are zero", () => {
+    context("when reward amount is zero", () => {
       beforeEach(async () => {
         await riskManagerV1
           .connect(notifier)
@@ -139,50 +133,6 @@ describeFn("System -- notifier rewards", () => {
       it("should be rewarded with fixed amount of asset pool shares", async () => {
         expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
           liquidationNotifierRewardAmount
-        )
-      })
-    })
-
-    context("when both reward amount and percentage are set", () => {
-      beforeEach(async () => {
-        await riskManagerV1.beginLiquidationNotifierRewardAmountUpdate(
-          liquidationNotifierRewardAmount
-        )
-        await riskManagerV1.beginLiquidationNotifierRewardPercentageUpdate(
-          liquidationNotifierRewardPercentage
-        )
-        await increaseTime(43200)
-        await riskManagerV1.finalizeLiquidationNotifierRewardAmountUpdate()
-        await riskManagerV1.finalizeLiquidationNotifierRewardPercentageUpdate()
-
-        await riskManagerV1
-          .connect(notifier)
-          .notifyLiquidation(depositStub.address)
-      })
-
-      it("should be rewarded with fixed amount of asset pool shares", async () => {
-        expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          liquidationNotifierRewardAmount
-        )
-      })
-    })
-
-    context("when reward amount is zero but percentage is set", () => {
-      beforeEach(async () => {
-        await riskManagerV1.beginLiquidationNotifierRewardPercentageUpdate(
-          liquidationNotifierRewardPercentage
-        )
-        await increaseTime(43200)
-        await riskManagerV1.finalizeLiquidationNotifierRewardPercentageUpdate()
-
-        await riskManagerV1
-          .connect(notifier)
-          .notifyLiquidation(depositStub.address)
-      })
-
-      it("should be rewarded with percentage-based amount of asset pool shares", async () => {
-        expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          to1e18(20) // liquidationNotifierRewardPercentage is 2%
         )
       })
     })
@@ -204,7 +154,7 @@ describeFn("System -- notifier rewards", () => {
       await depositStub.connect(otherNotifier).purchaseSignerBondsAtAuction()
     })
 
-    context("when both reward amount and percentage are zero", () => {
+    context("when reward amount is zero", () => {
       beforeEach(async () => {
         await riskManagerV1
           .connect(notifier)
@@ -218,7 +168,7 @@ describeFn("System -- notifier rewards", () => {
       })
     })
 
-    context("when reward amount is set but percentage is zero", () => {
+    context("when reward amount is set", () => {
       beforeEach(async () => {
         await riskManagerV1.beginLiquidatedNotifierRewardAmountUpdate(
           liquidatedNotifierRewardAmount
@@ -234,50 +184,6 @@ describeFn("System -- notifier rewards", () => {
       it("should be rewarded with fixed amount of asset pool shares", async () => {
         expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
           liquidatedNotifierRewardAmount
-        )
-      })
-    })
-
-    context("when both reward amount and percentage are set", () => {
-      beforeEach(async () => {
-        await riskManagerV1.beginLiquidatedNotifierRewardAmountUpdate(
-          liquidatedNotifierRewardAmount
-        )
-        await riskManagerV1.beginLiquidatedNotifierRewardPercentageUpdate(
-          liquidatedNotifierRewardPercentage
-        )
-        await increaseTime(43200)
-        await riskManagerV1.finalizeLiquidatedNotifierRewardAmountUpdate()
-        await riskManagerV1.finalizeLiquidatedNotifierRewardPercentageUpdate()
-
-        await riskManagerV1
-          .connect(notifier)
-          .notifyLiquidated(depositStub.address)
-      })
-
-      it("should be rewarded with fixed amount of asset pool shares", async () => {
-        expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          liquidatedNotifierRewardAmount
-        )
-      })
-    })
-
-    context("when reward amount is zero but percentage is set", () => {
-      beforeEach(async () => {
-        await riskManagerV1.beginLiquidatedNotifierRewardPercentageUpdate(
-          liquidatedNotifierRewardPercentage
-        )
-        await increaseTime(43200)
-        await riskManagerV1.finalizeLiquidatedNotifierRewardPercentageUpdate()
-
-        await riskManagerV1
-          .connect(notifier)
-          .notifyLiquidated(depositStub.address)
-      })
-
-      it("should be rewarded with percentage-based amount of asset pool shares", async () => {
-        expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          to1e18(40) // liquidatedNotifierRewardPercentage is 4%
         )
       })
     })
