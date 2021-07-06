@@ -8,6 +8,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     // Save as simple deployment just to make it accessible for next scripts.
     await save("KeepToken", { address: keepTokenAddress })
+  } else if (hre.network.name !== "local") {
+    throw new Error("The KeepToken contract address is required!")
   } else {
     log(`using KeepToken stub`)
 
