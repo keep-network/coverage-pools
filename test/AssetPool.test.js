@@ -246,7 +246,7 @@ describe("AssetPool", () => {
           // balance of asset pool
           await expect(
             assetPool.connect(underwriter1).deposit(to1e18(10))
-          ).to.be.revertedWith("Minted amount would be 0")
+          ).to.be.revertedWith("Minted tokens amount must be greater than 0")
         })
       }
     )
