@@ -62,7 +62,7 @@ describe("CoveragePool", () => {
     // Deposit 400 tokens to the asset pool
     await testToken.mint(underwriter.address, to1e18(400))
     await testToken.connect(underwriter).approve(assetPool.address, to1e18(400))
-    await assetPool.connect(underwriter).deposit(to1e18(400))
+    await assetPool.connect(underwriter).deposit(to1e18(400), to1e18(400))
   })
 
   describe("approveFirstRiskManager", () => {

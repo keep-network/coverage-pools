@@ -88,7 +88,7 @@ describe("AssetPool", () => {
       it("should revert", async () => {
         const amount = underwriterInitialCollateralBalance.add(1)
         await expect(
-          assetPool.connect(underwriter1).deposit(amount)
+          assetPool.connect(underwriter1).deposit(amount, amount)
         ).to.be.revertedWith("ERC20: transfer amount exceeds balance")
       })
     })
@@ -96,10 +96,16 @@ describe("AssetPool", () => {
     context("when the depositor has enough collateral tokens", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(300)
+      const minCovToMint1 = depositedUnderwriter1
+      const minCovToMint2 = depositedUnderwriter2
 
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
       })
 
       it("should transfer deposited amount to the pool", async () => {
@@ -119,15 +125,42 @@ describe("AssetPool", () => {
       })
     })
 
+    context(
+      "when amount to be minted is smaller than the minimal required",
+      () => {
+        const depositedUnderwriter1 = to1e18(100)
+        const minCovToMint1 = depositedUnderwriter1 + 1
+
+        it("revert", async () => {
+          await expect(
+            assetPool
+              .connect(underwriter1)
+              .deposit(depositedUnderwriter1, minCovToMint1)
+          ).to.be.revertedWith(
+            "Amount to mint is smaller than the required minimum"
+          )
+        })
+      }
+    )
+
     context("when depositing tokens for the first time", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(300)
       const depositedUnderwriter3 = to1e18(20)
+      const minCovToMint1 = depositedUnderwriter1
+      const minCovToMint2 = depositedUnderwriter2
+      const minCovToMint3 = depositedUnderwriter3
 
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
-        await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
+        await assetPool
+          .connect(underwriter3)
+          .deposit(depositedUnderwriter3, minCovToMint3)
       })
 
       it("should mint the right amount of underwriter tokens", async () => {
@@ -146,15 +179,25 @@ describe("AssetPool", () => {
     context("when there is already a deposit for the given underwriter", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(70)
+      const minCovToMint1 = depositedUnderwriter1
+      const minCovToMint2 = depositedUnderwriter2
 
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
       })
 
       it("should mint more underwriter tokens for underwriter", async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
 
         expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
           to1e18(200) // 100 + 100 = 200
@@ -169,13 +212,22 @@ describe("AssetPool", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(50)
       const depositedUnderwriter3 = to1e18(100)
+      const minCovToMint1 = depositedUnderwriter1
+      const minCovToMint2 = depositedUnderwriter2
+      const minCovToMint3 = depositedUnderwriter3
       const claim = to1e18(25)
 
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
         await assetPool.connect(coveragePool).claim(coveragePool.address, claim)
-        await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+        await assetPool
+          .connect(underwriter3)
+          .deposit(depositedUnderwriter3, minCovToMint3)
       })
 
       it("should mint the right amount of underwriter tokens", async () => {
@@ -197,15 +249,23 @@ describe("AssetPool", () => {
 
       const allocatedReward = to1e18(70)
 
+      const minCovToMint1 = depositedUnderwriter1
+      // 50 * 100 / 110 = 45.45(45) COV minted (rewards were allocated)
+      const minCovToMint2 = to1e18(45)
+
       beforeEach(async () => {
         await collateralToken
           .connect(rewardManager)
           .approve(rewardsPool.address, allocatedReward)
         await rewardsPool.connect(rewardManager).topUpReward(allocatedReward)
 
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
         await increaseTime(86400) // +1 day
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
       })
 
       it("should transfer released rewards to asset pool", async () => {
@@ -266,33 +326,50 @@ describe("AssetPool", () => {
 
     context("when called via approveAndCall", () => {
       const amount = to1e18(100)
+      const abiCoder = ethers.utils.defaultAbiCoder
 
-      beforeEach(async () => {
-        await collateralToken
-          .connect(underwriter1)
-          .approveAndCall(assetPool.address, amount, [])
+      context("when passed correct parameters", () => {
+        beforeEach(async () => {
+          const data = abiCoder.encode(["uint256"], [amount])
+
+          await collateralToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, data)
+        })
+
+        it("should mint underwriter tokens to the caller", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amount)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            amount
+          )
+          expect(
+            await collateralToken.balanceOf(underwriter1.address)
+          ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+        })
       })
 
-      it("should mint underwriter tokens to the caller", async () => {
-        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
-          amount
-        )
-      })
+      context("when passed incorrect parameters", () => {
+        it("should revert", async () => {
+          const data = abiCoder.encode(["uint256", "uint256"], [amount, amount])
 
-      it("should transfer deposited amount to the pool", async () => {
-        expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
-          amount
-        )
-        expect(
-          await collateralToken.balanceOf(underwriter1.address)
-        ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+          await expect(
+            collateralToken
+              .connect(underwriter1)
+              .approveAndCall(assetPool.address, amount, data)
+          ).to.be.revertedWith("Unexpected data length")
+        })
       })
     })
   })
 
   describe("claim", () => {
     beforeEach(async () => {
-      await assetPool.connect(underwriter1).deposit(to1e18(200))
+      await assetPool.connect(underwriter1).deposit(to1e18(200), to1e18(200))
     })
 
     context("when not done by the owner", () => {
@@ -364,7 +441,7 @@ describe("AssetPool", () => {
     const amount = to1e18(120)
 
     beforeEach(async () => {
-      await assetPool.connect(underwriter1).deposit(amount)
+      await assetPool.connect(underwriter1).deposit(amount, amount)
       await underwriterToken
         .connect(underwriter1)
         .approve(assetPool.address, amount)
@@ -523,7 +600,7 @@ describe("AssetPool", () => {
       const amount = to1e18(1000)
 
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(amount)
+        await assetPool.connect(underwriter1).deposit(amount, amount)
         await underwriterToken
           .connect(underwriter1)
           .approve(assetPool.address, amount)
@@ -544,7 +621,7 @@ describe("AssetPool", () => {
     context("when withdrawal timeout elapsed", () => {
       const amount = to1e18(100)
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(amount)
+        await assetPool.connect(underwriter1).deposit(amount, amount)
         await underwriterToken
           .connect(underwriter1)
           .approve(assetPool.address, amount)
@@ -562,7 +639,7 @@ describe("AssetPool", () => {
     context("when withdrawal timeout not elapsed", () => {
       it("should emit WithdrawalCompleted event", async () => {
         const amount = to1e18(1050)
-        await assetPool.connect(underwriter1).deposit(amount)
+        await assetPool.connect(underwriter1).deposit(amount, amount)
         // We can approve the number of tokens equal to the number of tokens
         // deposited - there were no claims and no rewards were allocated so
         // those numbers are equal.
@@ -585,10 +662,18 @@ describe("AssetPool", () => {
         const depositedUnderwriter4 = to1e18(5)
 
         beforeEach(async () => {
-          await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-          await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
-          await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
-          await assetPool.connect(underwriter4).deposit(depositedUnderwriter4)
+          await assetPool
+            .connect(underwriter1)
+            .deposit(depositedUnderwriter1, depositedUnderwriter1)
+          await assetPool
+            .connect(underwriter2)
+            .deposit(depositedUnderwriter2, depositedUnderwriter2)
+          await assetPool
+            .connect(underwriter3)
+            .deposit(depositedUnderwriter3, depositedUnderwriter3)
+          await assetPool
+            .connect(underwriter4)
+            .deposit(depositedUnderwriter4, depositedUnderwriter4)
 
           // We can approve the number of tokens equal to the number of tokens
           // deposited - there were no claims and no rewards were allocated so
@@ -648,12 +733,21 @@ describe("AssetPool", () => {
         const depositedUnderwriter1 = to1e18(100)
         const depositedUnderwriter2 = to1e18(50)
         const depositedUnderwriter3 = to1e18(150)
+        const minCovToMint1 = depositedUnderwriter1
+        const minCovToMint2 = depositedUnderwriter2
+        const minCovToMint3 = depositedUnderwriter3
         const claim = to1e18(25)
 
         beforeEach(async () => {
-          await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-          await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
-          await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+          await assetPool
+            .connect(underwriter1)
+            .deposit(depositedUnderwriter1, minCovToMint1)
+          await assetPool
+            .connect(underwriter2)
+            .deposit(depositedUnderwriter2, minCovToMint2)
+          await assetPool
+            .connect(underwriter3)
+            .deposit(depositedUnderwriter3, minCovToMint3)
           await assetPool
             .connect(coveragePool)
             .claim(coveragePool.address, claim)
@@ -735,11 +829,22 @@ describe("AssetPool", () => {
             .approve(rewardsPool.address, allocatedReward)
           await rewardsPool.connect(rewardManager).topUpReward(allocatedReward)
 
-          await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
+          const covToMint1 = to1e18(100)
+          await assetPool
+            .connect(underwriter1)
+            .deposit(depositedUnderwriter1, covToMint1)
           await increaseTime(86400) // +1 day
-          await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+          // 300 * 100 / 110 =~ 272
+          const covToMint2 = to1e18(272)
+          await assetPool
+            .connect(underwriter2)
+            .deposit(depositedUnderwriter2, covToMint2)
           await increaseTime(86400) // +1 day
-          await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+          // 50 * 372 / 420 =~ 44
+          const covToMint3 = to1e18(44)
+          await assetPool
+            .connect(underwriter3)
+            .deposit(depositedUnderwriter3, covToMint3)
           await increaseTime(86400) // +1 day
 
           const coverageMintedUnderwriter1 = await underwriterToken.balanceOf(
@@ -843,12 +948,21 @@ describe("AssetPool", () => {
           const depositedUnderwriter1 = to1e18(100)
           const depositedUnderwriter2 = to1e18(50)
           const depositedUnderwriter3 = to1e18(150)
+          const minCovToMint1 = depositedUnderwriter1
+          const minCovToMint2 = depositedUnderwriter2
+          const minCovToMint3 = depositedUnderwriter3
           const transferAmount = to1e18(25)
 
           beforeEach(async () => {
-            await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-            await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
-            await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+            await assetPool
+              .connect(underwriter1)
+              .deposit(depositedUnderwriter1, minCovToMint1)
+            await assetPool
+              .connect(underwriter2)
+              .deposit(depositedUnderwriter2, minCovToMint2)
+            await assetPool
+              .connect(underwriter3)
+              .deposit(depositedUnderwriter3, minCovToMint3)
 
             await collateralToken.mint(thirdParty.address, transferAmount)
             await collateralToken
@@ -932,10 +1046,16 @@ describe("AssetPool", () => {
     context("when there are deposits in the pool", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(50)
+      const minCovToMint1 = depositedUnderwriter1
+      const minCovToMint2 = depositedUnderwriter2
 
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1, minCovToMint1)
+        await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2, minCovToMint2)
       })
 
       context("when rewards were not allocated", () => {
@@ -1078,7 +1198,7 @@ describe("AssetPool", () => {
           .approveNewAssetPoolUpgrade(newAssetPool.address)
 
         const amount = to1e18(100)
-        await assetPool.connect(underwriter1).deposit(amount)
+        await assetPool.connect(underwriter1).deposit(amount, amount)
         await underwriterToken
           .connect(underwriter1)
           .approve(assetPool.address, amount)
@@ -1097,7 +1217,7 @@ describe("AssetPool", () => {
     context("when governance hasn't upgraded to a new pool yet", () => {
       it("should revert", async () => {
         const amount = to1e18(100)
-        await assetPool.connect(underwriter1).deposit(amount)
+        await assetPool.connect(underwriter1).deposit(amount, amount)
         await underwriterToken
           .connect(underwriter1)
           .approve(assetPool.address, amount)
@@ -1113,6 +1233,7 @@ describe("AssetPool", () => {
 
     context("when governance upgraded to a new pool", () => {
       const amountToDeposit = to1e18(100)
+      const minCovToMint = amountToDeposit
       const amountToUpgrade = to1e18(40)
 
       context("when no collateral tokens were claimed by the pool", () => {
@@ -1123,7 +1244,9 @@ describe("AssetPool", () => {
             .connect(coveragePool)
             .approveNewAssetPoolUpgrade(newAssetPool.address)
 
-          await assetPool.connect(underwriter1).deposit(amountToDeposit)
+          await assetPool
+            .connect(underwriter1)
+            .deposit(amountToDeposit, minCovToMint)
           await underwriterToken
             .connect(underwriter1)
             .approve(assetPool.address, amountToUpgrade)
@@ -1171,7 +1294,9 @@ describe("AssetPool", () => {
           await assetPool
             .connect(coveragePool)
             .approveNewAssetPoolUpgrade(newAssetPool.address)
-          await assetPool.connect(underwriter1).deposit(amountToDeposit)
+          await assetPool
+            .connect(underwriter1)
+            .deposit(amountToDeposit, minCovToMint)
           await assetPool
             .connect(coveragePool)
             .claim(coveragePool.address, claim)
@@ -1215,7 +1340,9 @@ describe("AssetPool", () => {
             .approve(rewardsPool.address, allocatedReward)
           await rewardsPool.connect(rewardManager).topUpReward(allocatedReward)
 
-          await assetPool.connect(underwriter1).deposit(amountToDeposit)
+          await assetPool
+            .connect(underwriter1)
+            .deposit(amountToDeposit, minCovToMint)
 
           await increaseTime(86400) // 1 day
 

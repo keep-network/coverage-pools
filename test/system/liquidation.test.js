@@ -34,6 +34,7 @@ describeFn("System -- liquidation", () => {
   const bondedAmountPercentage = BigNumber.from("75")
   // amount of collateral deposited to asset pool is 200k KEEP tokens
   const collateralAmount = to1e18(200000)
+  const minCovToMint = collateralAmount
 
   let tbtcToken
   let collateralToken
@@ -126,7 +127,9 @@ describeFn("System -- liquidation", () => {
       await collateralToken
         .connect(underwriter)
         .approve(assetPool.address, collateralAmount)
-      await assetPool.connect(underwriter).deposit(collateralAmount)
+      await assetPool
+        .connect(underwriter)
+        .deposit(collateralAmount, minCovToMint)
 
       // Wait 30% of the auction length and take offer
       await increaseTime(25920)

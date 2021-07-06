@@ -131,15 +131,16 @@ contract AssetPool is Ownable, IAssetPool {
     function receiveApproval(
         address from,
         uint256 amount,
-        uint256 minAmountToMint,
         address token,
-        bytes calldata
+        bytes calldata extraData
     ) external {
         require(msg.sender == token, "Only token caller allowed");
         require(
             token == address(collateralToken),
             "Unsupported collateral token"
         );
+        require(extraData.length == 32, "Unexpected data length");
+        uint256 minAmountToMint = abi.decode(extraData, (uint256));
 
         _deposit(from, amount, minAmountToMint);
     }
