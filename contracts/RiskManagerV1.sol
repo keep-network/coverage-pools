@@ -80,14 +80,16 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using RiskManagerV1Rewards for RiskManagerV1Rewards.Storage;
 
+    enum DepositState {
+        FRAUD_LIQUIDATION_IN_PROGRESS,
+        LIQUIDATION_IN_PROGRESS,
+        LIQUIDATED,
+        OTHER
+    }
+
     /// @notice Governance delay that needs to pass before any risk manager
     ///         parameter change initiated by the governance takes effect.
     uint256 public constant GOVERNANCE_DELAY = 12 hours;
-
-    // See https://github.com/keep-network/tbtc/blob/v1.1.0/solidity/contracts/deposit/DepositStates.sol
-    uint256 public constant DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE = 9;
-    uint256 public constant DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE = 10;
-    uint256 public constant DEPOSIT_LIQUIDATED_STATE = 11;
 
     /// @notice Coverage pool auction will not be opened if the deposit's bond
     ///         auction offers a bond percentage lower than this threshold.
@@ -323,7 +325,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
 
         IDeposit deposit = IDeposit(depositAddress);
         require(
-            deposit.currentState() == DEPOSIT_LIQUIDATED_STATE,
+            uintToState(deposit.currentState()) == DepositState.LIQUIDATED,
             "Deposit is not in liquidated state"
         );
         emit NotifiedLiquidated(depositAddress, msg.sender);
@@ -807,10 +809,25 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         view
         returns (bool)
     {
-        uint256 state = deposit.currentState();
+        DepositState state = uintToState(deposit.currentState());
 
-        return (state == DEPOSIT_LIQUIDATION_IN_PROGRESS_STATE ||
-            state == DEPOSIT_FRAUD_LIQUIDATION_IN_PROGRESS_STATE);
+        return (state == DepositState.LIQUIDATION_IN_PROGRESS ||
+            state == DepositState.FRAUD_LIQUIDATION_IN_PROGRESS);
+    }
+
+    /// @dev To learn more about deposit states see
+    /// https://github.com/keep-network/tbtc/blob/v1.1.0/solidity/contracts/deposit/DepositStates.sol
+    function uintToState(uint256 state) internal pure returns (DepositState) {
+        if (state == 9) {
+            return DepositState.FRAUD_LIQUIDATION_IN_PROGRESS;
+        }
+        if (state == 10) {
+            return DepositState.LIQUIDATION_IN_PROGRESS;
+        }
+        if (state == 11) {
+            return DepositState.LIQUIDATED;
+        }
+        return DepositState.OTHER;
     }
 }
 
