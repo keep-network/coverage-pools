@@ -1,19 +1,17 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const uniswapV2RouterAddress = process.env.UNISWAP_V2_ROUTER_ADDRESS
-  const { deploy, save, log } = deployments
+  const { getOrNull, deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  if (uniswapV2RouterAddress) {
-    log(
-      `using externally provided UniswapV2Router address ${uniswapV2RouterAddress}`
-    )
+  const UniswapV2Router = await getOrNull("UniswapV2Router")
 
-    // Save as simple deployment just to make it accessible for next scripts.
-    await save("UniswapV2Router", { address: uniswapV2RouterAddress })
+  if (UniswapV2Router) {
+    log(`using external UniswapV2Router at ${UniswapV2Router.address}`)
   } else if (!hre.network.tags.local) {
-    throw new Error("The UniswapV2Router contract address is required!")
+    throw new Error("deployed UniswapV2Router contract not found")
   } else {
-    log(`using UniswapV2Router stub`)
+    // For any network tagged as `local` we want to deploy a stub if external
+    // artifact is not found.
+    log(`deploying UniswapV2Router stub`)
 
     await deploy("UniswapV2Router", {
       contract: "UniswapV2RouterStub",
