@@ -25,12 +25,13 @@ module.exports = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
+      tags: ["local"],
     },
-    local: {
+    development: {
       url: "http://localhost:8545",
+      tags: ["local"],
     },
   },
-
   namedAccounts: {
     deployer: {
       default: 0, // take the first account as deployer
