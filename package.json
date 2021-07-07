@@ -1,6 +1,13 @@
 {
   "name": "@keep-network/coverage-pools",
   "version": "0.0.1",
+  "files": [
+    "contracts/",
+    "!contracts/test/",
+    "deploy/",
+    "deployments/",
+    "export.json"
+  ],
   "scripts": {
     "build": "hardhat compile",
     "deploy": "hardhat deploy --export export.json",
