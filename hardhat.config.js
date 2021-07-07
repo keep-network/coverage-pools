@@ -44,7 +44,7 @@ module.exports = {
       },
     ],
     deployments: {
-      local: [
+      development: [
         "../keep-core/solidity/build/contracts",
         "../tbtc/solidity/build/contracts",
       ],
