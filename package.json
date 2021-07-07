@@ -15,7 +15,7 @@
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.2 ",
     "solhint": "^3.3.4",
-    "solhint-config-keep": "github:keep-network/solhint-config-keep",
+    "solhint-config-keep": "github:keep-network/solhint-config-keep#0.1.0",
     "solidity-coverage": "^0.7.16",
     "typescript": "^3.7.0"
   },
