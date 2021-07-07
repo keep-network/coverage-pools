@@ -32,6 +32,28 @@ module.exports = {
       tags: ["local"],
     },
   },
+  external: {
+    contracts: [
+      {
+        artifacts: "node_modules/@keep-network/keep-core/artifacts",
+        // Example if we want to use deployment scripts from external package:
+        // deploy: "node_modules/@keep-network/keep-core/deploy",
+      },
+      {
+        artifacts: "node_modules/@keep-network/tbtc/artifacts",
+      },
+    ],
+    deployments: {
+      local: [
+        "../keep-core/solidity/build/contracts",
+        "../tbtc/solidity/build/contracts",
+      ],
+      ropsten: [
+        "node_modules/@keep-network/keep-core/artifacts",
+        "node_modules/@keep-network/tbtc/artifacts",
+      ],
+    },
+  },
   namedAccounts: {
     deployer: {
       default: 0, // take the first account as deployer

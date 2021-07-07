@@ -14,6 +14,8 @@
     "test:unit:coverage": "hardhat coverage"
   },
   "dependencies": {
+    "@keep-network/keep-core": "^1.8.0-dev",
+    "@keep-network/tbtc": "^1.1.2-dev",
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {

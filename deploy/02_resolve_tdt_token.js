@@ -1,19 +1,15 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const tbtcDepositTokenAddress = process.env.TBTC_DEPOSIT_TOKEN_ADDRESS
-  const { deploy, save, log } = deployments
+  const { getOrNull, deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  if (tbtcDepositTokenAddress) {
-    log(
-      `using externally provided TBTCDepositToken address ${tbtcDepositTokenAddress}`
-    )
+  const TBTCDepositToken = await getOrNull("TBTCDepositToken")
 
-    // Save as simple deployment just to make it accessible for next scripts.
-    await save("TBTCDepositToken", { address: tbtcDepositTokenAddress })
+  if (TBTCDepositToken) {
+    log(`using external TBTCDepositToken at ${TBTCDepositToken.address}`)
   } else if (hre.network.name !== "hardhat") {
-    throw new Error("The TBTCDepositToken contract address is required!")
+    throw new Error("deployed TBTCDepositToken contract not found")
   } else {
-    log(`using TBTCDepositToken stub`)
+    log(`deploying TBTCDepositToken stub`)
 
     await deploy("TBTCDepositToken", {
       contract: "TBTCDepositTokenStub",
