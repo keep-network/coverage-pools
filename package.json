@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "build": "hardhat compile",
-    "deploy": "hardhat deploy",
+    "deploy": "hardhat deploy --export export.json",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:fix:js": "eslint . --fix",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
