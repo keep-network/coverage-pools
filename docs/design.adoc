@@ -293,12 +293,27 @@ the fixed amount reward takes precedence.
 === Auction length upgradability
 
 The default value of "Auction Length" is set during deployment of Risk Manager 
-contract. This parameter is one of the factors that determines the value of asset pool portion being on offer at the given time. It should be updated carefully, because selecting too short auction length value when the coverage pool TVL is big can lead to significant portions being on offer in a very short period of time. It means draining the pool quickly and making auction bidders very profitable. On the other hand auction length should not be very long, because bidders will have to wait too much time before it will make sense for them to take an offer on an auction. Please refer to auction length simulation https://docs.google.com/spreadsheets/d/1ukn45bmPFL8EAl87rYz_NQgBX_n2hxrDD0oyag33ZCY/edit?usp=sharing[spreadsheet] based on different pool's TVL. The detailed description of the auction length parameter can be found https://github.com/keep-network/coverage-pools/blob/main/contracts/RiskManagerV1.sol#L104[here]. Updating mechanism is done in two steps:
+contract. This parameter is one of the factors that determine the value of asset
+pool portion being on offer at the given time. It should be updated carefully,
+because selecting too short auction length value when the coverage pool TVL is
+big can lead to significant portions being on offer in a very short period of
+time. It means draining the pool quickly and making auction bidders very
+profitable. On the other hand auction length should not be very long, because
+bidders will have to wait too much time before it will make sense for them to
+take an offer on an auction. Please refer to auction length simulation
+https://docs.google.com/spreadsheets/d/1ukn45bmPFL8EAl87rYz_NQgBX_n2hxrDD0oyag33ZCY/edit?usp=sharing[spreadsheet]
+based on different pool's TVL. The detailed description of the auction length
+parameter can be found https://github.com/keep-network/coverage-pools/blob/main/contracts/RiskManagerV1.sol#L104[here].
+Updating mechanism is done in two steps:
 
-** first step is calling `beginAuctionLengthUpdate(newAuctionLength)`, which sets a new auction length parameter.
-** second call can be done after the governance delay has passed, which is currently set to 12h. After this time, one should call `finalizeAuctionLengthUpdate()` to complete auction length parameter update.
+** first step is calling `beginAuctionLengthUpdate(newAuctionLength)`, which sets
+a new auction length parameter.
+** second call can be done after the governance delay has passed, which is
+currently set to 12h. After this time, one should call
+`finalizeAuctionLengthUpdate()` to complete auction length parameter update.
 
-The longer the auction length is, the less portion (collateral tokens) of an asset pool is on offer at the given moment from auction start time.
+The longer the auction length is, the less portion (collateral tokens) of an
+asset pool is on offer at the given moment from auction start time.
 
 == Upgradeability
 
