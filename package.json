@@ -1,4 +1,18 @@
 {
+  "name": "@keep-network/coverage-pools",
+  "version": "0.0.1",
+  "scripts": {
+    "build": "hardhat compile",
+    "deploy": "hardhat deploy",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:fix:js": "eslint . --fix",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
+    "lint:js": "eslint . ",
+    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "test": "hardhat test",
+    "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
+    "test:unit:coverage": "hardhat coverage"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^4.1.0"
   },
@@ -19,18 +33,5 @@
     "solhint-config-keep": "github:keep-network/solhint-config-keep#0.1.0",
     "solidity-coverage": "^0.7.16",
     "typescript": "^3.7.0"
-  },
-  "name": "@keep-network/coverage-pool",
-  "scripts": {
-    "build": "hardhat compile",
-    "deploy": "hardhat deploy",
-    "lint": "npm run lint:js && npm run lint:sol",
-    "lint:fix:js": "eslint . --fix",
-    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
-    "lint:js": "eslint . ",
-    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
-    "test": "hardhat test",
-    "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
-    "test:unit:coverage": "hardhat coverage"
   }
 }
