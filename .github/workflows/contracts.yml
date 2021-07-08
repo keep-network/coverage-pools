@@ -6,6 +6,18 @@ on:
       - main
   pull_request:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment for workflow execution'
+        required: false
+        default: 'dev'
+      upstream_builds:
+        description: 'Upstream builds'
+        required: false
+      upstream_ref:
+        description: 'Git reference to checkout (e.g. branch name)'
+        required: false
+        default: 'main'
 
 jobs:
   contracts-build-and-test:
@@ -48,8 +60,88 @@ jobs:
       - name: Deploy contracts
         run: yarn deploy
 
+  contracts-deployment: # TODO: choose better name; consider merging with previous job
+    needs: [contracts-build-and-test]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Load environment variables
+        uses: keep-network/load-env-variables@v1
+        with:
+          environment: ${{ github.event.inputs.environment }}
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "12.x"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Get upstream packages' versions
+        uses: keep-network/upstream-builds-query@v1
+        id: upstream-builds-query
+        with:
+          upstream-builds: ${{ github.event.inputs.upstream_builds }}
+          query: |
+            keep-core-solidity-version = github.com/keep-network/keep-core/solidity#version
+            tbtc-solidity-version = github.com/keep-network/tbtc/solidity#version
+
+      - name: Resolve latest contracts
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+            yarn add \
+              @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-solidity-version }} \
+              @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-solidity-version }}
+
+      - name: Deploy contracts # Do we need to pass any `env`s?
+        run: yarn deploy --network ${{ env.TRUFFLE_NETWORK }}
+
+      # Where will the deployed contracts be placed? Do we need to copy them
+      # somewhere (like we did with `artifacts` in other projects)?
+
+      - name: Bump up package version
+        id: npm-version-bump
+        uses: keep-network/npm-version-bump@v2
+        with:
+          environment: ${{ github.event.inputs.environment }}
+          branch: ${{ github.ref }}
+          commit: ${{ github.sha }}
+
+      - name: Push contracts to Tenderly
+        if: github.event.inputs.environment == 'ropsten'
+        # TODO: once below action gets tagged replace `@main` with `@v1`
+        uses: keep-network/tenderly-push-action@main
+        continue-on-error: true
+        with:
+          tenderly-token: ${{ secrets.TENDERLY_TOKEN }}
+          tenderly-project: thesis/keep-test
+          eth-network-id: ${{ env.NETWORK_ID }}
+          github-project-name: coverage-pools
+          version-tag: ${{ steps.npm-version-bump.outputs.version }}
+
+      - name: Publish to npm
+        run: | #TODO: remove `--dry-run` before merging
+          echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
+          npm publish --access=public --dry-run
+
+      - name: Notify CI about completion of the workflow
+        uses: keep-network/notify-workflow-completed@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+        with:
+          module: "github.com/keep-network/coverage-pools"
+          url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          environment: ${{ github.event.inputs.environment }}
+          upstream_builds: ${{ github.event.inputs.upstream_builds }}
+          upstream_ref: ${{ github.event.inputs.upstream_ref }}
+          version: ${{ steps.npm-version-bump.outputs.version }}
+
   contracts-lint:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v2
 
@@ -66,6 +158,7 @@ jobs:
 
   contracts-slither:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v2
 
