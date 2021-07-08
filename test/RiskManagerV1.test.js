@@ -16,8 +16,8 @@ const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
 const bondAuctionThreshold = 100
 const bondedAmount = to1e18(10)
-const liquidationNotifierRewardAmount = to1e18(2)
-const liquidatedNotifierRewardAmount = to1e18(3)
+const liquidationNotifierReward = to1e18(2)
+const liquidatedNotifierReward = to1e18(3)
 
 describe("RiskManagerV1", () => {
   let tbtcToken
@@ -87,15 +87,15 @@ describe("RiskManagerV1", () => {
       value: bondedAmount,
     })
 
-    await riskManagerV1.beginLiquidationNotifierRewardAmountUpdate(
-      liquidationNotifierRewardAmount
+    await riskManagerV1.beginLiquidationNotifierRewardUpdate(
+      liquidationNotifierReward
     )
-    await riskManagerV1.beginLiquidatedNotifierRewardAmountUpdate(
-      liquidatedNotifierRewardAmount
+    await riskManagerV1.beginLiquidatedNotifierRewardUpdate(
+      liquidatedNotifierReward
     )
     await increaseTime(43200)
-    await riskManagerV1.finalizeLiquidationNotifierRewardAmountUpdate()
-    await riskManagerV1.finalizeLiquidatedNotifierRewardAmountUpdate()
+    await riskManagerV1.finalizeLiquidationNotifierRewardUpdate()
+    await riskManagerV1.finalizeLiquidatedNotifierRewardUpdate()
   })
 
   describe("notifyLiquidation", () => {
@@ -174,7 +174,7 @@ describe("RiskManagerV1", () => {
             it("should reward the notifier with asset pool shares", async () => {
               await expect(notifyLiquidationTx)
                 .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                .withArgs(notifier.address, liquidationNotifierRewardAmount)
+                .withArgs(notifier.address, liquidationNotifierReward)
             })
 
             it("should create an auction ", async () => {
@@ -217,7 +217,7 @@ describe("RiskManagerV1", () => {
               it("should reward the notifier with asset pool shares", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                  .withArgs(notifier.address, liquidationNotifierRewardAmount)
+                  .withArgs(notifier.address, liquidationNotifierReward)
               })
 
               it("should create an auction ", async () => {
@@ -263,7 +263,7 @@ describe("RiskManagerV1", () => {
               it("should reward the notifier with asset pool shares", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                  .withArgs(notifier.address, liquidationNotifierRewardAmount)
+                  .withArgs(notifier.address, liquidationNotifierReward)
               })
 
               it("should not create an auction", async () => {
@@ -313,7 +313,7 @@ describe("RiskManagerV1", () => {
               it("should reward the notifier with asset pool shares", async () => {
                 await expect(notifyLiquidationTx)
                   .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-                  .withArgs(notifier.address, liquidationNotifierRewardAmount)
+                  .withArgs(notifier.address, liquidationNotifierReward)
               })
 
               it("should not create an auction", async () => {
@@ -435,7 +435,7 @@ describe("RiskManagerV1", () => {
 
         await expect(tx)
           .to.emit(coveragePoolStub, "AssetPoolSharesGranted")
-          .withArgs(notifier.address, liquidatedNotifierRewardAmount)
+          .withArgs(notifier.address, liquidatedNotifierReward)
       })
     })
   })
@@ -803,38 +803,35 @@ describe("RiskManagerV1", () => {
     })
   })
 
-  describe("beginLiquidationNotifierRewardAmountUpdate", () => {
+  describe("beginLiquidationNotifierRewardUpdate", () => {
     context("when the caller is the owner", () => {
-      const currentValue = liquidationNotifierRewardAmount
+      const currentValue = liquidationNotifierReward
       const newValue = to1e18(8)
       let tx
 
       beforeEach(async () => {
         tx = await riskManagerV1
           .connect(owner)
-          .beginLiquidationNotifierRewardAmountUpdate(newValue)
+          .beginLiquidationNotifierRewardUpdate(newValue)
       })
 
-      it("should not update liquidation notifier reward amount", async () => {
-        expect(
-          await riskManagerV1.liquidationNotifierRewardAmount()
-        ).to.be.equal(currentValue)
+      it("should not update liquidation notifier reward", async () => {
+        expect(await riskManagerV1.liquidationNotifierReward()).to.be.equal(
+          currentValue
+        )
       })
 
       it("should start the governance delay timer", async () => {
         expect(
-          await riskManagerV1.getRemainingLiquidationNotifierRewardAmountUpdateTime()
+          await riskManagerV1.getRemainingLiquidationNotifierRewardUpdateTime()
         ).to.be.equal(43200) // 12h contract governance delay
       })
 
-      it("should emit the LiquidationNotifierRewardAmountUpdateStarted event", async () => {
+      it("should emit the LiquidationNotifierRewardUpdateStarted event", async () => {
         const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
           .timestamp
         await expect(tx)
-          .to.emit(
-            riskManagerV1,
-            "LiquidationNotifierRewardAmountUpdateStarted"
-          )
+          .to.emit(riskManagerV1, "LiquidationNotifierRewardUpdateStarted")
           .withArgs(newValue, blockTimestamp)
       })
     })
@@ -844,13 +841,13 @@ describe("RiskManagerV1", () => {
         await expect(
           riskManagerV1
             .connect(notifier)
-            .beginLiquidationNotifierRewardAmountUpdate(to1e18(8))
+            .beginLiquidationNotifierRewardUpdate(to1e18(8))
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
 
-  describe("finalizeLiquidationNotifierRewardAmountUpdate", () => {
+  describe("finalizeLiquidationNotifierRewardUpdate", () => {
     const newValue = to1e18(8)
 
     context(
@@ -862,30 +859,30 @@ describe("RiskManagerV1", () => {
         beforeEach(async () => {
           await riskManagerV1
             .connect(owner)
-            .beginLiquidationNotifierRewardAmountUpdate(newValue)
+            .beginLiquidationNotifierRewardUpdate(newValue)
 
           await increaseTime(43200) // +12h contract governance delay
 
           tx = await riskManagerV1
             .connect(owner)
-            .finalizeLiquidationNotifierRewardAmountUpdate()
+            .finalizeLiquidationNotifierRewardUpdate()
         })
 
-        it("should update the liquidation notifier reward amount", async () => {
-          expect(
-            await riskManagerV1.liquidationNotifierRewardAmount()
-          ).to.be.equal(newValue)
+        it("should update the liquidation notifier reward", async () => {
+          expect(await riskManagerV1.liquidationNotifierReward()).to.be.equal(
+            newValue
+          )
         })
 
-        it("should emit LiquidationNotifierRewardAmountUpdated event", async () => {
+        it("should emit LiquidationNotifierRewardUpdated event", async () => {
           await expect(tx)
-            .to.emit(riskManagerV1, "LiquidationNotifierRewardAmountUpdated")
+            .to.emit(riskManagerV1, "LiquidationNotifierRewardUpdated")
             .withArgs(newValue)
         })
 
         it("should reset the governance delay timer", async () => {
           await expect(
-            riskManagerV1.getRemainingLiquidationNotifierRewardAmountUpdateTime()
+            riskManagerV1.getRemainingLiquidationNotifierRewardUpdateTime()
           ).to.be.revertedWith("Change not initiated")
         })
       }
@@ -895,14 +892,12 @@ describe("RiskManagerV1", () => {
       it("should revert", async () => {
         await riskManagerV1
           .connect(owner)
-          .beginLiquidationNotifierRewardAmountUpdate(newValue)
+          .beginLiquidationNotifierRewardUpdate(newValue)
 
         await increaseTime(39600) // +11h
 
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeLiquidationNotifierRewardAmountUpdate()
+          riskManagerV1.connect(owner).finalizeLiquidationNotifierRewardUpdate()
         ).to.be.revertedWith("Governance delay has not elapsed")
       })
     })
@@ -912,7 +907,7 @@ describe("RiskManagerV1", () => {
         await expect(
           riskManagerV1
             .connect(notifier)
-            .finalizeLiquidationNotifierRewardAmountUpdate()
+            .finalizeLiquidationNotifierRewardUpdate()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -920,43 +915,41 @@ describe("RiskManagerV1", () => {
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeLiquidationNotifierRewardAmountUpdate()
+          riskManagerV1.connect(owner).finalizeLiquidationNotifierRewardUpdate()
         ).to.be.revertedWith("Change not initiated")
       })
     })
   })
 
-  describe("beginLiquidatedNotifierRewardAmountUpdate", () => {
+  describe("beginLiquidatedNotifierRewardUpdate", () => {
     context("when the caller is the owner", () => {
-      const currentValue = liquidatedNotifierRewardAmount
+      const currentValue = liquidatedNotifierReward
       const newValue = to1e18(10)
       let tx
 
       beforeEach(async () => {
         tx = await riskManagerV1
           .connect(owner)
-          .beginLiquidatedNotifierRewardAmountUpdate(newValue)
+          .beginLiquidatedNotifierRewardUpdate(newValue)
       })
 
-      it("should not update liquidated notifier reward amount", async () => {
-        expect(
-          await riskManagerV1.liquidatedNotifierRewardAmount()
-        ).to.be.equal(currentValue)
+      it("should not update liquidated notifier reward", async () => {
+        expect(await riskManagerV1.liquidatedNotifierReward()).to.be.equal(
+          currentValue
+        )
       })
 
       it("should start the governance delay timer", async () => {
         expect(
-          await riskManagerV1.getRemainingLiquidatedNotifierRewardAmountUpdateTime()
+          await riskManagerV1.getRemainingLiquidatedNotifierRewardUpdateTime()
         ).to.be.equal(43200) // 12h contract governance delay
       })
 
-      it("should emit the LiquidatedNotifierRewardAmountUpdateStarted event", async () => {
+      it("should emit the LiquidatedNotifierRewardUpdateStarted event", async () => {
         const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
           .timestamp
         await expect(tx)
-          .to.emit(riskManagerV1, "LiquidatedNotifierRewardAmountUpdateStarted")
+          .to.emit(riskManagerV1, "LiquidatedNotifierRewardUpdateStarted")
           .withArgs(newValue, blockTimestamp)
       })
     })
@@ -966,13 +959,13 @@ describe("RiskManagerV1", () => {
         await expect(
           riskManagerV1
             .connect(notifier)
-            .beginLiquidatedNotifierRewardAmountUpdate(to1e18(10))
+            .beginLiquidatedNotifierRewardUpdate(to1e18(10))
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
   })
 
-  describe("finalizeLiquidatedNotifierRewardAmountUpdate", () => {
+  describe("finalizeLiquidatedNotifierRewardUpdate", () => {
     const newValue = to1e18(10)
 
     context(
@@ -984,30 +977,30 @@ describe("RiskManagerV1", () => {
         beforeEach(async () => {
           await riskManagerV1
             .connect(owner)
-            .beginLiquidatedNotifierRewardAmountUpdate(newValue)
+            .beginLiquidatedNotifierRewardUpdate(newValue)
 
           await increaseTime(43200) // +12h contract governance delay
 
           tx = await riskManagerV1
             .connect(owner)
-            .finalizeLiquidatedNotifierRewardAmountUpdate()
+            .finalizeLiquidatedNotifierRewardUpdate()
         })
 
-        it("should update the liquidated notifier reward amount", async () => {
-          expect(
-            await riskManagerV1.liquidatedNotifierRewardAmount()
-          ).to.be.equal(newValue)
+        it("should update the liquidated notifier reward", async () => {
+          expect(await riskManagerV1.liquidatedNotifierReward()).to.be.equal(
+            newValue
+          )
         })
 
-        it("should emit LiquidatedNotifierRewardAmountUpdated event", async () => {
+        it("should emit LiquidatedNotifierRewardUpdated event", async () => {
           await expect(tx)
-            .to.emit(riskManagerV1, "LiquidatedNotifierRewardAmountUpdated")
+            .to.emit(riskManagerV1, "LiquidatedNotifierRewardUpdated")
             .withArgs(newValue)
         })
 
         it("should reset the governance delay timer", async () => {
           await expect(
-            riskManagerV1.getRemainingLiquidatedNotifierRewardAmountUpdateTime()
+            riskManagerV1.getRemainingLiquidatedNotifierRewardUpdateTime()
           ).to.be.revertedWith("Change not initiated")
         })
       }
@@ -1017,14 +1010,12 @@ describe("RiskManagerV1", () => {
       it("should revert", async () => {
         await riskManagerV1
           .connect(owner)
-          .beginLiquidatedNotifierRewardAmountUpdate(newValue)
+          .beginLiquidatedNotifierRewardUpdate(newValue)
 
         await increaseTime(39600) // +11h
 
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeLiquidatedNotifierRewardAmountUpdate()
+          riskManagerV1.connect(owner).finalizeLiquidatedNotifierRewardUpdate()
         ).to.be.revertedWith("Governance delay has not elapsed")
       })
     })
@@ -1034,7 +1025,7 @@ describe("RiskManagerV1", () => {
         await expect(
           riskManagerV1
             .connect(notifier)
-            .finalizeLiquidatedNotifierRewardAmountUpdate()
+            .finalizeLiquidatedNotifierRewardUpdate()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
@@ -1042,9 +1033,7 @@ describe("RiskManagerV1", () => {
     context("when the update process is not initialized", () => {
       it("should revert", async () => {
         await expect(
-          riskManagerV1
-            .connect(owner)
-            .finalizeLiquidatedNotifierRewardAmountUpdate()
+          riskManagerV1.connect(owner).finalizeLiquidatedNotifierRewardUpdate()
         ).to.be.revertedWith("Change not initiated")
       })
     })

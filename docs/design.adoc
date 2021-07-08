@@ -273,12 +273,12 @@ governance. The current amounts of rewards can be viewed using the following
 methods of the risk manager:
 
 * For `notifyLiquidation` rewards:
-** `liquidationNotifierRewardAmount`: determines the fixed amount of COV tokens
-which is granted as reward for reporting about a deposit liquidation process.
+** `liquidationNotifierReward`: determines the amount of COV tokens which is
+granted as reward for reporting about a deposit liquidation process.
 * For `notifyLiquidated` rewards:
-** `liquidatedNotifierRewardAmount`: determines the fixed amount of COV tokens
-which is granted as reward for reporting about a deposit being liquidated
-outside of the coverage pool.
+** `liquidatedNotifierReward`: determines the amount of COV tokens which is
+granted as reward for reporting about a deposit being liquidated outside of the
+coverage pool.
 
 == Upgradeability
 
@@ -332,12 +332,12 @@ liquidating deposits still attractive for arbitraging bots.
 |Governance can chose which strategy should be used by tBTC v1 risk manager for
 depositing ETH signer bonds purchased from tBTC to the asset pool.
 
-|Deposit liquidation notifier reward amount
+|Deposit liquidation notifier reward
 |12 hours
 |Governance can set a fixed amount of COV tokens given as reward for reporting
 about a deposit liquidation start.
 
-|Deposit liquidated notifier reward amount
+|Deposit liquidated notifier reward
 |12 hours
 |Governance can set a fixed amount of COV tokens given as reward for reporting
 about a deposit being liquidated outside of the coverage pool.

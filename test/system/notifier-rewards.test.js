@@ -16,8 +16,8 @@ describeFn("System -- notifier rewards", () => {
   const bondedAmount = to1e18(150)
   const bondAuctionThreshold = 100
   const covTotalSupply = to1e18(1000)
-  const liquidationNotifierRewardAmount = to1e18(2)
-  const liquidatedNotifierRewardAmount = to1e18(3)
+  const liquidationNotifierReward = to1e18(2)
+  const liquidatedNotifierReward = to1e18(3)
 
   let tbtcToken
   let underwriterToken
@@ -119,13 +119,13 @@ describeFn("System -- notifier rewards", () => {
       })
     })
 
-    context("when reward amount is set but percentage is zero", () => {
+    context("when reward amount is set", () => {
       beforeEach(async () => {
-        await riskManagerV1.beginLiquidationNotifierRewardAmountUpdate(
-          liquidationNotifierRewardAmount
+        await riskManagerV1.beginLiquidationNotifierRewardUpdate(
+          liquidationNotifierReward
         )
         await increaseTime(43200)
-        await riskManagerV1.finalizeLiquidationNotifierRewardAmountUpdate()
+        await riskManagerV1.finalizeLiquidationNotifierRewardUpdate()
 
         await riskManagerV1
           .connect(notifier)
@@ -134,7 +134,7 @@ describeFn("System -- notifier rewards", () => {
 
       it("should be rewarded with fixed amount of asset pool shares", async () => {
         expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          liquidationNotifierRewardAmount
+          liquidationNotifierReward
         )
       })
     })
@@ -172,11 +172,11 @@ describeFn("System -- notifier rewards", () => {
 
     context("when reward amount is set", () => {
       beforeEach(async () => {
-        await riskManagerV1.beginLiquidatedNotifierRewardAmountUpdate(
-          liquidatedNotifierRewardAmount
+        await riskManagerV1.beginLiquidatedNotifierRewardUpdate(
+          liquidatedNotifierReward
         )
         await increaseTime(43200)
-        await riskManagerV1.finalizeLiquidatedNotifierRewardAmountUpdate()
+        await riskManagerV1.finalizeLiquidatedNotifierRewardUpdate()
 
         await riskManagerV1
           .connect(notifier)
@@ -185,7 +185,7 @@ describeFn("System -- notifier rewards", () => {
 
       it("should be rewarded with fixed amount of asset pool shares", async () => {
         expect(await underwriterToken.balanceOf(notifier.address)).to.be.equal(
-          liquidatedNotifierRewardAmount
+          liquidatedNotifierReward
         )
       })
     })

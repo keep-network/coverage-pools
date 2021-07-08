@@ -168,21 +168,17 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         address indexed signerBondsSwapStrategy
     );
 
-    event LiquidationNotifierRewardAmountUpdateStarted(
-        uint256 liquidationNotifierRewardAmount,
+    event LiquidationNotifierRewardUpdateStarted(
+        uint256 liquidationNotifierReward,
         uint256 timestamp
     );
-    event LiquidationNotifierRewardAmountUpdated(
-        uint256 liquidationNotifierRewardAmount
-    );
+    event LiquidationNotifierRewardUpdated(uint256 liquidationNotifierReward);
 
-    event LiquidatedNotifierRewardAmountUpdateStarted(
-        uint256 liquidatedNotifierRewardAmount,
+    event LiquidatedNotifierRewardUpdateStarted(
+        uint256 liquidatedNotifierReward,
         uint256 timestamp
     );
-    event LiquidatedNotifierRewardAmountUpdated(
-        uint256 liquidatedNotifierRewardAmount
-    );
+    event LiquidatedNotifierRewardUpdated(uint256 liquidatedNotifierReward);
 
     /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
@@ -268,11 +264,11 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         emit NotifiedLiquidation(depositAddress, msg.sender);
 
         // Reward the notifier by giving them some share of the pool.
-        if (rewards.liquidationNotifierRewardAmount > 0) {
+        if (rewards.liquidationNotifierReward > 0) {
             // slither-disable-next-line reentrancy-benign
             coveragePool.grantAssetPoolShares(
                 msg.sender,
-                rewards.liquidationNotifierRewardAmount
+                rewards.liquidationNotifierReward
             );
         }
 
@@ -324,10 +320,10 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         tbtcSurplus += amountTransferred;
 
         // Reward the notifier by giving them some share of the pool.
-        if (rewards.liquidatedNotifierRewardAmount > 0) {
+        if (rewards.liquidatedNotifierReward > 0) {
             coveragePool.grantAssetPoolShares(
                 msg.sender,
-                rewards.liquidatedNotifierRewardAmount
+                rewards.liquidatedNotifierReward
             );
         }
     }
@@ -393,74 +389,72 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         auctionLengthChangeInitiated = 0;
     }
 
-    /// @notice Begins the liquidation notifier reward amount update process.
+    /// @notice Begins the liquidation notifier reward update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newLiquidationNotifierRewardAmount New liquidation notifier
-    ///        reward amount
-    function beginLiquidationNotifierRewardAmountUpdate(
-        uint256 _newLiquidationNotifierRewardAmount
+    /// @param _newLiquidationNotifierReward New liquidation notifier reward
+    function beginLiquidationNotifierRewardUpdate(
+        uint256 _newLiquidationNotifierReward
     ) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
-        emit LiquidationNotifierRewardAmountUpdateStarted(
-            _newLiquidationNotifierRewardAmount,
+        emit LiquidationNotifierRewardUpdateStarted(
+            _newLiquidationNotifierReward,
             block.timestamp
         );
 
-        rewards.beginLiquidationNotifierRewardAmountUpdate(
-            _newLiquidationNotifierRewardAmount
+        rewards.beginLiquidationNotifierRewardUpdate(
+            _newLiquidationNotifierReward
         );
     }
 
-    /// @notice Finalizes the liquidation notifier reward amount update process.
+    /// @notice Finalizes the liquidation notifier reward update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses.
-    function finalizeLiquidationNotifierRewardAmountUpdate()
+    function finalizeLiquidationNotifierRewardUpdate()
         external
         onlyOwner
         onlyAfterGovernanceDelay(
-            rewards.liquidationNotifierRewardAmountChangeInitiated
+            rewards.liquidationNotifierRewardChangeInitiated
         )
     {
-        emit LiquidationNotifierRewardAmountUpdated(
-            rewards.newLiquidationNotifierRewardAmount
+        emit LiquidationNotifierRewardUpdated(
+            rewards.newLiquidationNotifierReward
         );
 
-        rewards.finalizeLiquidationNotifierRewardAmountUpdate();
+        rewards.finalizeLiquidationNotifierRewardUpdate();
     }
 
-    /// @notice Begins the liquidated notifier reward amount update process.
+    /// @notice Begins the liquidated notifier reward update process.
     /// @dev Can be called only by the contract owner.
-    /// @param _newLiquidatedNotifierRewardAmount New liquidated notifier
-    ///        reward amount
-    function beginLiquidatedNotifierRewardAmountUpdate(
-        uint256 _newLiquidatedNotifierRewardAmount
+    /// @param _newLiquidatedNotifierReward New liquidated notifier reward
+    function beginLiquidatedNotifierRewardUpdate(
+        uint256 _newLiquidatedNotifierReward
     ) external onlyOwner {
         /* solhint-disable-next-line not-rely-on-time */
-        emit LiquidatedNotifierRewardAmountUpdateStarted(
-            _newLiquidatedNotifierRewardAmount,
+        emit LiquidatedNotifierRewardUpdateStarted(
+            _newLiquidatedNotifierReward,
             block.timestamp
         );
 
-        rewards.beginLiquidatedNotifierRewardAmountUpdate(
-            _newLiquidatedNotifierRewardAmount
+        rewards.beginLiquidatedNotifierRewardUpdate(
+            _newLiquidatedNotifierReward
         );
     }
 
-    /// @notice Finalizes the liquidated notifier reward amount update process.
+    /// @notice Finalizes the liquidated notifier reward update process.
     /// @dev Can be called only by the contract owner, after the governance
     ///      delay elapses
-    function finalizeLiquidatedNotifierRewardAmountUpdate()
+    function finalizeLiquidatedNotifierRewardUpdate()
         external
         onlyOwner
         onlyAfterGovernanceDelay(
-            rewards.liquidatedNotifierRewardAmountChangeInitiated
+            rewards.liquidatedNotifierRewardChangeInitiated
         )
     {
-        emit LiquidatedNotifierRewardAmountUpdated(
-            rewards.newLiquidatedNotifierRewardAmount
+        emit LiquidatedNotifierRewardUpdated(
+            rewards.newLiquidatedNotifierReward
         );
 
-        rewards.finalizeLiquidatedNotifierRewardAmountUpdate();
+        rewards.finalizeLiquidatedNotifierRewardUpdate();
     }
 
     /// @notice Begins the signer bonds swap strategy update process.
@@ -550,16 +544,16 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     }
 
     /// @notice Get the time remaining until the liquidation notifier reward
-    ///         amount parameter can be updated.
+    ///         parameter can be updated.
     /// @return Remaining time in seconds.
-    function getRemainingLiquidationNotifierRewardAmountUpdateTime()
+    function getRemainingLiquidationNotifierRewardUpdateTime()
         external
         view
         returns (uint256)
     {
         return
             GovernanceUtils.getRemainingChangeTime(
-                rewards.liquidationNotifierRewardAmountChangeInitiated,
+                rewards.liquidationNotifierRewardChangeInitiated,
                 GOVERNANCE_DELAY
             );
     }
@@ -567,14 +561,14 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     /// @notice Get the time remaining until the liquidated notifier reward
     ///         amount parameter can be updated.
     /// @return Remaining time in seconds.
-    function getRemainingLiquidatedNotifierRewardAmountUpdateTime()
+    function getRemainingLiquidatedNotifierRewardUpdateTime()
         external
         view
         returns (uint256)
     {
         return
             GovernanceUtils.getRemainingChangeTime(
-                rewards.liquidatedNotifierRewardAmountChangeInitiated,
+                rewards.liquidatedNotifierRewardChangeInitiated,
                 GOVERNANCE_DELAY
             );
     }
@@ -600,14 +594,14 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         return openAuctionsCount > 0;
     }
 
-    /// @return Current value of the liquidation notifier reward amount.
-    function liquidationNotifierRewardAmount() external view returns (uint256) {
-        return rewards.liquidationNotifierRewardAmount;
+    /// @return Current value of the liquidation notifier reward.
+    function liquidationNotifierReward() external view returns (uint256) {
+        return rewards.liquidationNotifierReward;
     }
 
-    /// @return Current value of the liquidated notifier reward amount.
-    function liquidatedNotifierRewardAmount() external view returns (uint256) {
-        return rewards.liquidatedNotifierRewardAmount;
+    /// @return Current value of the liquidated notifier reward.
+    function liquidatedNotifierReward() external view returns (uint256) {
+        return rewards.liquidatedNotifierReward;
     }
 
     /// @notice Cleans up auction and deposit data and executes deposit liquidation.
@@ -689,62 +683,56 @@ library RiskManagerV1Rewards {
     struct Storage {
         // Amount of COV tokens which should be given as reward for the
         // notifier reporting about the start of deposit liquidation process.
-        uint256 liquidationNotifierRewardAmount;
-        uint256 newLiquidationNotifierRewardAmount;
-        uint256 liquidationNotifierRewardAmountChangeInitiated;
+        uint256 liquidationNotifierReward;
+        uint256 newLiquidationNotifierReward;
+        uint256 liquidationNotifierRewardChangeInitiated;
         // Amount of COV tokens which should be given as reward for the
         // notifier reporting about a deposit being liquidated outside of the
         // coverage pool.
-        uint256 liquidatedNotifierRewardAmount;
-        uint256 newLiquidatedNotifierRewardAmount;
-        uint256 liquidatedNotifierRewardAmountChangeInitiated;
+        uint256 liquidatedNotifierReward;
+        uint256 newLiquidatedNotifierReward;
+        uint256 liquidatedNotifierRewardChangeInitiated;
     }
 
-    /// @notice Begins the liquidation notifier reward amount update process.
-    /// @param _newLiquidationNotifierRewardAmount New liquidation notifier
-    ///        reward amount.
-    function beginLiquidationNotifierRewardAmountUpdate(
+    /// @notice Begins the liquidation notifier reward update process.
+    /// @param _newLiquidationNotifierReward New liquidation notifier reward.
+    function beginLiquidationNotifierRewardUpdate(
         Storage storage self,
-        uint256 _newLiquidationNotifierRewardAmount
+        uint256 _newLiquidationNotifierReward
     ) internal {
         /* solhint-disable not-rely-on-time */
-        self
-            .newLiquidationNotifierRewardAmount = _newLiquidationNotifierRewardAmount;
-        self.liquidationNotifierRewardAmountChangeInitiated = block.timestamp;
+        self.newLiquidationNotifierReward = _newLiquidationNotifierReward;
+        self.liquidationNotifierRewardChangeInitiated = block.timestamp;
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the liquidation notifier reward amount update process.
-    function finalizeLiquidationNotifierRewardAmountUpdate(Storage storage self)
+    /// @notice Finalizes the liquidation notifier reward update process.
+    function finalizeLiquidationNotifierRewardUpdate(Storage storage self)
         internal
     {
-        self.liquidationNotifierRewardAmount = self
-            .newLiquidationNotifierRewardAmount;
-        self.newLiquidationNotifierRewardAmount = 0;
-        self.liquidationNotifierRewardAmountChangeInitiated = 0;
+        self.liquidationNotifierReward = self.newLiquidationNotifierReward;
+        self.newLiquidationNotifierReward = 0;
+        self.liquidationNotifierRewardChangeInitiated = 0;
     }
 
-    /// @notice Begins the liquidated notifier reward amount update process.
-    /// @param _newLiquidatedNotifierRewardAmount New liquidated notifier
-    ///        reward amount.
-    function beginLiquidatedNotifierRewardAmountUpdate(
+    /// @notice Begins the liquidated notifier reward update process.
+    /// @param _newLiquidatedNotifierReward New liquidated notifier reward
+    function beginLiquidatedNotifierRewardUpdate(
         Storage storage self,
-        uint256 _newLiquidatedNotifierRewardAmount
+        uint256 _newLiquidatedNotifierReward
     ) internal {
         /* solhint-disable not-rely-on-time */
-        self
-            .newLiquidatedNotifierRewardAmount = _newLiquidatedNotifierRewardAmount;
-        self.liquidatedNotifierRewardAmountChangeInitiated = block.timestamp;
+        self.newLiquidatedNotifierReward = _newLiquidatedNotifierReward;
+        self.liquidatedNotifierRewardChangeInitiated = block.timestamp;
         /* solhint-enable not-rely-on-time */
     }
 
-    /// @notice Finalizes the liquidated notifier reward amount update process.
-    function finalizeLiquidatedNotifierRewardAmountUpdate(Storage storage self)
+    /// @notice Finalizes the liquidated notifier reward update process.
+    function finalizeLiquidatedNotifierRewardUpdate(Storage storage self)
         internal
     {
-        self.liquidatedNotifierRewardAmount = self
-            .newLiquidatedNotifierRewardAmount;
-        self.newLiquidatedNotifierRewardAmount = 0;
-        self.liquidatedNotifierRewardAmountChangeInitiated = 0;
+        self.liquidatedNotifierReward = self.newLiquidatedNotifierReward;
+        self.newLiquidatedNotifierReward = 0;
+        self.liquidatedNotifierRewardChangeInitiated = 0;
     }
 }
