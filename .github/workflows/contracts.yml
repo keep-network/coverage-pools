@@ -16,9 +16,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: "12.x"
-
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
+          cache: "yarn"
 
       - name: Install dependencies
         run: yarn install
@@ -34,6 +32,22 @@ jobs:
           FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
         run: yarn test:system
 
+  contracts-deployment-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "12.x"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Deploy contracts
+        run: yarn deploy
+
   contracts-lint:
     runs-on: ubuntu-latest
     steps:
@@ -42,9 +56,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: "12.x"
-
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
+          cache: "yarn"
 
       - name: Install dependencies
         run: yarn install
@@ -60,6 +72,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: "12.x"
+          cache: "yarn"
 
       - uses: actions/setup-python@v2
         with:
@@ -77,9 +90,6 @@ jobs:
         env:
           SLITHER_VERSION: 0.8.0
         run: pip3 install slither-analyzer==$SLITHER_VERSION
-
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
 
       - name: Install dependencies
         run: yarn install
