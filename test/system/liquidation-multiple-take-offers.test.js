@@ -1,5 +1,6 @@
 const { expect } = require("chai")
 const { BigNumber } = ethers
+const hre = require("hardhat")
 const {
   to1e18,
   impersonateAccount,
@@ -14,7 +15,7 @@ const {
 } = require("./constants.js")
 const { initContracts } = require("./init-contracts")
 
-const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
+const Auction = hre.artifacts.readArtifactSync("Auction")
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 
