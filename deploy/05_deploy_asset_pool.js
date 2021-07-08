@@ -29,9 +29,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     RewardsPool
   )
 
-  log("The RewardsPool has been deployed in the same transacion as AssetPool.")
   log(
-    `The RewardsPool address is: ${rewardsPoolAddress} - saving the RewardsPool deployments info.`
+    `RewardsPool was deployed at ${rewardsPoolAddress} in the same transaction as AssetPool`
   )
 
   await save("RewardsPool", rewardsPoolDeploymentArtifact)
