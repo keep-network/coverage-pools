@@ -34,7 +34,7 @@ jobs:
           FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
         run: yarn test:system
 
-  contracts-deployment-test:
+  contracts-deployment-dry-run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
