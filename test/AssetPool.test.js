@@ -6,8 +6,6 @@ const {
   to1ePrecision,
 } = require("./helpers/contract-test-helpers")
 
-const RewardsPoolJSON = require("../artifacts/contracts/RewardsPool.sol/RewardsPool.json")
-
 describe("AssetPool", () => {
   let assetPool
   let coveragePool
@@ -57,9 +55,9 @@ describe("AssetPool", () => {
     await underwriterToken.transferOwnership(assetPool.address)
 
     rewardsPoolAddress = await assetPool.rewardsPool()
-    rewardsPool = new ethers.Contract(
+    rewardsPool = await ethers.getContractAt(
+      "RewardsPool",
       rewardsPoolAddress,
-      RewardsPoolJSON.abi,
       rewardManager
     )
 
