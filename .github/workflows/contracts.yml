@@ -18,9 +18,6 @@ jobs:
           node-version: "12.x"
           cache: "yarn"
 
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
-
       - name: Install dependencies
         run: yarn install
 
@@ -45,9 +42,6 @@ jobs:
           node-version: "12.x"
           cache: "yarn"
 
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
-
       - name: Install dependencies
         run: yarn install
 
@@ -63,9 +57,6 @@ jobs:
         with:
           node-version: "12.x"
           cache: "yarn"
-
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
 
       - name: Install dependencies
         run: yarn install
@@ -99,9 +90,6 @@ jobs:
         env:
           SLITHER_VERSION: 0.8.0
         run: pip3 install slither-analyzer==$SLITHER_VERSION
-
-      - name: Cache yarn directory
-        uses: c-hive/gha-yarn-cache@v1
 
       - name: Install dependencies
         run: yarn install
