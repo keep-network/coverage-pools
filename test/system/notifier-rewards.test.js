@@ -1,7 +1,9 @@
 const { expect } = require("chai")
 const { to1e18, increaseTime } = require("../helpers/contract-test-helpers")
+const hre = require("hardhat")
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
-const ITBTCDepositToken = require("../../artifacts/contracts/RiskManagerV1.sol/ITBTCDepositToken.json")
+
+const ITBTCDepositToken = hre.artifacts.readArtifactSync("ITBTCDepositToken")
 
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
