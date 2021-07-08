@@ -1,5 +1,5 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const { deploy, read, execute } = deployments
+  const { deploy, read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
   const AssetPool = await deployments.get("AssetPool")
 
