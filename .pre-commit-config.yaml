@@ -19,3 +19,8 @@ repos:
       files: '\.sol$'
       language: script
       description: "Checks Solidity code according to the package's linter configuration"
+    - id: prettier
+      name: "prettier"
+      entry: /usr/bin/env bash -c "npx prettier --check ."
+      language: script
+      description: "Checks code according to the package's formatting configuration"
