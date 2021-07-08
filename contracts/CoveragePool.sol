@@ -148,7 +148,7 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Lets the governance to begin an update of withdrawal timeout
-    ///         parmeter value. The withdrawal timeout is the time the
+    ///         parameter value. The withdrawal timeout is the time the
     ///         underwriter has - after the withdrawal delay passed - to
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
