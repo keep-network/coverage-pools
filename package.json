@@ -26,11 +26,14 @@
   "scripts": {
     "build": "hardhat compile",
     "deploy": "hardhat deploy",
+    "format": "npm run lint && prettier --check .",
+    "format:fix": "npm run lint:fix && prettier --write .",
     "lint": "npm run lint:js && npm run lint:sol",
+    "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
     "lint:fix:js": "eslint . --fix",
-    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix && prettier --write '**/*.sol'",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
     "lint:js": "eslint . ",
-    "lint:sol": "solhint 'contracts/**/*.sol' && prettier --check '**/*.sol'",
+    "lint:sol": "solhint 'contracts/**/*.sol'",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
     "test:unit:coverage": "hardhat coverage"
