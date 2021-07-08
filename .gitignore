@@ -1,6 +1,8 @@
 node_modules/
-artifacts/
+artifacts
+build/
 cache/
 typechain/
+deployments/
 coverage/
 coverage.json

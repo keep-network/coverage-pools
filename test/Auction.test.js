@@ -9,7 +9,6 @@ const {
   impersonateAccount,
 } = require("./helpers/contract-test-helpers")
 
-const AuctionJSON = require("../artifacts/contracts/Auction.sol/Auction.json")
 const { BigNumber } = ethers
 
 // amount of test tokens that an auction (aka spender) is allowed
@@ -637,7 +636,7 @@ describe("Auction", () => {
     const events = pastEvents(receipt, auctioneer, "AuctionCreated")
     const auctionAddress = events[0].args["auctionAddress"]
 
-    return new ethers.Contract(auctionAddress, AuctionJSON.abi, owner)
+    return await ethers.getContractAt("Auction", auctionAddress, owner)
   }
 
   async function approveTestTokenForAuction(auctionAddress) {

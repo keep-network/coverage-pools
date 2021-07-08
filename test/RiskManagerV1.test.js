@@ -1,5 +1,6 @@
 const chai = require("chai")
 const expect = chai.expect
+const hre = require("hardhat")
 const {
   to1e18,
   to1ePrecision,
@@ -9,8 +10,7 @@ const {
 } = require("./helpers/contract-test-helpers")
 
 const { deployMockContract } = require("@ethereum-waffle/mock-contract")
-const ITBTCDepositToken = require("../artifacts/contracts/RiskManagerV1.sol/ITBTCDepositToken.json")
-const Auction = require("../artifacts/contracts/Auction.sol/Auction.json")
+const ITBTCDepositToken = hre.artifacts.readArtifactSync("ITBTCDepositToken")
 
 const auctionLotSize = to1e18(1)
 const auctionLength = 86400 // 24h
@@ -397,7 +397,7 @@ describe("RiskManagerV1", () => {
         // Simulate that someone takes a partial offer on the auction.
         await tbtcToken.mint(bidder.address, auctionLotSize)
         await tbtcToken.connect(bidder).approve(auctionAddress, auctionLotSize)
-        auction = new ethers.Contract(auctionAddress, Auction.abi, owner)
+        auction = await ethers.getContractAt("Auction", auctionAddress, owner)
         await auction.connect(bidder).takeOffer(to1ePrecision(25, 16))
 
         // Simulate that deposit was liquidated by someone else.
