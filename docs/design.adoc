@@ -272,13 +272,12 @@ part of the asset pool ownership. The amount of token reward is set by the
 governance. The current amounts of rewards can be viewed using the following
 methods of the risk manager:
 
-* For `notifyLiquidation` rewards:
-** `liquidationNotifierReward`: determines the amount of COV tokens which is
-granted as reward for reporting about a deposit liquidation process.
-* For `notifyLiquidated` rewards:
-** `liquidatedNotifierReward`: determines the amount of COV tokens which is
-granted as reward for reporting about a deposit being liquidated outside of the
-coverage pool.
+* For `notifyLiquidation`, `liquidationNotifierReward` determines the fixed
+amount of COV tokens which is granted as reward for reporting about a deposit
+liquidation process.
+* For `notifyLiquidated`, `liquidatedNotifierReward` determines the fixed
+amount of COV tokens which is granted as reward for reporting about a deposit
+being liquidated outside of the coverage pool.
 
 == Upgradeability
 
