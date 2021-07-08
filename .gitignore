@@ -6,3 +6,4 @@ typechain/
 deployments/
 coverage/
 coverage.json
+.vscode/
