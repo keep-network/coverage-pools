@@ -1,8 +1,7 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const { deploy } = deployments
+  const { deploy, read, execute } = deployments
   const { deployer } = await getNamedAccounts()
   const AssetPool = await deployments.get("AssetPool")
-  const UnderwriterToken = await deployments.get("UnderwriterToken")
 
   const CoveragePool = await deploy("CoveragePool", {
     from: deployer,
@@ -10,14 +9,27 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log: true,
   })
 
-  const assetPool = await ethers.getContractAt("AssetPool", AssetPool.address)
-  const underwriterToken = await ethers.getContractAt(
-    "UnderwriterToken",
-    UnderwriterToken.address
-  )
+  if ((await read("AssetPool", "owner")) !== CoveragePool.address) {
+    log(`transferring ownership of AssetPool to ${CoveragePool.address}`)
 
-  await assetPool.transferOwnership(CoveragePool.address)
-  await underwriterToken.transferOwnership(AssetPool.address)
+    await execute(
+      "AssetPool",
+      { from: deployer },
+      "transferOwnership",
+      CoveragePool.address
+    )
+  }
+
+  if ((await read("UnderwriterToken", "owner")) !== AssetPool.address) {
+    log(`transferring ownership of UnderwriterToken to ${AssetPool.address}`)
+
+    await execute(
+      "UnderwriterToken",
+      { from: deployer },
+      "transferOwnership",
+      AssetPool.address
+    )
+  }
 }
 
 module.exports.tags = ["CoveragePool"]
