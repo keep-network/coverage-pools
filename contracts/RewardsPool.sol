@@ -15,7 +15,6 @@
 pragma solidity 0.8.4;
 
 import "./AssetPool.sol";
-import "./interfaces/IRewardsPool.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -27,7 +26,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///         AssetPool over time in one week reward intervals. The owner of this
 ///         contract is the reward distribution address funding it with reward
 ///         tokens.
-contract RewardsPool is Ownable, IRewardsPool {
+contract RewardsPool is Ownable {
     using SafeERC20 for IERC20;
 
     uint256 public constant DURATION = 7 days;
@@ -67,7 +66,7 @@ contract RewardsPool is Ownable, IRewardsPool {
     ///         unlocked, are added to the new interval being created.
     /// @dev This function can be called only by the owner given that it creates
     ///      a new interval with one week length, starting from now.
-    function topUpReward(uint256 reward) external override onlyOwner {
+    function topUpReward(uint256 reward) external onlyOwner {
         rewardAccumulated = earned();
 
         /* solhint-disable not-rely-on-time */

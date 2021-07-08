@@ -14,23 +14,31 @@
 
 pragma solidity 0.8.4;
 
-import "./interfaces/IRewardsPool.sol";
+import "./RewardsPool.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+// CoveragePoolBeneficiary has to comply with IBeneficiaryContract originated
+// from https://github.com/keep-network/keep-core/blob/main/solidity/contracts/PhasedEscrow.sol
 interface IBeneficiaryContract {
     function __escrowSentTokens(uint256 amount) external;
 }
 
+/// @title CoveragePoolBeneficiary
+/// @notice A beneficiary contract that can receive a withdrawal phase from a
+///         BatchedPhasedEscrow contract deployed at
+///         https://etherscan.io/address/0x1b8e50ec9fbf844c3671bc178df8eadfcff831ca
+///         It immediately transfers the received tokens on a designated
+///         RewardsPool contract.
 contract CoveragePoolBeneficiary is Ownable, IBeneficiaryContract {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable token;
-    IRewardsPool public immutable rewards;
+    RewardsPool public immutable rewards;
 
-    constructor(IERC20 _token, IRewardsPool _rewards) {
+    constructor(IERC20 _token, RewardsPool _rewards) {
         token = _token;
         rewards = _rewards;
     }
