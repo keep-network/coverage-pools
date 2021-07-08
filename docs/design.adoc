@@ -268,10 +268,10 @@ surplus value allows for it. For example:
 Each notifier reporting about deposit liquidation start (`notifyLiquidation`)
 or about a deposit being liquidated outside of the coverage pool
 (`notifyLiquidated`) can be rewarded with COV tokens. Those tokens represent a
-part of the asset pool ownership. Initially, the amount of token reward is zero,
-but the value can be updated by the governance (possibly multiple times).  The
-current amounts of rewards can be viewed using the following methods of the risk
-manager:
+part of the asset pool ownership. The amount of token reward is set by the
+governance. The current amounts of rewards can be viewed using the following
+methods of the risk manager:
+
 * For `notifyLiquidation` rewards:
 ** `liquidationNotifierRewardAmount`: determines the fixed amount of COV tokens
 which is granted as reward for reporting about a deposit liquidation process.
@@ -337,21 +337,7 @@ depositing ETH signer bonds purchased from tBTC to the asset pool.
 |Governance can set a fixed amount of COV tokens given as reward for reporting
 about a deposit liquidation start.
 
-|Deposit liquidation notifier reward percentage
-|12 hours
-|Governance can set a percentage of the total COV supply given as reward for
-reporting about a deposit liquidation start. If the fixed amount reward is
-set in the same time, this parameter is not taken into account.
-
 |Deposit liquidated notifier reward amount
 |12 hours
 |Governance can set a fixed amount of COV tokens given as reward for reporting
 about a deposit being liquidated outside of the coverage pool.
-
-|Deposit liquidated notifier reward percentage
-|12 hours
-|Governance can set a percentage of the total COV supply given as reward for
-reporting about a deposit being liquidated outside of the coverage pool. If the
-fixed amount reward is set in the same time, this parameter is not taken
-into account.
-|===
