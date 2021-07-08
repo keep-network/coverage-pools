@@ -15,6 +15,12 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   const rewardsPoolAddress = await read("AssetPool", "rewardsPool")
 
+  if (
+    ethers.utils.getAddress(rewardsPoolAddress) === ethers.constants.AddressZero
+  ) {
+    throw new Error(`RewardsPool address is a zero address`)
+  }
+
   // The`RewardsPool` contract is created in the `AssetPool` constructor so
   // we create an artifact for it.
   const receipt = AssetPool.receipt
