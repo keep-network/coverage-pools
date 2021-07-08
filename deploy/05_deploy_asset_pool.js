@@ -1,8 +1,10 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
   const { deploy, getArtifact, log, save } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
+
   const KeepToken = await deployments.get("KeepToken")
   const UnderwriterToken = await deployments.get("UnderwriterToken")
+
   const RewardsPool = await getArtifact("RewardsPool")
 
   const AssetPool = await deploy("AssetPool", {
@@ -15,11 +17,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const rewardsPoolAddress = await assetPool.rewardsPool()
 
   // The`RewardsPool` contract is created in the `AssetPool` constructor so
-  // it's created in the same transaction.
+  // we create an artifact for it.
   const receipt = AssetPool.receipt
-  receipt.contractAddress = rewardsPoolAddress
 
-  const rewardsPoolDeplymentArtifact = Object.assign(
+  const rewardsPoolDeploymentArtifact = Object.assign(
     {
       address: rewardsPoolAddress,
       receipt,
@@ -33,7 +34,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     `The RewardsPool address is: ${rewardsPoolAddress} - saving the RewardsPool deployments info.`
   )
 
-  await save("RewardsPool", rewardsPoolDeplymentArtifact)
+  await save("RewardsPool", rewardsPoolDeploymentArtifact)
 }
 
 module.exports.tags = ["AssetPool"]
