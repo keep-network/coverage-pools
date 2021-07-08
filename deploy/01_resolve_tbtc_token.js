@@ -8,7 +8,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     // Save as simple deployment just to make it accessible for next scripts.
     await save("TBTCToken", { address: tbtcTokenAddress })
-  } else if (hre.network.name !== "local") {
+  } else if (hre.network.name !== "hardhat") {
     throw new Error("The TBTCToken contract address is required!")
   } else {
     log(`using TBTCToken stub`)

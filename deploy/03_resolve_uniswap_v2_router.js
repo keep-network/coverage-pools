@@ -10,6 +10,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     // Save as simple deployment just to make it accessible for next scripts.
     await save("UniswapV2Router", { address: uniswapV2RouterAddress })
+  } else if (!hre.network.tags.local) {
+    throw new Error("The UniswapV2Router contract address is required!")
   } else {
     log(`using UniswapV2Router stub`)
 
