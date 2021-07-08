@@ -3,6 +3,7 @@
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
+    "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep#d6ec02e",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "chai": "^4.3.4",
@@ -14,6 +15,7 @@
     "hardhat-deploy": "^0.8.6",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.2.1",
+    "prettier-plugin-sh": "^0.6.1",
     "prettier-plugin-solidity": "^1.0.0-beta.2 ",
     "solhint": "^3.3.4",
     "solhint-config-keep": "github:keep-network/solhint-config-keep#0.1.0",
