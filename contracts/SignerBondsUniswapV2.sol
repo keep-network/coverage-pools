@@ -77,8 +77,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     address public immutable assetPool;
     address public immutable collateralToken;
 
-    // Currently approved operators that can swap signer bonds on Uniswap V2
-    mapping(address => bool) public approvedOperators;
+    mapping(address => bool) public approvedSwappers;
 
     // Determines the maximum allowed price impact for the swap transaction.
     // If transaction's price impact is higher, transaction will be reverted.
@@ -96,19 +95,15 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // If false, open auctions are not taken into account.
     bool public revertIfAuctionOpen = true;
 
-    event SignerBondsSwapOperatorApproved(address operator, uint256 timestamp);
-    event SignerBondsSwapOperatorUnapproved(
-        address operator,
-        uint256 timestamp
-    );
+    event SignerBondsSwapperApproved(address swapper);
+    event SignerBondsSwapperUnapproved(address swapper);
     event UniswapV2SwapExecuted(uint256[] amounts);
 
-    /// @notice Reverts if called by a signer bonds swap operator that is not
-    ///         approved
-    modifier onlyApprovedOperator() {
+    /// @notice Reverts if called by a signer bonds swapper that is not approved
+    modifier onlyApprovedSwapper() {
         require(
-            approvedOperators[msg.sender],
-            "Signer bonds swap operator not approved"
+            approvedSwappers[msg.sender],
+            "Signer bonds swapper not approved"
         );
         _;
     }
@@ -212,7 +207,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     function swapSignerBondsOnUniswapV2(
         IRiskManagerV1 riskManager,
         uint256 amount
-    ) external onlyApprovedOperator {
+    ) external onlyApprovedSwapper {
         require(amount > 0, "Amount must be greater than 0");
         require(
             amount <= address(riskManager).balance,
@@ -259,28 +254,23 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         emit UniswapV2SwapExecuted(amounts);
     }
 
-    /// @notice Approves the signer bonds swap operator. The change takes effect
+    /// @notice Approves the signer bonds swapper. The change takes effect
     ///         immediately.
     /// @dev Can be called only by the contract owner.
-    /// @param operator Operator that will be approved
-    function approveOperator(address operator) external onlyOwner {
-        /* solhint-disable-next-line not-rely-on-time */
-        emit SignerBondsSwapOperatorApproved(operator, block.timestamp);
-        approvedOperators[operator] = true;
+    /// @param swapper Swapper that will be approved
+    function approveSwapper(address swapper) external onlyOwner {
+        emit SignerBondsSwapperApproved(swapper);
+        approvedSwappers[swapper] = true;
     }
 
-    /// @notice Unapproves the signer bonds swap Operator. The change takes
-    ///         effect immediately.
+    /// @notice Unapproves the signer bonds swapper. The change takes effect
+    ///         immediately.
     /// @dev Can be called only by the contract owner.
-    /// @param operator Operator that will be unapproved
-    function unapproveOperator(address operator) external onlyOwner {
-        require(
-            approvedOperators[operator],
-            "Signer swap operator is not approved"
-        );
-        /* solhint-disable-next-line not-rely-on-time */
-        emit SignerBondsSwapOperatorUnapproved(operator, block.timestamp);
-        delete approvedOperators[operator];
+    /// @param swapper Swapper that will be unapproved
+    function unapproveSwapper(address swapper) external onlyOwner {
+        require(approvedSwappers[swapper], "Signer swapper is not approved");
+        emit SignerBondsSwapperUnapproved(swapper);
+        delete approvedSwappers[swapper];
     }
 
     /// @notice Checks the price impact of buying a given amount of tokens

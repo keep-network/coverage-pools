@@ -14,7 +14,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
   let assetPool
   let coveragePool
   let signerBondsUniswapV2
-  let signerBondsSwapOperator
+  let swapper
   let riskManagerV1
 
   before(async () => {
@@ -28,7 +28,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     assetPool = contracts.assetPool
     coveragePool = contracts.coveragePool
     signerBondsUniswapV2 = contracts.signerBondsSwapStrategy
-    signerBondsSwapOperator = contracts.thirdPartyAccount
+    swapper = contracts.thirdPartyAccount
     riskManagerV1 = contracts.riskManagerV1
 
     await underwriterToken
@@ -60,35 +60,16 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
         expect(balance).to.equal(ethers.utils.parseEther("20"))
       })
     })
-
-    describe("signer bonds uniswap v2", () => {
-      context("when swap operator is not approved", () => {
-        it("should revert", async () => {
-          await expect(
-            signerBondsUniswapV2
-              .connect(signerBondsSwapOperator)
-              .swapSignerBondsOnUniswapV2(
-                riskManagerV1.address,
-                ethers.utils.parseEther("10"),
-                {
-                  gasLimit: 210000,
-                }
-              )
-          ).to.be.revertedWith("Signer bonds swap operator not approved")
-        })
-      })
-    })
   })
 
   describe("when signer bonds are swapped on UniswapV2", () => {
     let tx
-
     before(async () => {
       await signerBondsUniswapV2
         .connect(governance)
-        .approveOperator(signerBondsSwapOperator.address)
+        .approveSwapper(swapper.address)
       tx = await signerBondsUniswapV2
-        .connect(signerBondsSwapOperator)
+        .connect(swapper)
         .swapSignerBondsOnUniswapV2(
           riskManagerV1.address,
           ethers.utils.parseEther("10"),
