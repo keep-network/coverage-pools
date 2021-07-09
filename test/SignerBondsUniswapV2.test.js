@@ -74,7 +74,7 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  describe("approveOperator", () => {
+  describe("approveSwapper", () => {
     context("when caller is not the governance", () => {
       it("should revert", async () => {
         await expect(
@@ -106,7 +106,7 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  describe("unapproveOperator", () => {
+  describe("unapproveSwapper", () => {
     context("when caller is not the governance", () => {
       it("should revert", async () => {
         await expect(
