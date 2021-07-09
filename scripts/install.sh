@@ -9,7 +9,7 @@ DONE_END='\n\n\e[0m'    # new line + reset
 COVERAGE_POOL_PATH=$(realpath $(dirname $0)/../)
 
 # Defaults, can be overwritten by env variables/input parameters
-NETWORK_DEFAULT="local"
+NETWORK_DEFAULT="development"
 KEEP_TOKEN_ADDRESS=${KEEP_TOKEN_ADDRESS:-""}
 TBTC_TOKEN_ADDRESS=${TBTC_TOKEN_ADDRESS:-""}
 TBTC_DEPOSIT_TOKEN_ADDRESS=${TBTC_DEPOSIT_TOKEN_ADDRESS:-""}
