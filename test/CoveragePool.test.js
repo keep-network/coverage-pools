@@ -374,34 +374,4 @@ describe("CoveragePool", () => {
       })
     })
   })
-
-  describe("covAmountToGrant", () => {
-    let supply
-
-    beforeEach(async () => {
-      supply = await underwriterToken.totalSupply()
-    })
-
-    context("when portion to grant is 0%", () => {
-      it("should return zero", async () => {
-        expect(await coveragePool.covAmountToGrant(0)).to.be.equal(0)
-      })
-    })
-
-    context("when portion to grant is between 0% and 100%", () => {
-      it("should return the right portion of total supply", async () => {
-        expect(
-          await coveragePool.covAmountToGrant(to1ePrecision(2, 16))
-        ).to.be.equal(supply.div(50))
-      })
-    })
-
-    context("when portion to grant is 100%", () => {
-      it("should return the total supply", async () => {
-        expect(await coveragePool.covAmountToGrant(to1e18(1))).to.be.equal(
-          supply
-        )
-      })
-    })
-  })
 })

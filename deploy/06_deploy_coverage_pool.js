@@ -9,7 +9,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log: true,
   })
 
-  if ((await read("AssetPool", "owner")) !== CoveragePool.address) {
+  if (
+    ethers.utils.getAddress(await read("AssetPool", "owner")) !==
+    ethers.utils.getAddress(CoveragePool.address)
+  ) {
     log(`transferring ownership of AssetPool to ${CoveragePool.address}`)
 
     await execute(
@@ -20,7 +23,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     )
   }
 
-  if ((await read("UnderwriterToken", "owner")) !== AssetPool.address) {
+  if (
+    ethers.utils.getAddress(await read("UnderwriterToken", "owner")) !==
+    ethers.utils.getAddress(AssetPool.address)
+  ) {
     log(`transferring ownership of UnderwriterToken to ${AssetPool.address}`)
 
     await execute(
