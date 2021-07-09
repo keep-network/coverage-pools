@@ -34,7 +34,6 @@ describeFn("System -- multiple partial fills", () => {
   const bondedAmount = BigNumber.from("290810391624000000000")
   // amount of collateral deposited to asset pool is 200k KEEP tokens
   const collateralAmount = to1e18(200000)
-  const minCovToMint = collateralAmount
 
   let tbtcToken
   let collateralToken
@@ -119,9 +118,7 @@ describeFn("System -- multiple partial fills", () => {
       await collateralToken
         .connect(underwriter)
         .approve(assetPool.address, collateralAmount)
-      await assetPool
-        .connect(underwriter)
-        .deposit(collateralAmount, minCovToMint)
+      await assetPool.connect(underwriter).deposit(collateralAmount)
 
       // Wait until the end of auction and take 40% of the deposit value with
       // bidder1 and 60% with bidder2

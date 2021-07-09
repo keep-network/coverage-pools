@@ -140,20 +140,50 @@ contract AssetPool is Ownable, IAssetPool {
             "Unsupported collateral token"
         );
         require(extraData.length == 32, "Unexpected data length");
-        uint256 minAmountToMint = abi.decode(extraData, (uint256));
 
-        _deposit(from, amount, minAmountToMint);
+        uint256 toMint = _calculateTokensToMint(amount);
+        uint256 minAmountToMint = abi.decode(extraData, (uint256));
+        require(
+            minAmountToMint <= toMint,
+            "Amount to mint is smaller than the required minimum"
+        );
+
+        _deposit(from, amount, toMint);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amountToDeposit, uint256 minAmountToMint)
+    /// @param amountToDeposit Collateral tokens amount that a user deposits to
+    ///                        the asset pool
+    function deposit(uint256 amountToDeposit) external override {
+        uint256 toMint = _calculateTokensToMint(amountToDeposit);
+
+        _deposit(msg.sender, amountToDeposit, toMint);
+    }
+
+    /// @notice Accepts the given amount of collateral token as a deposit and
+    ///         mints at least a minAmountToMint underwriter tokens representing
+    ///         pool's ownership.
+    /// @dev Before calling this function, collateral token needs to have the
+    ///      required amount accepted to transfer to the asset pool.
+    /// @param amountToDeposit Collateral tokens amount that a user deposits to
+    ///                        the asset pool
+    /// @param minAmountToMint Underwriter minimal tokens amount that a user
+    ///                        expects to receive in exchange for the deposited
+    ///                        collateral tokens
+    function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
         external
-        override
     {
-        _deposit(msg.sender, amountToDeposit, minAmountToMint);
+        uint256 toMint = _calculateTokensToMint(amountToDeposit);
+
+        require(
+            minAmountToMint <= toMint,
+            "Amount to mint is smaller than the required minimum"
+        );
+
+        _deposit(msg.sender, amountToDeposit, toMint);
     }
 
     /// @notice Initiates the withdrawal of collateral and rewards from the
@@ -469,31 +499,31 @@ contract AssetPool is Ownable, IAssetPool {
         return withdrawalDelay + withdrawalTimeout + 2 days;
     }
 
-    function _deposit(
-        address depositor,
-        uint256 amountToDeposit,
-        uint256 minAmountToMint
-    ) internal {
-        require(depositor != address(this), "Self-deposit not allowed");
-
+    /// @dev Calculates underwriter tokens to mint.
+    function _calculateTokensToMint(uint256 amountToDeposit)
+        internal
+        returns (uint256)
+    {
         rewardsPool.withdraw();
 
         uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
-        uint256 toMint;
         if (covSupply == 0) {
-            toMint = amountToDeposit;
-        } else {
-            toMint = (amountToDeposit * covSupply) / collateralBalance;
+            return amountToDeposit;
         }
 
-        require(
-            minAmountToMint <= toMint,
-            "Amount to mint is smaller than the required minimum"
-        );
+        return (amountToDeposit * covSupply) / collateralBalance;
+    }
 
-        underwriterToken.mint(depositor, toMint);
+    function _deposit(
+        address depositor,
+        uint256 amountToDeposit,
+        uint256 amountToMint
+    ) internal {
+        require(depositor != address(this), "Self-deposit not allowed");
+
+        underwriterToken.mint(depositor, amountToMint);
         collateralToken.safeTransferFrom(
             depositor,
             address(this),
