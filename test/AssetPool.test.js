@@ -366,6 +366,20 @@ describe("AssetPool", () => {
           ).to.be.revertedWith("Unexpected data length")
         })
       })
+
+      context("when minimal amount is smaller than tokens to be minted", () => {
+        it("should revert", async () => {
+          const data = abiCoder.encode(["uint256"], [amount.add(1)])
+
+          await expect(
+            collateralToken
+              .connect(underwriter1)
+              .approveAndCall(assetPool.address, amount, data)
+          ).to.be.revertedWith(
+            "Amount to mint is smaller than the required minimum"
+          )
+        })
+      })
     })
   })
 
