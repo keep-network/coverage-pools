@@ -7,10 +7,12 @@ const {
   ZERO_ADDRESS,
   increaseTime,
 } = require("../helpers/contract-test-helpers")
+const hre = require("hardhat")
+
+const Auction = hre.artifacts.readArtifactSync("Auction")
 const { underwriterAddress, bidderAddress1 } = require("./constants.js")
 const { initContracts, setBondAuctionThreshold } = require("./init-contracts")
 
-const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
 const describeFn =
   process.env.NODE_ENV === "system-test" ? describe : describe.skip
 

@@ -398,7 +398,7 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Lets the contract owner to begin an update of withdrawal timeout
-    ///         parmeter value. The withdrawal timeout is the time the
+    ///         parameter value. The withdrawal timeout is the time the
     ///         underwriter has - after the withdrawal delay passed - to
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
@@ -523,11 +523,9 @@ contract AssetPool is Ownable, IAssetPool {
     ) internal {
         require(depositor != address(this), "Self-deposit not allowed");
 
+        require(amountToMint > 0, "Minted tokens amount must be greater than 0");
+
         underwriterToken.mint(depositor, amountToMint);
-        collateralToken.safeTransferFrom(
-            depositor,
-            address(this),
-            amountToDeposit
-        );
+        collateralToken.safeTransferFrom(depositor, address(this), amountToDeposit);
     }
 }

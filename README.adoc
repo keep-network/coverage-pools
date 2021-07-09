@@ -64,7 +64,7 @@ might be for you.
 * For questions and support, join the #keep-protocol channel on
 https://discord.gg/4R6RGFf[Discord].
 
-== Build and test
+== Build, test and deploy
 
 Coverage pool contracts use https://hardhat.org/[*Hardhat*] development
 environment. To build and deploy these contracts, please follow the instructions
@@ -96,3 +96,60 @@ You can run them by doing:
 ```
 yarn test
 ```
+
+=== Deploy contracts
+
+To deploy all contracts on the given network, please run:
+```
+yarn deploy --network <network>
+```
+
+If contracts haven't been built yet or changes occurred, this task will build
+the contracts before running the deployment script. Once the deployment
+terminates, a new `deployments` directory containing all deployment info will be
+created. It can be directly used by dApps or other client code as it contains
+deployment details like chain ID, transaction hash, ABI or address for each
+contract.
+
+==== Export mode
+
+There is also a possibility to run the deployment with export mode enabled:
+```
+yarn deploy --network <network> --export ./export.json
+```
+which produces a handy summary file containing deployment info for all
+contracts in one place. However, it doesn't contain the deployment transaction
+hash making it inappropriate for some use cases relying on this field.
+
+==== External dependencies
+
+The deployment script deals with external contract dependencies using
+environment variables. In case an address is not provided, the script deploys
+a stub contract. This makes the deployment easier as the script doesn't
+depend on any external packages and allows to obtain external addresses in
+the most suitable way. On the other hand, using stubs as defaults make the
+local development easier as there is no need to orchestrate all
+external dependencies. Specific env variables are:
+
+- `KEEP_TOKEN_ADDRESS`: Determines the address of KEEP token contract
+- `TBTC_TOKEN_ADDRESS`: Determines the address of TBTC token contract
+- `TBTC_DEPOSIT_TOKEN_ADDRESS`: Determines the address of TDT token contract
+- `UNISWAP_ROUTER_V2_ADDRESS`: Determines the address of Uniswap v2 router
+- `INITIAL_SWAP_STRATEGY`: Allows setting the initial swap strategy which will
+  be used by the risk manager. This should be the name of one of the
+  `ISignerBondsSwapStrategy` implementations.
+
+==== Deployment scripts structure and tags
+
+The deployment script is divided into multiple sub-scripts placed in the
+`deploy` directory. It uses the
+https://github.com/wighawag/hardhat-deploy#deploy-scripts-tags-and-dependencies[tags and dependencies]
+system provided by the `hardhat-deploy` plugin. Such a structure allows to
+run arbitrary parts of the entire deployment by using the tag mechanism. For
+example, to deploy only the `AssetPool` contract (with their dependencies),
+a following command can be used:
+```
+yarn deploy --network localhost --tags AssetPool
+```
+Multiple deployment sub-scripts also improves the readability and allows
+specifying dependencies between components in an explicit way.
