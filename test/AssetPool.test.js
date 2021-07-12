@@ -255,7 +255,7 @@ describe("AssetPool", () => {
         const depositedUnderwriter1 = to1e18(100)
         const minCovToMint1 = depositedUnderwriter1 + 1
 
-        it("revert", async () => {
+        it("should revert", async () => {
           await expect(
             assetPool
               .connect(underwriter1)
@@ -271,9 +271,12 @@ describe("AssetPool", () => {
       "when amount to be minted is the same as the minimal required",
       () => {
         const depositedUnderwriter1 = to1e18(100)
+        const minCovToMint1 = depositedUnderwriter1
 
         beforeEach(async () => {
-          await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
+          await assetPool
+            .connect(underwriter1)
+            .depositWithMin(depositedUnderwriter1, minCovToMint1)
         })
 
         it("should transfer deposited amount to the pool", async () => {
@@ -330,7 +333,7 @@ describe("AssetPool", () => {
       const amount = to1e18(100)
       const abiCoder = ethers.utils.defaultAbiCoder
 
-      context("when passed correct parameters", () => {
+      context("when passed minimum amount to mint uint256 in extradata", () => {
         beforeEach(async () => {
           const data = abiCoder.encode(["uint256"], [amount])
 
@@ -355,7 +358,30 @@ describe("AssetPool", () => {
         })
       })
 
-      context("when passed incorrect parameters", () => {
+      context("when extra data param is empty", () => {
+        beforeEach(async () => {
+          await collateralToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, [])
+        })
+
+        it("should mint underwriter tokens to the caller", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amount)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            amount
+          )
+          expect(
+            await collateralToken.balanceOf(underwriter1.address)
+          ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+        })
+      })
+
+      context("when passed corrupted extradata parameter", () => {
         it("should revert", async () => {
           const data = abiCoder.encode(["uint256", "uint256"], [amount, amount])
 

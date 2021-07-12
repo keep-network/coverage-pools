@@ -139,14 +139,16 @@ contract AssetPool is Ownable, IAssetPool {
             token == address(collateralToken),
             "Unsupported collateral token"
         );
-        require(extraData.length == 32, "Unexpected data length");
 
         uint256 toMint = _calculateTokensToMint(amount);
-        uint256 minAmountToMint = abi.decode(extraData, (uint256));
-        require(
-            minAmountToMint <= toMint,
-            "Amount to mint is smaller than the required minimum"
-        );
+        if (extraData.length != 0) {
+            require(extraData.length == 32, "Unexpected data length");
+            uint256 minAmountToMint = abi.decode(extraData, (uint256));
+            require(
+                minAmountToMint <= toMint,
+                "Amount to mint is smaller than the required minimum"
+            );
+        }
 
         _deposit(from, amount, toMint);
     }
