@@ -8,19 +8,19 @@ const describeFn =
 
 describeFn("System -- swap signer bonds on UniswapV2", () => {
   const startingBlock = 12521265
+  let governance
   let collateralToken
   let underwriterToken
   let assetPool
   let coveragePool
   let signerBondsUniswapV2
+  let swapper
   let riskManagerV1
-
-  let thirdParty
 
   before(async () => {
     await resetFork(startingBlock)
 
-    const governance = await ethers.getSigner(0)
+    governance = await ethers.getSigner(0)
 
     const contracts = await initContracts("SignerBondsUniswapV2")
     collateralToken = contracts.collateralToken
@@ -28,7 +28,7 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
     assetPool = contracts.assetPool
     coveragePool = contracts.coveragePool
     signerBondsUniswapV2 = contracts.signerBondsSwapStrategy
-    thirdParty = contracts.thirdPartyAccount
+    swapper = contracts.thirdPartyAccount
     riskManagerV1 = contracts.riskManagerV1
 
     await underwriterToken
@@ -64,10 +64,12 @@ describeFn("System -- swap signer bonds on UniswapV2", () => {
 
   describe("when signer bonds are swapped on UniswapV2", () => {
     let tx
-
     before(async () => {
+      await signerBondsUniswapV2
+        .connect(governance)
+        .approveSwapper(swapper.address)
       tx = await signerBondsUniswapV2
-        .connect(thirdParty)
+        .connect(swapper)
         .swapSignerBondsOnUniswapV2(
           riskManagerV1.address,
           ethers.utils.parseEther("10"),
