@@ -117,7 +117,7 @@ address for each contract.
 ===== Export mode
 
 Apart from deployments saved in the `deployments/` folder the details will be also
-stored in a lightweight file `export.json`. Which contains a handy summary of the
+stored in a lightweight file `export.json`, which contains a handy summary of the
 deployment info for all contracts in one place. However, it doesn't contain the
 deployment transaction hash making it inappropriate for some use cases relying on
 this field.
