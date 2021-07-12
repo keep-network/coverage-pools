@@ -523,9 +523,16 @@ contract AssetPool is Ownable, IAssetPool {
     ) internal {
         require(depositor != address(this), "Self-deposit not allowed");
 
-        require(amountToMint > 0, "Minted tokens amount must be greater than 0");
+        require(
+            amountToMint > 0,
+            "Minted tokens amount must be greater than 0"
+        );
 
         underwriterToken.mint(depositor, amountToMint);
-        collateralToken.safeTransferFrom(depositor, address(this), amountToDeposit);
+        collateralToken.safeTransferFrom(
+            depositor,
+            address(this),
+            amountToDeposit
+        );
     }
 }
