@@ -3,11 +3,10 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-
-  const { getOrNull, deploy, log } = deployments
+  const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const KeepToken = await getOrNull("KeepToken")
+  const KeepToken = await deployments.getOrNull("KeepToken")
 
   if (KeepToken) {
     log(`using external KeepToken at ${KeepToken.address}`)
@@ -16,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   } else {
     log(`deploying KeepToken stub`)
 
-    await deploy("KeepToken", {
+    await deployments.deploy("KeepToken", {
       contract: "TestToken",
       from: deployer,
       log: true,

@@ -3,11 +3,10 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-
-  const { getOrNull, deploy, log } = deployments
+  const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const UniswapV2Router = await getOrNull("UniswapV2Router")
+  const UniswapV2Router = await deployments.getOrNull("UniswapV2Router")
 
   if (UniswapV2Router) {
     log(`using external UniswapV2Router at ${UniswapV2Router.address}`)
@@ -18,7 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     // artifact is not found.
     log(`deploying UniswapV2Router stub`)
 
-    await deploy("UniswapV2Router", {
+    await deployments.deploy("UniswapV2Router", {
       contract: "UniswapV2RouterStub",
       from: deployer,
       log: true,

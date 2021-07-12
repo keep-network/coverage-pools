@@ -3,11 +3,10 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-
-  const { getOrNull, deploy, log } = deployments
+  const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const TBTCDepositToken = await getOrNull("TBTCDepositToken")
+  const TBTCDepositToken = await deployments.getOrNull("TBTCDepositToken")
 
   if (TBTCDepositToken) {
     log(`using external TBTCDepositToken at ${TBTCDepositToken.address}`)
@@ -16,7 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   } else {
     log(`deploying TBTCDepositToken stub`)
 
-    await deploy("TBTCDepositToken", {
+    await deployments.deploy("TBTCDepositToken", {
       contract: "TBTCDepositTokenStub",
       from: deployer,
       log: true,

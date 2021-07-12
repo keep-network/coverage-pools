@@ -3,12 +3,12 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, ethers } = hre
-
-  const { deploy, read, execute, log } = deployments
+  const { read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
+  
   const AssetPool = await deployments.get("AssetPool")
 
-  const CoveragePool = await deploy("CoveragePool", {
+  const CoveragePool = await deployments.deploy("CoveragePool", {
     from: deployer,
     args: [AssetPool.address],
     log: true,

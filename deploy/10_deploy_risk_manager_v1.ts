@@ -3,9 +3,9 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-
-  const { deploy, log } = deployments
+  const { log } = deployments
   const { deployer } = await getNamedAccounts()
+
   const TBTCToken = await deployments.get("TBTCToken")
   const TBTCDepositToken = await deployments.get("TBTCDepositToken")
   const CoveragePool = await deployments.get("CoveragePool")
@@ -28,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error(`signer bond strategy not found: ${initialSwapStrategy}`)
   }
 
-  await deploy("RiskManagerV1", {
+  await deployments.deploy("RiskManagerV1", {
     from: deployer,
     args: [
       TBTCToken.address,
