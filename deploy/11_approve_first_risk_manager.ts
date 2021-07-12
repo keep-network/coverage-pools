@@ -1,4 +1,9 @@
-module.exports = async function ({ getNamedAccounts, deployments }) {
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { getNamedAccounts, deployments } = hre
+
   const { read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
   const RiskManagerV1 = await deployments.get("RiskManagerV1")
@@ -23,5 +28,7 @@ module.exports = async function ({ getNamedAccounts, deployments }) {
   }
 }
 
-module.exports.tags = ["RiskManagerV1"]
-module.exports.runAtTheEnd = true
+export default func
+
+func.tags = ["RiskManagerV1"]
+func.runAtTheEnd = true

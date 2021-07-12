@@ -1,4 +1,9 @@
-module.exports = async ({ getNamedAccounts, deployments }) => {
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { getNamedAccounts, deployments, ethers } = hre
+
   const { deploy, read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
   const AssetPool = await deployments.get("AssetPool")
@@ -38,5 +43,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   }
 }
 
-module.exports.tags = ["CoveragePool"]
-module.exports.dependencies = ["AssetPool"]
+export default func
+
+func.tags = ["CoveragePool"]
+func.dependencies = ["AssetPool"]

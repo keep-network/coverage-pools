@@ -1,9 +1,12 @@
-require("@nomiclabs/hardhat-waffle")
-require("hardhat-gas-reporter")
-require("hardhat-deploy")
-require("solidity-coverage")
+import { HardhatUserConfig } from "hardhat/config"
 
-module.exports = {
+import "@nomiclabs/hardhat-waffle"
+import "@nomiclabs/hardhat-ethers"
+import "hardhat-gas-reporter"
+import "hardhat-deploy"
+import "solidity-coverage"
+
+const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
@@ -22,8 +25,9 @@ module.exports = {
         // URL should point to a node with archival data (Alchemy recommended)
         url: process.env.FORKING_URL || "",
         // latest block is taken if FORKING_BLOCK env is not provided
-        blockNumber:
-          process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
+        blockNumber: process.env.FORKING_BLOCK
+          ? parseInt(process.env.FORKING_BLOCK)
+          : undefined,
       },
       tags: ["local"],
     },
@@ -67,3 +71,5 @@ module.exports = {
     timeout: 30000,
   },
 }
+
+export default config

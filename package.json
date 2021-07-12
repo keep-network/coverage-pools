@@ -28,6 +28,9 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@types/chai": "^4.2.20",
+    "@types/mocha": "^8.2.3",
+    "@types/node": "^16.0.1",
     "chai": "^4.3.4",
     "eslint": "^6.8.0",
     "eslint-config-keep": "github:keep-network/eslint-config-keep#0.3.0",
@@ -41,6 +44,7 @@
     "solhint": "^3.3.4",
     "solhint-config-keep": "github:keep-network/solhint-config-keep#0.1.0",
     "solidity-coverage": "^0.7.16",
-    "typescript": "^3.7.0"
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.5"
   }
 }

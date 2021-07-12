@@ -1,4 +1,9 @@
-module.exports = async ({ getNamedAccounts, deployments }) => {
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { getNamedAccounts, deployments } = hre
+
   const { deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
   const TBTCToken = await deployments.get("TBTCToken")
@@ -15,14 +20,21 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
   log(`using ${initialSwapStrategy} as initial risk manager's swap strategy`)
 
+  const signerBondStrategy = { SignerBondsManualSwap, SignerBondsUniswapV2 }[
+    initialSwapStrategy
+  ]
+
+  if (!signerBondStrategy) {
+    throw new Error(`signer bond strategy not found: ${initialSwapStrategy}`)
+  }
+
   await deploy("RiskManagerV1", {
     from: deployer,
     args: [
       TBTCToken.address,
       TBTCDepositToken.address,
       CoveragePool.address,
-      { SignerBondsManualSwap, SignerBondsUniswapV2 }[initialSwapStrategy]
-        .address,
+      signerBondStrategy.address,
       MasterAuction.address,
       auctionLength,
       bondAuctionThreshold,
@@ -31,8 +43,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   })
 }
 
-module.exports.tags = ["RiskManagerV1"]
-module.exports.dependencies = [
+export default func
+
+func.tags = ["RiskManagerV1"]
+func.dependencies = [
   "TBTCToken",
   "TBTCDepositToken",
   "CoveragePool",
