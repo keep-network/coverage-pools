@@ -39,10 +39,9 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts "n:mh" opt; do
+while getopts "n:h" opt; do
   case "$opt" in
   n) network="$OPTARG" ;;
-  m) contracts_only=true ;;
   h) help ;;
   ?) help ;; # Print help in case parameter is non-existent
   esac
