@@ -268,7 +268,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param swapper Swapper that will be unapproved
     function unapproveSwapper(address swapper) external onlyOwner {
-        require(approvedSwappers[swapper], "Signer swapper is not approved");
+        require(
+            approvedSwappers[swapper],
+            "Signer bonds swapper is not approved"
+        );
         emit SignerBondsSwapperUnapproved(swapper);
         delete approvedSwappers[swapper];
     }
