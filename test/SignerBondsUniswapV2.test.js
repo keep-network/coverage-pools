@@ -87,7 +87,7 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
-    context("when max allowed price impact too big", () => {
+    context("when max allowed price impact too high", () => {
       it("should revert", async () => {
         await expect(
           signerBondsUniswapV2
@@ -137,7 +137,7 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
-    context("when slippage tolerance too big", () => {
+    context("when slippage tolerance too high", () => {
       it("should revert", async () => {
         await expect(
           signerBondsUniswapV2
@@ -220,7 +220,7 @@ describe("SignerBondsUniswapV2", () => {
     })
 
     context(
-      "when governance did not set default value for revert if auction open",
+      "when governance did not set default value for the revert if auction open flag",
       () => {
         const defaultRevertIfAuctionOpen = true
         it("should return the default value", async () => {
@@ -231,7 +231,7 @@ describe("SignerBondsUniswapV2", () => {
       }
     )
 
-    context("when governance  set revert if auction open", () => {
+    context("when governance sets revert flag on opened auction", () => {
       const revertIfAuctionOpen = false
       beforeEach(async () => {
         expect(
@@ -241,7 +241,7 @@ describe("SignerBondsUniswapV2", () => {
         )
       })
 
-      it("should set revert if auction open", async () => {
+      it("should set the revert flag to false", async () => {
         expect(await signerBondsUniswapV2.revertIfAuctionOpen()).to.be.equal(
           revertIfAuctionOpen
         )
