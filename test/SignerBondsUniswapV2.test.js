@@ -74,6 +74,17 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
+  describe("maxAllowedPriceImpact", () => {
+    context("when governance did not set max allowed price impact", () => {
+      const defaultPriceImpact = 100
+      it("should return the default value", async () => {
+        expect(await signerBondsUniswapV2.maxAllowedPriceImpact()).to.be.equal(
+          defaultPriceImpact
+        )
+      })
+    })
+  })
+
   describe("setMaxAllowedPriceImpact", () => {
     const maxAllowedPriceImpact = 10000
 
@@ -97,15 +108,6 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
-    context("when governance did not set max allowed price impact", () => {
-      const defaultPriceImpact = 100
-      it("should return the default value", async () => {
-        expect(await signerBondsUniswapV2.maxAllowedPriceImpact()).to.be.equal(
-          defaultPriceImpact
-        )
-      })
-    })
-
     context("when max allowed price impact is in correct range", () => {
       const priceImpact = 500
       beforeEach(async () => {
@@ -119,6 +121,17 @@ describe("SignerBondsUniswapV2", () => {
       it("should set max allowed price impact", async () => {
         expect(await signerBondsUniswapV2.maxAllowedPriceImpact()).to.be.equal(
           priceImpact
+        )
+      })
+    })
+  })
+
+  describe("slippageTolerance", () => {
+    context("when governance did not set slippage tolerance", () => {
+      const defaultSlippageTolerance = 50
+      it("should return the default value", async () => {
+        expect(await signerBondsUniswapV2.slippageTolerance()).to.be.equal(
+          defaultSlippageTolerance
         )
       })
     })
@@ -147,15 +160,6 @@ describe("SignerBondsUniswapV2", () => {
       })
     })
 
-    context("when governance did not set slippage tolerance", () => {
-      const defaultSlippageTolerance = 50
-      it("should return the default value", async () => {
-        expect(await signerBondsUniswapV2.slippageTolerance()).to.be.equal(
-          defaultSlippageTolerance
-        )
-      })
-    })
-
     context("when slippage tolerance is in correct range", () => {
       const priceImpact = 500
       beforeEach(async () => {
@@ -174,21 +178,23 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  describe("setSwapDeadline", () => {
-    context("when caller is not the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          signerBondsUniswapV2.connect(thirdParty).setSwapDeadline(10 * 60) // 10 min
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
+  describe("swapDeadline", () => {
     context("when governance did not set default swap deadline", () => {
       const defaultSwapDeadline = 20 * 60 // 20 min
       it("should return the default value", async () => {
         expect(await signerBondsUniswapV2.swapDeadline()).to.be.equal(
           defaultSwapDeadline
         )
+      })
+    })
+  })
+
+  describe("setSwapDeadline", () => {
+    context("when caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(thirdParty).setSwapDeadline(10 * 60) // 10 min
+        ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
 
@@ -210,17 +216,9 @@ describe("SignerBondsUniswapV2", () => {
     })
   })
 
-  describe("setRevertIfAuctionOpen", () => {
-    context("when caller is not the governance", () => {
-      it("should revert", async () => {
-        await expect(
-          signerBondsUniswapV2.connect(thirdParty).setRevertIfAuctionOpen(false)
-        ).to.be.revertedWith("Ownable: caller is not the owner")
-      })
-    })
-
+  describe("revertIfAuctionOpen", () => {
     context(
-      "when governance did not set default value for the revert if auction open flag",
+      "when governance did not set value for the revert if auction open flag",
       () => {
         const defaultRevertIfAuctionOpen = true
         it("should return the default value", async () => {
@@ -230,6 +228,16 @@ describe("SignerBondsUniswapV2", () => {
         })
       }
     )
+  })
+
+  describe("setRevertIfAuctionOpen", () => {
+    context("when caller is not the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          signerBondsUniswapV2.connect(thirdParty).setRevertIfAuctionOpen(false)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
 
     context("when governance sets revert flag on opened auction", () => {
       const revertIfAuctionOpen = false
