@@ -60,7 +60,7 @@ describe("CoveragePoolBeneficiary", () => {
     })
 
     context("when a caller is the owner", () => {
-      it("should emit topUpReward event", async () => {
+      it("should top up reward pool", async () => {
         const tx = await coveragePoolBeneficiary
           .connect(owner)
           .__escrowSentTokens(transferAmount)
