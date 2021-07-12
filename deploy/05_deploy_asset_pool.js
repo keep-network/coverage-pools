@@ -1,5 +1,5 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const { deploy, getArtifact, log, save } = deployments
+  const { deploy, getArtifact, read, log, save } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
   const KeepToken = await deployments.get("KeepToken")
@@ -13,8 +13,13 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log: true,
   })
 
-  const assetPool = await ethers.getContractAt("AssetPool", AssetPool.address)
-  const rewardsPoolAddress = await assetPool.rewardsPool()
+  const rewardsPoolAddress = await read("AssetPool", "rewardsPool")
+
+  if (
+    ethers.utils.getAddress(rewardsPoolAddress) === ethers.constants.AddressZero
+  ) {
+    throw new Error(`RewardsPool address is a zero address`)
+  }
 
   // The`RewardsPool` contract is created in the `AssetPool` constructor so
   // we create an artifact for it.

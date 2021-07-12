@@ -273,7 +273,7 @@ describe("SignerBondsUniswapV2", () => {
           .be.true
       })
 
-      it("should emit RiskManagerUnapproved event", async () => {
+      it("should emit SignerBondsSwapperApproved event", async () => {
         await expect(tx)
           .to.emit(signerBondsUniswapV2, "SignerBondsSwapperApproved")
           .withArgs(swapper.address)
@@ -298,7 +298,7 @@ describe("SignerBondsUniswapV2", () => {
           signerBondsUniswapV2
             .connect(governance)
             .unapproveSwapper(swapper.address)
-        ).to.be.revertedWith("Signer swapper is not approved")
+        ).to.be.revertedWith("Signer bonds swapper is not approved")
       })
     })
 
@@ -319,7 +319,7 @@ describe("SignerBondsUniswapV2", () => {
           .be.false
       })
 
-      it("should emit RiskManagerUnapproved event", async () => {
+      it("should emit SignerBondsSwapperUnapproved event", async () => {
         await expect(tx)
           .to.emit(signerBondsUniswapV2, "SignerBondsSwapperUnapproved")
           .withArgs(swapper.address)
@@ -332,7 +332,7 @@ describe("SignerBondsUniswapV2", () => {
       it("should revert", async () => {
         await expect(
           signerBondsUniswapV2
-            .connect(swapper)
+            .connect(thirdParty)
             .swapSignerBondsOnUniswapV2(riskManagerV1.address, 123)
         ).to.be.revertedWith("Signer bonds swapper not approved")
       })
