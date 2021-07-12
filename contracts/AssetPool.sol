@@ -282,8 +282,8 @@ contract AssetPool is Ownable, IAssetPool {
 
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
-        uint256 collateralToTransfer =
-            (covAmount * collateralBalance) / covSupply;
+        uint256 collateralToTransfer = (covAmount * collateralBalance) /
+            covSupply;
 
         collateralToken.safeApprove(
             address(newAssetPool),
