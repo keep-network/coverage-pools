@@ -157,7 +157,7 @@ describe("SignerBondsUniswapV2", () => {
       it("should revert", async () => {
         await expect(
           signerBondsUniswapV2
-            .connect(swapper)
+            .connect(thirdParty)
             .swapSignerBondsOnUniswapV2(riskManagerV1.address, 123)
         ).to.be.revertedWith("Signer bonds swapper not approved")
       })
