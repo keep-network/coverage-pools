@@ -86,15 +86,15 @@ jobs:
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
           query: |
-            keep-core-solidity-version = github.com/keep-network/keep-core/solidity#version
-            tbtc-solidity-version = github.com/keep-network/tbtc/solidity#version
+            keep-core-contracts-version = github.com/keep-network/keep-core/solidity#version
+            tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
 
       - name: Resolve latest contracts
         if: github.event_name == 'workflow_dispatch'
         run: |
             yarn add \
-              @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-solidity-version }} \
-              @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-solidity-version }}
+              @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
+              @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
       - name: Deploy contracts # Do we need to pass any `env`s?
         run: yarn deploy --network ${{ env.TRUFFLE_NETWORK }}
