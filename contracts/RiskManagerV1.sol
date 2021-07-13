@@ -332,7 +332,8 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     }
 
     /// @notice Begins the bond auction threshold update process.
-    /// @dev Can be called only by the contract owner.
+    /// @dev Can be called only by the contract owner. The value of the
+    ///      threshold should not be greater than 100.
     /// @param _newBondAuctionThreshold New bond auction threshold in percent
     function beginBondAuctionThresholdUpdate(uint256 _newBondAuctionThreshold)
         external
@@ -366,6 +367,8 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     /// @dev Can be called only by the contract owner. The auction length should
     ///      be adjusted very carefully. Total value locked of the coverage pool
     ///      and minimum possible auction amount need to be taken into account.
+    ///      It is up to the governance to decide what the auction length should
+    ///      be.
     /// @param _newAuctionLength New auction length in seconds
     function beginAuctionLengthUpdate(uint256 _newAuctionLength)
         external
@@ -393,7 +396,8 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     }
 
     /// @notice Begins the liquidation notifier reward update process.
-    /// @dev Can be called only by the contract owner.
+    /// @dev Can be called only by the contract owner. It is up to the contract
+    ///      owner to decide what the reward value should be.
     /// @param _newLiquidationNotifierReward New liquidation notifier reward
     function beginLiquidationNotifierRewardUpdate(
         uint256 _newLiquidationNotifierReward
@@ -427,7 +431,8 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     }
 
     /// @notice Begins the liquidated notifier reward update process.
-    /// @dev Can be called only by the contract owner.
+    /// @dev Can be called only by the contract owner. It is up to the contract
+    ///      owner to decide what the reward value should be.
     /// @param _newLiquidatedNotifierReward New liquidated notifier reward
     function beginLiquidatedNotifierRewardUpdate(
         uint256 _newLiquidatedNotifierReward

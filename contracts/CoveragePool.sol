@@ -130,7 +130,8 @@ contract CoveragePool is Ownable {
     ///         pool. This is the time that needs to pass between initiating and
     ///         completing the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalDelayUpdate after the required
-    ///         governance delay passes.
+    ///         governance delay passes. It is up to the governance to decide
+    ///         what the withdrawal delay value should be.
     /// @param newWithdrawalDelay The new value of withdrawal delay
     function beginWithdrawalDelayUpdate(uint256 newWithdrawalDelay)
         external
@@ -152,7 +153,8 @@ contract CoveragePool is Ownable {
     ///         underwriter has - after the withdrawal delay passed - to
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
-    ///         governance delay passes.
+    ///         governance delay passes. It is up to the governance to decide
+    ///         what the withdrawal timeout value should be.
     /// @param  newWithdrawalTimeout The new value of the withdrawal timeout
     function beginWithdrawalTimeoutUpdate(uint256 newWithdrawalTimeout)
         external
