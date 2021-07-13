@@ -142,21 +142,22 @@ contract Auction is IAuction {
             amountToTransfer
         );
 
-        uint256 portionToSeize =
-            (amountOnOffer * amountToTransfer) / self.amountOutstanding;
+        uint256 portionToSeize = (amountOnOffer * amountToTransfer) /
+            self.amountOutstanding;
 
         if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             // Time passed since the auction start or the last takeOffer call
             // with a partial fill.
-            uint256 timePassed =
-                /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp - self.startTime - self.startTimeOffset;
+
+
+                uint256 timePassed /* solhint-disable-next-line not-rely-on-time */
+             = block.timestamp - self.startTime - self.startTimeOffset;
 
             // Ratio of the auction's amount included in this takeOffer call to
             // the whole outstanding auction amount.
-            uint256 ratioAmountPaid =
-                (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
-                    amountToTransfer) / self.amountOutstanding;
+            uint256 ratioAmountPaid = (CoveragePoolConstants
+            .FLOATING_POINT_DIVISOR * amountToTransfer) /
+                self.amountOutstanding;
             // We will shift the start time offset and increase the velocity pool
             // depleting rate proportionally to the fraction of the outstanding
             // amount paid in this function call so that the auction can offer
@@ -230,8 +231,9 @@ contract Auction is IAuction {
     ///      after an auction has closed.
     function harikari() internal {
         require(!isMasterContract, "Master contract can not harikari");
-        address payable addr =
-            payable(address(uint160(address(self.auctioneer))));
+        address payable addr = payable(
+            address(uint160(address(self.auctioneer)))
+        );
         delete self;
         selfdestruct(addr);
     }

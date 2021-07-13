@@ -1,5 +1,7 @@
 require("@nomiclabs/hardhat-waffle")
 require("hardhat-gas-reporter")
+require("hardhat-deploy")
+require("solidity-coverage")
 
 module.exports = {
   solidity: {
@@ -9,7 +11,9 @@ module.exports = {
       },
     ],
   },
-
+  paths: {
+    artifacts: "./build",
+  },
   networks: {
     hardhat: {
       forking: {
@@ -21,6 +25,44 @@ module.exports = {
         blockNumber:
           process.env.FORKING_BLOCK && parseInt(process.env.FORKING_BLOCK),
       },
+      tags: ["local"],
+    },
+    development: {
+      url: "http://localhost:8545",
+      tags: ["local"],
+    },
+  },
+  external: {
+    contracts: [
+      {
+        artifacts: "node_modules/@keep-network/keep-core/artifacts",
+        // Example if we want to use deployment scripts from external package:
+        // deploy: "node_modules/@keep-network/keep-core/deploy",
+      },
+      {
+        artifacts: "node_modules/@keep-network/tbtc/artifacts",
+      },
+    ],
+    deployments: {
+      // For development environment we expect the local dependencies to be linked
+      // with `yarn link` command.
+      development: [
+        "node_modules/@keep-network/keep-core/artifacts",
+        "node_modules/@keep-network/tbtc/artifacts",
+      ],
+      ropsten: [
+        "node_modules/@keep-network/keep-core/artifacts",
+        "node_modules/@keep-network/tbtc/artifacts",
+        "./external/ropsten",
+      ],
+    },
+  },
+  namedAccounts: {
+    deployer: {
+      default: 0, // take the first account as deployer
+    },
+    rewardManager: {
+      default: 1,
     },
   },
   mocha: {

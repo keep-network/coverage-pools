@@ -6,8 +6,6 @@ const {
   to1ePrecision,
 } = require("./helpers/contract-test-helpers")
 
-const RewardsPoolJSON = require("../artifacts/contracts/RewardsPool.sol/RewardsPool.json")
-
 describe("AssetPool", () => {
   let assetPool
   let coveragePool
@@ -57,9 +55,9 @@ describe("AssetPool", () => {
     await underwriterToken.transferOwnership(assetPool.address)
 
     rewardsPoolAddress = await assetPool.rewardsPool()
-    rewardsPool = new ethers.Contract(
+    rewardsPool = await ethers.getContractAt(
+      "RewardsPool",
       rewardsPoolAddress,
-      RewardsPoolJSON.abi,
       rewardManager
     )
 
@@ -227,6 +225,73 @@ describe("AssetPool", () => {
         ).to.be.closeTo("45454545454545454545", assertionPrecision)
       })
     })
+
+    context("when minting 0 underwriter tokens", () => {
+      beforeEach(async () => {
+        // Deposit some small amount of collateral tokens so that the amount
+        // of underwriter tokens is not 0
+        await assetPool.connect(underwriter1).deposit(1)
+        // Send collateral tokens to the asset pool directly, without minting
+        // underwriter tokens
+        await collateralToken
+          .connect(underwriter2)
+          .transfer(assetPool.address, to1e18(10))
+      })
+
+      it("should revert", async () => {
+        // Reverts if amount deposited * total underwriter supply < collateral
+        // balance of asset pool
+        await expect(
+          assetPool.connect(underwriter1).deposit(to1e18(10))
+        ).to.be.revertedWith("Minted tokens amount must be greater than 0")
+      })
+    })
+  })
+
+  describe("depositWithMin", () => {
+    context(
+      "when amount to be minted is smaller than the minimal required",
+      () => {
+        const depositedUnderwriter1 = to1e18(100)
+        const minCovToMint1 = depositedUnderwriter1 + 1
+
+        it("should revert", async () => {
+          await expect(
+            assetPool
+              .connect(underwriter1)
+              .depositWithMin(depositedUnderwriter1, minCovToMint1)
+          ).to.be.revertedWith(
+            "Amount to mint is smaller than the required minimum"
+          )
+        })
+      }
+    )
+
+    context(
+      "when amount to be minted is the same as the minimal required",
+      () => {
+        const depositedUnderwriter1 = to1e18(100)
+        const minCovToMint1 = depositedUnderwriter1
+
+        beforeEach(async () => {
+          await assetPool
+            .connect(underwriter1)
+            .depositWithMin(depositedUnderwriter1, minCovToMint1)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            to1e18(100)
+          )
+        })
+
+        it("should mint the right amount of underwriter tokens", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(to1e18(100))
+        })
+      }
+    )
   })
 
   describe("receiveApproval", () => {
@@ -266,26 +331,80 @@ describe("AssetPool", () => {
 
     context("when called via approveAndCall", () => {
       const amount = to1e18(100)
+      const abiCoder = ethers.utils.defaultAbiCoder
 
-      beforeEach(async () => {
-        await collateralToken
-          .connect(underwriter1)
-          .approveAndCall(assetPool.address, amount, [])
+      context("when passed minimum amount to mint uint256 in extradata", () => {
+        beforeEach(async () => {
+          const data = abiCoder.encode(["uint256"], [amount])
+
+          await collateralToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, data)
+        })
+
+        it("should mint underwriter tokens to the caller", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amount)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            amount
+          )
+          expect(
+            await collateralToken.balanceOf(underwriter1.address)
+          ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+        })
       })
 
-      it("should mint underwriter tokens to the caller", async () => {
-        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
-          amount
-        )
+      context("when extra data param is empty", () => {
+        beforeEach(async () => {
+          await collateralToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, [])
+        })
+
+        it("should mint underwriter tokens to the caller", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amount)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            amount
+          )
+          expect(
+            await collateralToken.balanceOf(underwriter1.address)
+          ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+        })
       })
 
-      it("should transfer deposited amount to the pool", async () => {
-        expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
-          amount
-        )
-        expect(
-          await collateralToken.balanceOf(underwriter1.address)
-        ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+      context("when passed corrupted extradata parameter", () => {
+        it("should revert", async () => {
+          const data = abiCoder.encode(["uint256", "uint256"], [amount, amount])
+
+          await expect(
+            collateralToken
+              .connect(underwriter1)
+              .approveAndCall(assetPool.address, amount, data)
+          ).to.be.revertedWith("Unexpected data length")
+        })
+      })
+
+      context("when minimal amount is smaller than tokens to be minted", () => {
+        it("should revert", async () => {
+          const data = abiCoder.encode(["uint256"], [amount.add(1)])
+
+          await expect(
+            collateralToken
+              .connect(underwriter1)
+              .approveAndCall(assetPool.address, amount, data)
+          ).to.be.revertedWith(
+            "Amount to mint is smaller than the required minimum"
+          )
+        })
       })
     })
   })

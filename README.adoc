@@ -64,7 +64,7 @@ might be for you.
 * For questions and support, join the #keep-protocol channel on
 https://discord.gg/4R6RGFf[Discord].
 
-== Build and test
+== Build, test and deploy
 
 Coverage pool contracts use https://hardhat.org/[*Hardhat*] development
 environment. To build and deploy these contracts, please follow the instructions
@@ -96,3 +96,159 @@ You can run them by doing:
 ```
 yarn test
 ```
+
+=== Deploy contracts
+
+To deploy all contracts on the given network, please run:
+```
+yarn deploy --network <network>
+```
+
+If contracts haven't been built yet or changes occurred, this task will build
+the contracts before running the deployment script.
+
+==== Deployment artifacts
+
+Once the deployment terminates, a new `deployments` directory containing all
+deployment info will be created. It can be directly used by dApps or other client
+code as it contains deployment details like chain ID, transaction hash, ABI or
+address for each contract.
+
+===== Export mode
+
+Apart from deployments saved in the `deployments/` folder the details will be also
+stored in a lightweight file `export.json`, which contains a handy summary of the
+deployment info for all contracts in one place. However, it doesn't contain the
+deployment transaction hash making it inappropriate for some use cases relying on
+this field.
+
+Please note that it is also possible to export deployment details for all supported
+networks into a single file using `--export-all` option. This can be useful for
+dApps supporting multiple networks at once.
+
+For more details see `hardhat-deploy` plugin https://github.com/wighawag/hardhat-deploy#exporting-deployments[documentation].
+
+==== Deployment parametrization
+
+The deployment scripts parametrization is handled by environment variables.
+
+Following parameters are supported:
+
+[cols="1,2,1"]
+|===
+|Variable|Description|Default
+|`INITIAL_SWAP_STRATEGY`
+|Initial swap strategy which will be used by the risk manager.
+This should be the name of one of the `ISignerBondsSwapStrategy` implementations.
+|`SignerBondsManualSwap`
+|===
+
+==== External dependencies
+
+Deployment scripts require external contract dependencies. The scripts support
+dependencies as <<dependencies-packages,node packages pulled from the NPM registry>>
+or <<dependencies-predefined,predefined addresses>> stored in `external/<network>/` directory.
+
+For more details see `hardhat-deploy` plugin https://github.com/wighawag/hardhat-deploy#importing-deployment-from-other-projects-with-truffle-support[documentation].
+
+[[dependencies-packages]]
+===== Node packages
+
+To add an external package dependency: 
+
+1. Add a package dependency with `yarn add <package>`.
++
+Example:
++
+```sh
+yarn add @keep-network/keep-core@1.8.0-dev
+```
+
+2. Add an entry in `hardhat.config.js` under `external` property.
++
+Example:
++
+```js
+  external: {
+    contracts: [
+      // ...
+      {
+        artifacts: "node_modules/@keep-network/keep-core/artifacts",
+      }
+    ],
+    deployments: {
+      // ...
+      ropsten: [
+         // ...
+        "node_modules/@keep-network/keep-core/artifacts",
+      ],
+    },
+  },
+```
+
+This solution support both Hardhat and Truffle artifacts.
+
+[[dependencies-predefined]]
+===== Predefined artifacts
+
+To add a predefined single contract dependency for a given network:
+
+1. Create a file under `external/<network>/<contract_name>.json`.
++
+Example: `external/ropsten/UniswapV2Router.json`
+
+2. Save an address and optionally an ABI for the contract in the file.
++
+Example:
++
+```json
+{
+  "address": "0xZZabcd0000000000000000000000000000000001",
+  "abi": [
+     // ...
+  ]
+}
+```
+
+3. Make sure the directory path is listed in `hardhat.config.js` under
+`external.deployments.<network>` property.
++
+Example:
++
+```js
+  external: {
+    deployments: {
+      // ...
+      ropsten: [
+         // ...
+        "./external/ropsten",
+      ],
+    },
+  },
+```
+
+===== Usage in scripts
+
+External artifacts can be used in scripts with `deployments.get` or `deployments.getOrNull`
+functions.
+
+Example:
+```js
+const KeepToken = await deployments.get("KeepToken")
+deployments.log(`using external KeepToken at ${KeepToken.address}`)
+```
+
+==== Deployment scripts structure and tags
+
+The deployment script is divided into multiple sub-scripts placed in the
+`deploy` directory. It uses the
+https://github.com/wighawag/hardhat-deploy#deploy-scripts-tags-and-dependencies[tags and dependencies]
+system provided by the `hardhat-deploy` plugin. Such a structure allows to
+run arbitrary parts of the entire deployment by using the tag mechanism. For
+example, to deploy only the `AssetPool` contract (with their dependencies),
+a following command can be used:
+```
+yarn deploy --network localhost --tags AssetPool
+```
+Multiple deployment sub-scripts also improves the readability and allows
+specifying dependencies between components in an explicit way.

@@ -1,4 +1,5 @@
 const { expect } = require("chai")
+const hre = require("hardhat")
 const {
   to1e18,
   impersonateAccount,
@@ -6,7 +7,7 @@ const {
   to1ePrecision,
   ZERO_ADDRESS,
 } = require("../helpers/contract-test-helpers")
-const Auction = require("../../artifacts/contracts/Auction.sol/Auction.json")
+const Auction = hre.artifacts.readArtifactSync("Auction")
 const { initContracts } = require("./init-contracts")
 const { bidderAddress1, bidderAddress2 } = require("./constants.js")
 
@@ -182,6 +183,10 @@ describeFn("System -- buying a deposit with surplus", () => {
 
       const tbtcSurplusTracking = await riskManagerV1.tbtcSurplus()
       expect(tbtcSurplusTracking).to.be.equal(to1ePrecision(15, 17))
+    })
+
+    it("should set deposit3 status as liquidated", async () => {
+      expect(await tbtcDeposit3.currentState()).to.equal(11) // LIQUIDATED
     })
 
     it("should consume a reasonable amount of gas", async () => {

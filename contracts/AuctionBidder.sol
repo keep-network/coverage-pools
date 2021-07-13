@@ -52,8 +52,8 @@ contract AuctionBidder {
         uint256 auctionAmountOutstanding = auction.amountOutstanding();
         uint256 amountToPay = Math.min(amount, auctionAmountOutstanding);
         (uint256 amountOnOffer, ) = auction.onOffer();
-        uint256 portionToSeize =
-            (amountOnOffer * amountToPay) / auctionAmountOutstanding;
+        uint256 portionToSeize = (amountOnOffer * amountToPay) /
+            auctionAmountOutstanding;
 
         uint256 amountToSeize = coveragePool.amountToSeize(portionToSeize);
 
