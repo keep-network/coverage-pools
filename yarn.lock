@@ -1177,28 +1177,28 @@
     "@ethersproject/properties" "^5.4.0"
     "@ethersproject/strings" "^5.4.0"
 
-"@keep-network/keep-core@1.8.0-ropsten.0":
-  version "1.8.0-ropsten.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-ropsten.0.tgz#0ebc5f4b7c715d54d669e1ace1b49c62ef035527"
-  integrity sha512-6AgwR4zVPX6Lsbhxn+Q/xFA5MtQA4XKVxR4iHztkNeq2BKr+yNXkmKm1cOM0uSXbu38CSsubYXzkjguy67kFcQ==
+"@keep-network/keep-core@1.8.0-rc.6":
+  version "1.8.0-rc.6"
+  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-rc.6.tgz#a9f6bec312aa8b1bc40f95c8a27c2ba8d09886f7"
+  integrity sha512-hGBwreQA636Gqgd0pIFNhPDSf9qq83MipQftRkGskeNb8TePJu07fJ2Almb9EUrsBG57E0SCo9VpugQCGVnibA==
   dependencies:
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.4.0"
 
-"@keep-network/keep-core@^1.8.0-dev":
-  version "1.8.0-ropsten.2"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-ropsten.2.tgz#4b0d4810fa4ae41970cc40c434ab5cc460eca928"
-  integrity sha512-OWuafRUQicjHZImzF0irw0iE+lmxF4wTKyI4kNuht/2O1v/KqRSMM57onUT6rOBRiKVXAX/EjMW0kiJwT2Zdgg==
+"@keep-network/keep-core@>1.8.0-dev <1.8.0-pre":
+  version "1.8.0-dev.1"
+  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-dev.1.tgz#1a85bfaef785cf4c8ca34ae961556062c7414d39"
+  integrity sha512-OOvVxxUYXeBS7qH8zncCHTWqMnByg1/CX5BZ6006v1lWOnBeBS2Wf+n6HnTer5sSkDt6FI0Q2jhJTjh37I570g==
   dependencies:
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.4.0"
 
-"@keep-network/keep-ecdsa@1.7.0-ropsten.0":
-  version "1.7.0-ropsten.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-ecdsa/-/keep-ecdsa-1.7.0-ropsten.0.tgz#347669c57d8c0893ab320dfb3b2edb4a01be2769"
-  integrity sha512-GU5+n4WwIDd8jF083bqa3kUJYnOWTCMnRFcnJxkkSWmqiALR/kHRsqpkem9FVnJgNdsxIHntyXfL1FdzkRMb4Q==
+"@keep-network/keep-ecdsa@1.7.0-rc.4":
+  version "1.7.0-rc.4"
+  resolved "https://registry.yarnpkg.com/@keep-network/keep-ecdsa/-/keep-ecdsa-1.7.0-rc.4.tgz#8460527ad22fb42b3c47492bd0cb45305873393e"
+  integrity sha512-87WgfQkfK854oCjW3h8otT3h/B0vM4P/TUBK4TfgJH8knzY8FPnxwemNp+PQN5W60dezfdTahylM/bQvgLkljg==
   dependencies:
-    "@keep-network/keep-core" "1.8.0-ropsten.0"
+    "@keep-network/keep-core" "1.8.0-rc.6"
     "@keep-network/sortition-pools" ">1.2.0-pre <1.2.0-rc"
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
@@ -1210,13 +1210,13 @@
   dependencies:
     "@openzeppelin/contracts" "^2.4.0"
 
-"@keep-network/tbtc@^1.1.2-dev":
-  version "1.1.2-ropsten.1"
-  resolved "https://registry.yarnpkg.com/@keep-network/tbtc/-/tbtc-1.1.2-ropsten.1.tgz#8de513878258376f2874de2f83b1518a936f54e1"
-  integrity sha512-iUfADInEwafWoCU506C49Jsgg4pwC77PhhJjogsQgx00nmKwlnNPBI+IerMbg3CNSNJJHHP9c2t2N7UkO84RrA==
+"@keep-network/tbtc@>1.1.2-dev <1.1.2-ropsten":
+  version "1.1.2-rc.3"
+  resolved "https://registry.yarnpkg.com/@keep-network/tbtc/-/tbtc-1.1.2-rc.3.tgz#6e7c356a1924849cbc77cf5fc740dddc8b97b8e9"
+  integrity sha512-BG8YMqzvsXkjTPi3u3ELAEV2c26PP9rzztkeUBNYwO7CyFATE5eB0o2JFt3K4r/ADyVUBVv1mEi2bePyUX530g==
   dependencies:
     "@celo/contractkit" "^1.0.2"
-    "@keep-network/keep-ecdsa" "1.7.0-ropsten.0"
+    "@keep-network/keep-ecdsa" "1.7.0-rc.4"
     "@summa-tx/bitcoin-spv-sol" "^3.1.0"
     "@summa-tx/relay-sol" "^2.0.2"
     openzeppelin-solidity "2.3.0"
@@ -1844,7 +1844,6 @@
 
 "@umpirsky/country-list@https://github.com/umpirsky/country-list#05fda51":
   version "1.0.0"
-  uid "05fda51cd97b3294e8175ffed06104c44b3c71d7"
   resolved "https://github.com/umpirsky/country-list#05fda51cd97b3294e8175ffed06104c44b3c71d7"
 
 "@web3-js/scrypt-shim@^0.1.0":
