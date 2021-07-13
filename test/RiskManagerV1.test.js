@@ -598,7 +598,7 @@ describe("RiskManagerV1", () => {
         await expect(
           riskManagerV1.connect(owner).beginBondAuctionThresholdUpdate(101)
         ).to.be.revertedWith(
-          "Bond auction threshold must be smaller or equal to 100"
+          "Bond auction threshold must be lower or equal to 100"
         )
       })
     })
