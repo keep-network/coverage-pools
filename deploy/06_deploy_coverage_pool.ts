@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, ethers } = hre
+  const { getNamedAccounts, deployments, helpers } = hre
   const { read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
 
@@ -15,8 +15,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
 
   if (
-    ethers.utils.getAddress(await read("AssetPool", "owner")) !==
-    ethers.utils.getAddress(CoveragePool.address)
+    helpers.address.equal(
+      await read("AssetPool", "owner"),
+      CoveragePool.address
+    )
   ) {
     log(`transferring ownership of AssetPool to ${CoveragePool.address}`)
 
@@ -29,8 +31,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 
   if (
-    ethers.utils.getAddress(await read("UnderwriterToken", "owner")) !==
-    ethers.utils.getAddress(AssetPool.address)
+    helpers.address.equal(
+      await read("UnderwriterToken", "owner"),
+      AssetPool.address
+    )
   ) {
     log(`transferring ownership of UnderwriterToken to ${AssetPool.address}`)
 
