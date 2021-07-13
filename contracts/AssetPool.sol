@@ -377,8 +377,11 @@ contract AssetPool is Ownable, IAssetPool {
     ///         pool. This is the time that needs to pass between initiating and
     ///         completing the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalDelayUpdate after the required
-    ///         governance delay passes. It is up to the governance to decide
-    ///         what the withdrawal delay value should be.
+    ///         governance delay passes. It is up to the contract owner to
+    ///         decide what the withdrawal delay value should be but it should
+    ///         be long enough so that the possibility of having free-riding
+    ///         underwriters escaping from a potential coverage claim by
+    ///         withdrawing their positions from the pool is negligible.
     /// @param _newWithdrawalDelay The new value of withdrawal delay
     function beginWithdrawalDelayUpdate(uint256 _newWithdrawalDelay)
         external
@@ -409,8 +412,13 @@ contract AssetPool is Ownable, IAssetPool {
     ///         underwriter has - after the withdrawal delay passed - to
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
-    ///         governance delay passes. It is up to the governance to decide
-    ///         what the withdrawal timeout value should be.
+    ///         governance delay passes. It is up to the contract owner to
+    ///         decide what the withdrawal timeout value should be but it should
+    ///         be short enough so that the time of free-riding by being able to
+    ///         immediately escape from the claim is minimal and long enough so
+    ///         that honest underwriters have a possibility to finalize the
+    ///         withdrawal. It is all about the right proportions with
+    ///         a relation to withdrawal delay value.
     /// @param  _newWithdrawalTimeout The new value of the withdrawal timeout
     function beginWithdrawalTimeoutUpdate(uint256 _newWithdrawalTimeout)
         external
