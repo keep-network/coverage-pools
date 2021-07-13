@@ -44,9 +44,11 @@ module.exports = {
       },
     ],
     deployments: {
+      // For development environment we expect the local dependencies to be linked
+      // with `yarn link` command.
       development: [
-        "../keep-core/solidity/build/contracts",
-        "../tbtc/solidity/build/contracts",
+        "node_modules/@keep-network/keep-core/artifacts",
+        "node_modules/@keep-network/tbtc/artifacts",
       ],
       ropsten: [
         "node_modules/@keep-network/keep-core/artifacts",
