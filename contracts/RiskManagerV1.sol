@@ -370,12 +370,15 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         newBondAuctionThreshold = 0;
     }
 
-    /// @notice Begins the auction length update process.
-    /// @dev Can be called only by the contract owner. The auction length should
-    ///      be adjusted very carefully. Total value locked of the coverage pool
-    ///      and minimum possible auction amount need to be taken into account.
-    ///      It is up to the governance to decide what the auction length should
-    ///      be.
+    /// @notice Begins the auction length update process. The auction length        
+    ///         should be adjusted very carefully. Total value locked of the 
+    ///         coverage pool and minimum possible auction amount need to be 
+    ///         taken into account. The goal is to find a "sweet spot" for
+    ///         auction length, not making it too short (which leads to big
+    ///         sums of coverage pool become available in a short time) and not
+    ///         making it too long (which leads to bidders waiting for too long
+    ///         until it will makes sense for them to bid on an auction).
+    /// @dev Can be called only by the contract owner. 
     /// @param _newAuctionLength New auction length in seconds
     function beginAuctionLengthUpdate(uint256 _newAuctionLength)
         external
@@ -403,8 +406,11 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     }
 
     /// @notice Begins the liquidation notifier reward update process.
-    /// @dev Can be called only by the contract owner. It is up to the contract
-    ///      owner to decide what the reward value should be.
+    ///         Total value locked of the coverage pool and the cost of calling
+    ///         `notifyLiquidation` needs to be taken into account so that the
+    ///         call incentive is attractive enough and at the same time it does
+    ///         not offer to much value held the coverage pool.
+    /// @dev Can be called only by the contract owner.
     /// @param _newLiquidationNotifierReward New liquidation notifier reward
     function beginLiquidationNotifierRewardUpdate(
         uint256 _newLiquidationNotifierReward
@@ -438,8 +444,10 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     }
 
     /// @notice Begins the liquidated notifier reward update process.
-    /// @dev Can be called only by the contract owner. It is up to the contract
-    ///      owner to decide what the reward value should be.
+    ///         Total value locked of the coverage pool and the cost of calling
+    ///         `notifyLiquidated` needs to be taken into account so that the
+    ///         call incentive is attractive enough and at the same time it does
+    ///         not offer to much value held the coverage pool.
     /// @param _newLiquidatedNotifierReward New liquidated notifier reward
     function beginLiquidatedNotifierRewardUpdate(
         uint256 _newLiquidatedNotifierReward
