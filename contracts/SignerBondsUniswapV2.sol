@@ -242,14 +242,15 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
             BASIS_POINTS_DIVISOR;
 
         // slither-disable-next-line arbitrary-send,reentrancy-events
-        uint256[] memory amounts =
-            uniswapRouter.swapExactETHForTokens{value: amount}(
-                amountOutMin,
-                path,
-                assetPool,
-                /* solhint-disable-next-line not-rely-on-time */
-                block.timestamp + swapDeadline
-            );
+        uint256[] memory amounts = uniswapRouter.swapExactETHForTokens{
+            value: amount
+        }(
+            amountOutMin,
+            path,
+            assetPool,
+            /* solhint-disable-next-line not-rely-on-time */
+            block.timestamp + swapDeadline
+        );
 
         emit UniswapV2SwapExecuted(amounts);
     }
@@ -290,16 +291,14 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         // Calculate the price impact. Multiply it by the floating point
         // divisor to avoid float number.
         // slither-disable-next-line divide-before-multiply
-        uint256 priceImpact =
-            (CoveragePoolConstants.FLOATING_POINT_DIVISOR * amount) /
-                collateralTokenReserve;
+        uint256 priceImpact = (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
+            amount) / collateralTokenReserve;
 
         // Calculate the price impact limit. Multiply it by the floating point
         // divisor to avoid float number and make it comparable with the
         // swap's price impact.
-        uint256 priceImpactLimit =
-            (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
-                maxAllowedPriceImpact) / BASIS_POINTS_DIVISOR;
+        uint256 priceImpactLimit = (CoveragePoolConstants
+        .FLOATING_POINT_DIVISOR * maxAllowedPriceImpact) / BASIS_POINTS_DIVISOR;
 
         return priceImpact <= priceImpactLimit;
     }
@@ -314,8 +313,9 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         address tokenA,
         address tokenB
     ) internal pure returns (address) {
-        (address token0, address token1) =
-            tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        (address token0, address token1) = tokenA < tokenB
+            ? (tokenA, tokenB)
+            : (tokenB, tokenA);
 
         return
             address(

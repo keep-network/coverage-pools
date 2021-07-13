@@ -20,7 +20,6 @@ help() {
   echo -e "\tINITIAL_SWAP_STRATEGY: Allows setting the initial swap strategy which will be used by the risk manager." \
     "This should be the name of one of the ISignerBondsSwapStrategy implementations."
 
-
   echo -e "\nCommand line arguments:\n"
   echo -e "\t--network: Ethereum network." \
     "Available networks and settings are specified in 'hardhat.config.js'"
@@ -31,9 +30,9 @@ help() {
 for arg in "$@"; do
   shift
   case "$arg" in
-  "--network") set -- "$@" "-n" ;;
-  "--help") set -- "$@" "-h" ;;
-  *) set -- "$@" "$arg" ;;
+    "--network") set -- "$@" "-n" ;;
+    "--help") set -- "$@" "-h" ;;
+    *) set -- "$@" "$arg" ;;
   esac
 done
 
@@ -41,9 +40,9 @@ done
 OPTIND=1
 while getopts "n:h" opt; do
   case "$opt" in
-  n) network="$OPTARG" ;;
-  h) help ;;
-  ?) help ;; # Print help in case parameter is non-existent
+    n) network="$OPTARG" ;;
+    h) help ;;
+    ?) help ;; # Print help in case parameter is non-existent
   esac
 done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
