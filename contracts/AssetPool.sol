@@ -127,12 +127,16 @@ contract AssetPool is Ownable, IAssetPool {
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints underwriter tokens representing pool's ownership.
+    ///         Optional data in extraData may include a minimal amount of
+    ///         underwriter tokens expected to be minted for a depositor. There
+    ///         cases when an amount of minted tokens matters for a depositor, ex
+    ///         tokens might be used in third party exchanges.
     /// @dev This function is a shortcut for approve + deposit.
     function receiveApproval(
         address from,
         uint256 amount,
         address token,
-        bytes calldata
+        bytes calldata extraData
     ) external {
         require(msg.sender == token, "Only token caller allowed");
         require(
@@ -140,15 +144,52 @@ contract AssetPool is Ownable, IAssetPool {
             "Unsupported collateral token"
         );
 
-        _deposit(from, amount);
+        uint256 toMint = _calculateTokensToMint(amount);
+        if (extraData.length != 0) {
+            require(extraData.length == 32, "Unexpected data length");
+            uint256 minAmountToMint = abi.decode(extraData, (uint256));
+            require(
+                minAmountToMint <= toMint,
+                "Amount to mint is smaller than the required minimum"
+            );
+        }
+
+        _deposit(from, amount, toMint);
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
-    function deposit(uint256 amount) external override {
-        _deposit(msg.sender, amount);
+    /// @param amountToDeposit Collateral tokens amount that a user deposits to
+    ///                        the asset pool
+    function deposit(uint256 amountToDeposit) external override {
+        uint256 toMint = _calculateTokensToMint(amountToDeposit);
+
+        _deposit(msg.sender, amountToDeposit, toMint);
+    }
+
+    /// @notice Accepts the given amount of collateral token as a deposit and
+    ///         mints at least a minAmountToMint underwriter tokens representing
+    ///         pool's ownership.
+    /// @dev Before calling this function, collateral token needs to have the
+    ///      required amount accepted to transfer to the asset pool.
+    /// @param amountToDeposit Collateral tokens amount that a user deposits to
+    ///                        the asset pool
+    /// @param minAmountToMint Underwriter minimal tokens amount that a user
+    ///                        expects to receive in exchange for the deposited
+    ///                        collateral tokens
+    function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
+        external
+    {
+        uint256 toMint = _calculateTokensToMint(amountToDeposit);
+
+        require(
+            minAmountToMint <= toMint,
+            "Amount to mint is smaller than the required minimum"
+        );
+
+        _deposit(msg.sender, amountToDeposit, toMint);
     }
 
     /// @notice Initiates the withdrawal of collateral and rewards from the
@@ -464,23 +505,40 @@ contract AssetPool is Ownable, IAssetPool {
         return withdrawalDelay + withdrawalTimeout + 2 days;
     }
 
-    function _deposit(address depositor, uint256 amount) internal {
-        require(depositor != address(this), "Self-deposit not allowed");
-
+    /// @dev Calculates underwriter tokens to mint.
+    function _calculateTokensToMint(uint256 amountToDeposit)
+        internal
+        returns (uint256)
+    {
         rewardsPool.withdraw();
 
         uint256 covSupply = underwriterToken.totalSupply();
         uint256 collateralBalance = collateralToken.balanceOf(address(this));
 
-        uint256 toMint;
         if (covSupply == 0) {
-            toMint = amount;
-        } else {
-            toMint = (amount * covSupply) / collateralBalance;
+            return amountToDeposit;
         }
-        require(toMint > 0, "Minted tokens amount must be greater than 0");
 
-        underwriterToken.mint(depositor, toMint);
-        collateralToken.safeTransferFrom(depositor, address(this), amount);
+        return (amountToDeposit * covSupply) / collateralBalance;
+    }
+
+    function _deposit(
+        address depositor,
+        uint256 amountToDeposit,
+        uint256 amountToMint
+    ) internal {
+        require(depositor != address(this), "Self-deposit not allowed");
+
+        require(
+            amountToMint > 0,
+            "Minted tokens amount must be greater than 0"
+        );
+
+        underwriterToken.mint(depositor, amountToMint);
+        collateralToken.safeTransferFrom(
+            depositor,
+            address(this),
+            amountToDeposit
+        );
     }
 }
