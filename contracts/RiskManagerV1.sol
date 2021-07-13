@@ -336,7 +336,7 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     ///         be high enough so that the possibility of purchasing signer
     ///         bonds outside of coverage pools after opening an auction is
     ///         minimal.
-    /// @dev Can be called only by the contract owner. 
+    /// @dev Can be called only by the contract owner.
     /// @param _newBondAuctionThreshold New bond auction threshold in percent
     function beginBondAuctionThresholdUpdate(uint256 _newBondAuctionThreshold)
         external
@@ -370,15 +370,15 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         newBondAuctionThreshold = 0;
     }
 
-    /// @notice Begins the auction length update process. The auction length        
-    ///         should be adjusted very carefully. Total value locked of the 
-    ///         coverage pool and minimum possible auction amount need to be 
+    /// @notice Begins the auction length update process. The auction length
+    ///         should be adjusted very carefully. Total value locked of the
+    ///         coverage pool and minimum possible auction amount need to be
     ///         taken into account. The goal is to find a "sweet spot" for
     ///         auction length, not making it too short (which leads to big
     ///         sums of coverage pool become available in a short time) and not
     ///         making it too long (which leads to bidders waiting for too long
     ///         until it will makes sense for them to bid on an auction).
-    /// @dev Can be called only by the contract owner. 
+    /// @dev Can be called only by the contract owner.
     /// @param _newAuctionLength New auction length in seconds
     function beginAuctionLengthUpdate(uint256 _newAuctionLength)
         external
