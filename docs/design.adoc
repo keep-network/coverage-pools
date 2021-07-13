@@ -291,9 +291,9 @@ being liquidated outside of the coverage pool.
 If both fixed amount and percentage values are set and bigger than zero,
 the fixed amount reward takes precedence.
 
-=== Auction length upgradability
+=== Auction length value
 
-The default value of "Auction Length" is set during deployment of Risk Manager 
+The default value of auction length is set during deployment of the Risk Manager 
 contract. This parameter is one of the factors that determine the value of asset
 pool portion being on offer at the given time. It should be updated carefully,
 because selecting too short auction length value when the coverage pool TVL is
