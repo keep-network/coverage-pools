@@ -1,5 +1,31 @@
 {
+  "name": "@keep-network/coverage-pools",
+  "version": "0.0.1",
+  "files": [
+    "contracts/",
+    "!contracts/test/",
+    "deploy/",
+    "deployments/",
+    "export.json"
+  ],
+  "scripts": {
+    "build": "hardhat compile",
+    "deploy": "hardhat deploy --export export.json",
+    "format": "npm run lint && prettier --check .",
+    "format:fix": "npm run lint:fix && prettier --write .",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
+    "lint:fix:js": "eslint . --fix",
+    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
+    "lint:js": "eslint . ",
+    "lint:sol": "solhint 'contracts/**/*.sol'",
+    "test": "hardhat test",
+    "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
+    "test:unit:coverage": "hardhat coverage"
+  },
   "dependencies": {
+    "@keep-network/keep-core": ">1.8.0-dev <1.8.0-pre",
+    "@keep-network/tbtc": ">1.1.2-dev <1.1.2-ropsten",
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
@@ -22,20 +48,7 @@
     "solidity-coverage": "^0.7.16",
     "typescript": "^3.7.0"
   },
-  "name": "@keep-network/coverage-pool",
-  "scripts": {
-    "build": "hardhat compile",
-    "deploy": "hardhat deploy",
-    "format": "npm run lint && prettier --check .",
-    "format:fix": "npm run lint:fix && prettier --write .",
-    "lint": "npm run lint:js && npm run lint:sol",
-    "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
-    "lint:fix:js": "eslint . --fix",
-    "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
-    "lint:js": "eslint . ",
-    "lint:sol": "solhint 'contracts/**/*.sol'",
-    "test": "hardhat test",
-    "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
-    "test:unit:coverage": "hardhat coverage"
+  "engines": {
+    "node": ">= 12.0.0"
   }
 }
