@@ -331,9 +331,12 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         }
     }
 
-    /// @notice Begins the bond auction threshold update process.
-    /// @dev Can be called only by the contract owner. The value of the
-    ///      threshold should not be greater than 100.
+    /// @notice Begins the bond auction threshold update process. The value of
+    ///         the threshold must not be greater than 100. The threshold should
+    ///         be high enough so that the possibility of purchasing signer
+    ///         bonds outside of coverage pools after opening an auction is
+    ///         minimal.
+    /// @dev Can be called only by the contract owner. 
     /// @param _newBondAuctionThreshold New bond auction threshold in percent
     function beginBondAuctionThresholdUpdate(uint256 _newBondAuctionThreshold)
         external
