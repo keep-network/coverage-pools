@@ -339,6 +339,10 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         external
         onlyOwner
     {
+        require(
+            _newBondAuctionThreshold <= 100,
+            "Bond auction threshold must be smaller or equal to 100"
+        );
         newBondAuctionThreshold = _newBondAuctionThreshold;
         /* solhint-disable-next-line not-rely-on-time */
         bondAuctionThresholdChangeInitiated = block.timestamp;

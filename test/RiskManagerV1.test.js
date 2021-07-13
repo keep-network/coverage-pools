@@ -592,6 +592,16 @@ describe("RiskManagerV1", () => {
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })
+
+    context("when the threshold value is too high", () => {
+      it("should revert", async () => {
+        await expect(
+          riskManagerV1.connect(owner).beginBondAuctionThresholdUpdate(101)
+        ).to.be.revertedWith(
+          "Bond auction threshold must be smaller or equal to 100"
+        )
+      })
+    })
   })
 
   describe("finalizeBondAuctionThresholdUpdate", () => {
