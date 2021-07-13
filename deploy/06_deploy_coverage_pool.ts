@@ -5,7 +5,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, ethers } = hre
   const { read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
-  
+
   const AssetPool = await deployments.get("AssetPool")
 
   const CoveragePool = await deployments.deploy("CoveragePool", {

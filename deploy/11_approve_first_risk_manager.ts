@@ -5,7 +5,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
   const { read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
-  
+
   const RiskManagerV1 = await deployments.get("RiskManagerV1")
 
   const isRiskManagerApproved = await read(

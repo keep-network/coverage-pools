@@ -13,6 +13,15 @@ covered in v2 documentation.
 
 == Components
 
+=== Collateral token
+
+ERC-20 token which is accepted by the pool as collateral and used as a deposit
+token by underwriters. Collateral token positions of underwriters can be affected
+when the Risk manager claims coverage. Token accepted as collateral needs to pass
+https://github.com/crytic/building-secure-contracts/blob/master/development-guidelines/token_integration.md[token security checklist]
+and should not impose any security risk on the coverage pool like a possible
+re-entrancy or allowing an arbitrary data execution on transfers/approvals.
+
 === Asset pool
 
 Asset pool accepts a single ERC-20 token as collateral, and returns an

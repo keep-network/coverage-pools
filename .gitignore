@@ -13,3 +13,5 @@ coverage/
 coverage.json
 
 yarn-error.log
+
+.vscode/

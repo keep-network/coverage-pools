@@ -281,8 +281,11 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         }
 
         // slither-disable-next-line reentrancy-no-eth
-        address auctionAddress =
-            createAuction(tbtcToken, lotSizeTbtc, auctionLength);
+        address auctionAddress = createAuction(
+            tbtcToken,
+            lotSizeTbtc,
+            auctionLength
+        );
         depositToAuction[depositAddress] = auctionAddress;
         auctionToDeposit[auctionAddress] = depositAddress;
     }
@@ -507,8 +510,9 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     {
         /* solhint-disable avoid-low-level-calls */
         // slither-disable-next-line low-level-calls
-        (bool success, ) =
-            address(signerBondsSwapStrategy).call{value: amount}("");
+        (bool success, ) = address(signerBondsSwapStrategy).call{value: amount}(
+            ""
+        );
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */
     }
