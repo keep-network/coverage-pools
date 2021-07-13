@@ -28,7 +28,6 @@ help() {
   echo -e "\tINITIAL_SWAP_STRATEGY: Allows setting the initial swap strategy which will be used by the risk manager." \
     "This should be the name of one of the ISignerBondsSwapStrategy implementations."
 
-
   echo -e "\nCommand line arguments:\n"
   echo -e "\t--network: Ethereum network." \
     "Available networks and settings are specified in 'hardhat.config.js'"
@@ -39,9 +38,9 @@ help() {
 for arg in "$@"; do
   shift
   case "$arg" in
-  "--network") set -- "$@" "-n" ;;
-  "--help") set -- "$@" "-h" ;;
-  *) set -- "$@" "$arg" ;;
+    "--network") set -- "$@" "-n" ;;
+    "--help") set -- "$@" "-h" ;;
+    *) set -- "$@" "$arg" ;;
   esac
 done
 
@@ -49,10 +48,10 @@ done
 OPTIND=1
 while getopts "n:mh" opt; do
   case "$opt" in
-  n) network="$OPTARG" ;;
-  m) contracts_only=true ;;
-  h) help ;;
-  ?) help ;; # Print help in case parameter is non-existent
+    n) network="$OPTARG" ;;
+    m) contracts_only=true ;;
+    h) help ;;
+    ?) help ;; # Print help in case parameter is non-existent
   esac
 done
 shift $(expr $OPTIND - 1) # remove options from positional parameters
@@ -70,11 +69,11 @@ yarn install
 
 printf "${LOG_START}Migrating contracts...${LOG_END}"
 KEEP_TOKEN_ADDRESS=$KEEP_TOKEN_ADDRESS \
-TBTC_TOKEN_ADDRESS=$TBTC_TOKEN_ADDRESS \
-TBTC_DEPOSIT_TOKEN_ADDRESS=$TBTC_DEPOSIT_TOKEN_ADDRESS \
-UNISWAP_ROUTER_V2_ADDRESS=$UNISWAP_ROUTER_V2_ADDRESS \
-INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
-yarn deploy --reset --network $NETWORK
+  TBTC_TOKEN_ADDRESS=$TBTC_TOKEN_ADDRESS \
+  TBTC_DEPOSIT_TOKEN_ADDRESS=$TBTC_DEPOSIT_TOKEN_ADDRESS \
+  UNISWAP_ROUTER_V2_ADDRESS=$UNISWAP_ROUTER_V2_ADDRESS \
+  INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
+  yarn deploy --reset --network $NETWORK
 
 printf "${LOG_START}Creating links...${LOG_END}"
 ln -sf "deployments/${NETWORK}" artifacts
