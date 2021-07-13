@@ -1,17 +1,15 @@
 module.exports = async ({ getNamedAccounts, deployments }) => {
-  const keepTokenAddress = process.env.KEEP_TOKEN_ADDRESS
-  const { deploy, save, log } = deployments
+  const { getOrNull, deploy, log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  if (keepTokenAddress) {
-    log(`using externally provided KeepToken address ${keepTokenAddress}`)
+  const KeepToken = await getOrNull("KeepToken")
 
-    // Save as simple deployment just to make it accessible for next scripts.
-    await save("KeepToken", { address: keepTokenAddress })
+  if (KeepToken) {
+    log(`using external KeepToken at ${KeepToken.address}`)
   } else if (hre.network.name !== "hardhat") {
-    throw new Error("The KeepToken contract address is required!")
+    throw new Error("deployed KeepToken contract not found")
   } else {
-    log(`using KeepToken stub`)
+    log(`deploying KeepToken stub`)
 
     await deploy("KeepToken", {
       contract: "TestToken",

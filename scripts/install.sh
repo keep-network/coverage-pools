@@ -10,10 +10,6 @@ COVERAGE_POOL_PATH=$(realpath $(dirname $0)/../)
 
 # Defaults, can be overwritten by env variables/input parameters
 NETWORK_DEFAULT="development"
-KEEP_TOKEN_ADDRESS=${KEEP_TOKEN_ADDRESS:-""}
-TBTC_TOKEN_ADDRESS=${TBTC_TOKEN_ADDRESS:-""}
-TBTC_DEPOSIT_TOKEN_ADDRESS=${TBTC_DEPOSIT_TOKEN_ADDRESS:-""}
-UNISWAP_ROUTER_V2_ADDRESS=${UNISWAP_ROUTER_V2_ADDRESS:-""}
 INITIAL_SWAP_STRATEGY=${INITIAL_SWAP_STRATEGY:-""}
 
 help() {
@@ -21,10 +17,6 @@ help() {
     "--network <network>"
 
   echo -e "\nEnvironment variables:\n"
-  echo -e "\tKEEP_TOKEN_ADDRESS: Determines the address of KEEP token contract"
-  echo -e "\tTBTC_TOKEN_ADDRESS: Determines the address of TBTC token contract"
-  echo -e "\tTBTC_DEPOSIT_TOKEN_ADDRESS: Determines the address of TDT token contract"
-  echo -e "\tUNISWAP_ROUTER_V2_ADDRESS: Determines the address of Uniswap v2 router"
   echo -e "\tINITIAL_SWAP_STRATEGY: Allows setting the initial swap strategy which will be used by the risk manager." \
     "This should be the name of one of the ISignerBondsSwapStrategy implementations."
 
@@ -46,10 +38,9 @@ done
 
 # Parse short options
 OPTIND=1
-while getopts "n:mh" opt; do
+while getopts "n:h" opt; do
   case "$opt" in
     n) network="$OPTARG" ;;
-    m) contracts_only=true ;;
     h) help ;;
     ?) help ;; # Print help in case parameter is non-existent
   esac
@@ -64,15 +55,14 @@ printf "${LOG_START}Network: $NETWORK ${LOG_END}"
 # Run script.
 printf "${LOG_START}Starting installation...${LOG_END}"
 
+printf "${LOG_START}Linking local dependencies...${LOG_END}"
+yarn link @keep-network/keep-core @keep-network/tbtc
+
 printf "${LOG_START}Installing dependencies...${LOG_END}"
 yarn install
 
 printf "${LOG_START}Migrating contracts...${LOG_END}"
-KEEP_TOKEN_ADDRESS=$KEEP_TOKEN_ADDRESS \
-  TBTC_TOKEN_ADDRESS=$TBTC_TOKEN_ADDRESS \
-  TBTC_DEPOSIT_TOKEN_ADDRESS=$TBTC_DEPOSIT_TOKEN_ADDRESS \
-  UNISWAP_ROUTER_V2_ADDRESS=$UNISWAP_ROUTER_V2_ADDRESS \
-  INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
+INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
   yarn deploy --reset --network $NETWORK
 
 printf "${LOG_START}Creating links...${LOG_END}"

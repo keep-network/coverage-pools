@@ -4,7 +4,7 @@ repos:
     hooks:
       - id: check-added-large-files
       - id: pretty-format-json
-        args: ["--autofix"]
+        args: ["--autofix", "--no-sort-keys"]
   - repo: local
     hooks:
       - id: lint-js
