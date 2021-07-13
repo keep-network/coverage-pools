@@ -1227,6 +1227,10 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
+"@keep-network/hardhat-helpers@github:keep-network/hardhat-helpers":
+  version "0.0.2"
+  resolved "https://codeload.github.com/keep-network/hardhat-helpers/tar.gz/230dd0ac1857b53c85da65df1ba9e0193dd674e6"
+
 "@keep-network/keep-core@1.8.0-rc.6":
   version "1.8.0-rc.6"
   resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-rc.6.tgz#a9f6bec312aa8b1bc40f95c8a27c2ba8d09886f7"
