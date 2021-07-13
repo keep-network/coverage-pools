@@ -13,9 +13,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const SignerBondsUniswapV2 = await deployments.get("SignerBondsUniswapV2")
   const MasterAuction = await deployments.get("MasterAuction")
 
-  const auctionLength = 86400 // 24h
-  const bondAuctionThreshold = 100
-  const initialSwapStrategy =
+  const auctionLength: number = 86400 // 24 hours in seconds
+  const bondAuctionThreshold: number = 100 // percentage
+  const initialSwapStrategy: string =
     process.env.INITIAL_SWAP_STRATEGY || "SignerBondsManualSwap"
 
   log(`using ${initialSwapStrategy} as initial risk manager's swap strategy`)
