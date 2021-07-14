@@ -60,7 +60,7 @@ jobs:
       - name: Deploy contracts
         run: yarn deploy
 
-  contracts-deployment: # TODO: choose better name; consider merging with previous job
+  contracts-deployment-testnet:
     needs: [contracts-build-and-test]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -96,11 +96,8 @@ jobs:
               @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-solidity-version }} \
               @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-solidity-version }}
 
-      - name: Deploy contracts # Do we need to pass any `env`s?
-        run: yarn deploy --network ${{ env.TRUFFLE_NETWORK }}
-
-      # Where will the deployed contracts be placed? Do we need to copy them
-      # somewhere (like we did with `artifacts` in other projects)?
+      - name: Deploy contracts
+        run: yarn deploy --network ${{ github.event.inputs.environment }}
 
       - name: Bump up package version
         id: npm-version-bump
