@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, ethers } = hre
+  const { getNamedAccounts, deployments, ethers, helpers } = hre
   const { read, log } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
@@ -17,13 +17,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  const rewardsPoolAddress = await read("AssetPool", "rewardsPool")
-
-  if (
-    ethers.utils.getAddress(rewardsPoolAddress) === ethers.constants.AddressZero
-  ) {
-    throw new Error(`RewardsPool address is a zero address`)
-  }
+  const rewardsPoolAddress = helpers.address.validate(
+    await read("AssetPool", "rewardsPool")
+  )
 
   // The`RewardsPool` contract is created in the `AssetPool` constructor so
   // we create an artifact for it.
