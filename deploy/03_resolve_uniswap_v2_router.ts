@@ -1,8 +1,12 @@
-module.exports = async ({ getNamedAccounts, deployments }) => {
-  const { getOrNull, deploy, log } = deployments
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { getNamedAccounts, deployments } = hre
+  const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const UniswapV2Router = await getOrNull("UniswapV2Router")
+  const UniswapV2Router = await deployments.getOrNull("UniswapV2Router")
 
   if (UniswapV2Router) {
     log(`using external UniswapV2Router at ${UniswapV2Router.address}`)
@@ -13,7 +17,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     // artifact is not found.
     log(`deploying UniswapV2Router stub`)
 
-    await deploy("UniswapV2Router", {
+    await deployments.deploy("UniswapV2Router", {
       contract: "UniswapV2RouterStub",
       from: deployer,
       log: true,
@@ -21,4 +25,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   }
 }
 
-module.exports.tags = ["UniswapV2Router"]
+export default func
+
+func.tags = ["UniswapV2Router"]

@@ -1,6 +1,11 @@
-module.exports = async ({ getNamedAccounts, deployments }) => {
-  const { deploy, log } = deployments
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { getNamedAccounts, deployments } = hre
+  const { log } = deployments
   const { deployer } = await getNamedAccounts()
+
   const TBTCToken = await deployments.get("TBTCToken")
   const TBTCDepositToken = await deployments.get("TBTCDepositToken")
   const CoveragePool = await deployments.get("CoveragePool")
@@ -8,21 +13,28 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   const SignerBondsUniswapV2 = await deployments.get("SignerBondsUniswapV2")
   const MasterAuction = await deployments.get("MasterAuction")
 
-  const auctionLength = 86400 // 24h
-  const bondAuctionThreshold = 100
-  const initialSwapStrategy =
+  const auctionLength: number = 86400 // 24 hours in seconds
+  const bondAuctionThreshold: number = 100 // percentage
+  const initialSwapStrategy: string =
     process.env.INITIAL_SWAP_STRATEGY || "SignerBondsManualSwap"
 
   log(`using ${initialSwapStrategy} as initial risk manager's swap strategy`)
 
-  await deploy("RiskManagerV1", {
+  const signerBondStrategy = { SignerBondsManualSwap, SignerBondsUniswapV2 }[
+    initialSwapStrategy
+  ]
+
+  if (!signerBondStrategy) {
+    throw new Error(`signer bond strategy not found: ${initialSwapStrategy}`)
+  }
+
+  await deployments.deploy("RiskManagerV1", {
     from: deployer,
     args: [
       TBTCToken.address,
       TBTCDepositToken.address,
       CoveragePool.address,
-      { SignerBondsManualSwap, SignerBondsUniswapV2 }[initialSwapStrategy]
-        .address,
+      signerBondStrategy.address,
       MasterAuction.address,
       auctionLength,
       bondAuctionThreshold,
@@ -31,8 +43,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
   })
 }
 
-module.exports.tags = ["RiskManagerV1"]
-module.exports.dependencies = [
+export default func
+
+func.tags = ["RiskManagerV1"]
+func.dependencies = [
   "TBTCToken",
   "TBTCDepositToken",
   "CoveragePool",
