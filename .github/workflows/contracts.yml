@@ -8,16 +8,16 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment for workflow execution'
+        description: "Environment for workflow execution"
         required: false
-        default: 'dev'
+        default: "dev"
       upstream_builds:
-        description: 'Upstream builds'
+        description: "Upstream builds"
         required: false
       upstream_ref:
-        description: 'Git reference to checkout (e.g. branch name)'
+        description: "Git reference to checkout (e.g. branch name)"
         required: false
-        default: 'main'
+        default: "main"
 
 jobs:
   contracts-build-and-test:
@@ -92,9 +92,9 @@ jobs:
       - name: Resolve latest contracts
         if: github.event_name == 'workflow_dispatch'
         run: |
-            yarn add \
-              @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-solidity-version }} \
-              @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-solidity-version }}
+          yarn add \
+            @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-solidity-version }} \
+            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-solidity-version }}
 
       - name: Deploy contracts
         run: yarn deploy --network ${{ github.event.inputs.environment }}
