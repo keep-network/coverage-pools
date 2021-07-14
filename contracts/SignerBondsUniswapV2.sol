@@ -67,7 +67,8 @@ interface IUniswapV2Pair {
 ///         on Uniswap v2 exchange and deposit as coverage pool collateral.
 ///         The governance can set crucial swap parameters: max allowed
 ///         percentage impact, slippage tolerance and swap deadline, to force
-///         reasonable swap outcomes.
+///         reasonable swap outcomes. It is up to the governance to decide what
+///         these values should be.
 contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // One basis point is equivalent to 1/100th of a percent.
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;
