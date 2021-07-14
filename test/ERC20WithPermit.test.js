@@ -19,12 +19,8 @@ describe("ERC20WithPermit", () => {
   let token
 
   beforeEach(async () => {
-    ;[
-      owner,
-      initialHolder,
-      recipient,
-      anotherAccount,
-    ] = await ethers.getSigners()
+    ;[owner, initialHolder, recipient, anotherAccount] =
+      await ethers.getSigners()
 
     const ERC20WithPermit = await ethers.getContractFactory("ERC20WithPermit")
     token = await ERC20WithPermit.deploy("My Token", "MT")

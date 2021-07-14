@@ -130,7 +130,11 @@ contract CoveragePool is Ownable {
     ///         pool. This is the time that needs to pass between initiating and
     ///         completing the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalDelayUpdate after the required
-    ///         governance delay passes.
+    ///         governance delay passes. It is up to the governance to
+    ///         decide what the withdrawal delay value should be but it should
+    ///         be long enough so that the possibility of having free-riding
+    ///         underwriters escaping from a potential coverage claim by
+    ///         withdrawing their positions from the pool is negligible.
     /// @param newWithdrawalDelay The new value of withdrawal delay
     function beginWithdrawalDelayUpdate(uint256 newWithdrawalDelay)
         external
@@ -152,7 +156,13 @@ contract CoveragePool is Ownable {
     ///         underwriter has - after the withdrawal delay passed - to
     ///         complete the withdrawal. The change needs to be finalized with
     ///         a call to finalizeWithdrawalTimeoutUpdate after the required
-    ///         governance delay passes.
+    ///         governance delay passes. It is up to the governance to
+    ///         decide what the withdrawal timeout value should be but it should
+    ///         be short enough so that the time of free-riding by being able to
+    ///         immediately escape from the claim is minimal and long enough so
+    ///         that honest underwriters have a possibility to finalize the
+    ///         withdrawal. It is all about the right proportions with
+    ///         a relation to withdrawal delay value.
     /// @param  newWithdrawalTimeout The new value of the withdrawal timeout
     function beginWithdrawalTimeoutUpdate(uint256 newWithdrawalTimeout)
         external
@@ -219,27 +229,6 @@ contract CoveragePool is Ownable {
                 riskManagerApprovalTimestamps[riskManager],
                 assetPool.withdrawalGovernanceDelay()
             );
-    }
-
-    /// @notice Calculates the amount of COV tokens for a grant. COV tokens are
-    ///         granted as reward for the notifier reporting about deposit
-    ///         liquidation start or deposit being liquidated outside of the
-    ///         coverage pool. The exact amount of COV grant is set by the
-    ///         governance and can be either a fixed amount or a percentage
-    ///         of the total COV supply. This function is used in the latter
-    ///         case.
-    /// @param portionToGrant Portion to grant in the range [0, 1] multiplied
-    ///        by FLOATING_POINT_DIVISOR.
-    function covAmountToGrant(uint256 portionToGrant)
-        external
-        view
-        returns (uint256)
-    {
-        uint256 covTotalSupply = assetPool.underwriterToken().totalSupply();
-
-        return
-            (portionToGrant * covTotalSupply) /
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
     /// @notice Calculates amount of tokens to be seized from the coverage pool.
