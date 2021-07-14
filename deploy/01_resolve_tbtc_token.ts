@@ -2,13 +2,13 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
+  const { getNamedAccounts, deployments, helpers } = hre
   const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
   const TBTCToken = await deployments.getOrNull("TBTCToken")
 
-  if (TBTCToken) {
+  if (TBTCToken && helpers.address.isValid(TBTCToken.address)) {
     log(`using external TBTCToken at ${TBTCToken.address}`)
   } else if (hre.network.name !== "hardhat") {
     throw new Error("deployed TBTCToken contract not found")
