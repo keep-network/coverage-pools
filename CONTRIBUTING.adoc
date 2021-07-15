@@ -81,7 +81,7 @@ file:
 
 Keep in mind that solc version should be the same as the version used internally
 by Hardhat (`solidity.version` property defined in
-https://github.com/keep-network/coverage-pools/blob/main/hardhat.config.js[`hardhat.config.js`]).
+https://github.com/keep-network/coverage-pools/blob/main/hardhat.config.ts[`hardhat.config.ts`]).
 This way Slither will use the same version as used during the contract
 compilation process and avoid errors while performing the analysis.
 
