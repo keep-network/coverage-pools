@@ -1,20 +1,25 @@
-module.exports = async ({ getNamedAccounts, deployments }) => {
-  const { deploy, getArtifact, log, save } = deployments
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+  const { getNamedAccounts, deployments, ethers, helpers } = hre
+  const { read, log } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
   const KeepToken = await deployments.get("KeepToken")
   const UnderwriterToken = await deployments.get("UnderwriterToken")
 
-  const RewardsPool = await getArtifact("RewardsPool")
+  const RewardsPool = await deployments.getArtifact("RewardsPool")
 
-  const AssetPool = await deploy("AssetPool", {
+  const AssetPool = await deployments.deploy("AssetPool", {
     from: deployer,
     args: [KeepToken.address, UnderwriterToken.address, rewardManager],
     log: true,
   })
 
-  const assetPool = await ethers.getContractAt("AssetPool", AssetPool.address)
-  const rewardsPoolAddress = await assetPool.rewardsPool()
+  const rewardsPoolAddress = helpers.address.validate(
+    await read("AssetPool", "rewardsPool")
+  )
 
   // The`RewardsPool` contract is created in the `AssetPool` constructor so
   // we create an artifact for it.
@@ -33,8 +38,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     `RewardsPool was deployed at ${rewardsPoolAddress} in the same transaction as AssetPool`
   )
 
-  await save("RewardsPool", rewardsPoolDeploymentArtifact)
+  await deployments.save("RewardsPool", rewardsPoolDeploymentArtifact)
 }
 
-module.exports.tags = ["AssetPool"]
-module.exports.dependencies = ["KeepToken", "UnderwriterToken"]
+export default func
+
+func.tags = ["AssetPool"]
+func.dependencies = ["KeepToken", "UnderwriterToken"]

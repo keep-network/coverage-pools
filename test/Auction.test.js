@@ -309,9 +309,8 @@ describe("Auction", () => {
           auctionAmountDesired
         )
 
-        const expectedBalanceBidder2 = exceededOfferAmount.sub(
-          outstandingAmount
-        )
+        const expectedBalanceBidder2 =
+          exceededOfferAmount.sub(outstandingAmount)
         expect(await testToken.balanceOf(bidder2.address)).to.be.equal(
           expectedBalanceBidder2
         )

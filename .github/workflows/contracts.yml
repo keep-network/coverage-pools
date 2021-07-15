@@ -8,16 +8,16 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment for workflow execution'
+        description: "Environment for workflow execution"
         required: false
-        default: 'dev'
+        default: "dev"
       upstream_builds:
-        description: 'Upstream builds'
+        description: "Upstream builds"
         required: false
       upstream_ref:
-        description: 'Git reference to checkout (e.g. branch name)'
+        description: "Git reference to checkout (e.g. branch name)"
         required: false
-        default: 'main'
+        default: "main"
 
 jobs:
   contracts-build-and-test:
@@ -60,7 +60,7 @@ jobs:
       - name: Deploy contracts
         run: yarn deploy
 
-  contracts-deployment: # TODO: choose better name; consider merging with previous job
+  contracts-deployment-testnet:
     needs: [contracts-build-and-test]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -92,15 +92,12 @@ jobs:
       - name: Resolve latest contracts
         if: github.event_name == 'workflow_dispatch'
         run: |
-            yarn add \
-              @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
-              @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+          yarn add \
+            @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
+            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
-      - name: Deploy contracts # Do we need to pass any `env`s?
-        run: yarn deploy --network ${{ env.TRUFFLE_NETWORK }}
-
-      # Where will the deployed contracts be placed? Do we need to copy them
-      # somewhere (like we did with `artifacts` in other projects)?
+      - name: Deploy contracts
+        run: yarn deploy --network ${{ github.event.inputs.environment }}
 
       - name: Bump up package version
         id: npm-version-bump
@@ -173,7 +170,7 @@ jobs:
 
       - name: Install Solidity
         env:
-          SOLC_VERSION: 0.7.6 # according to solidity.version in hardhat.config.js
+          SOLC_VERSION: 0.8.4 # according to solidity.version in hardhat.config.ts
         run: |
           pip3 install solc-select
           solc-select install $SOLC_VERSION
