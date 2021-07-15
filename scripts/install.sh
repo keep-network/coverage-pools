@@ -22,7 +22,7 @@ help() {
 
   echo -e "\nCommand line arguments:\n"
   echo -e "\t--network: Ethereum network." \
-    "Available networks and settings are specified in 'hardhat.config.js'"
+    "Available networks and settings are specified in 'hardhat.config.ts'"
   exit 1 # Exit script after printing help
 }
 
