@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config"
 
+// TODO: Output deployment artifacts to `./artifacts` directory (copy from ./deployments/<network> to ./artifacts)
 import "@keep-network/hardhat-helpers"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
@@ -35,6 +36,7 @@ const config: HardhatUserConfig = {
     development: {
       url: "http://localhost:8545",
       tags: ["local"],
+      chainId: 1101,
     },
   },
   external: {
