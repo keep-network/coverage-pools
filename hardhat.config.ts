@@ -1,6 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config"
 
-// TODO: Output deployment artifacts to `./artifacts` directory (copy from ./deployments/<network> to ./artifacts)
 import "@keep-network/hardhat-helpers"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
