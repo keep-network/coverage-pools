@@ -3,7 +3,6 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
-  const { read, execute, log } = deployments
   const { deployer } = await getNamedAccounts()
 
   const AssetPool = await deployments.get("AssetPool")
@@ -14,37 +13,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  if (
-    helpers.address.equal(
-      await read("AssetPool", "owner"),
-      CoveragePool.address
-    )
-  ) {
-    log(`transferring ownership of AssetPool to ${CoveragePool.address}`)
-
-    await execute(
+  await helpers.ownable.transferOwnership(
       "AssetPool",
-      { from: deployer },
-      "transferOwnership",
-      CoveragePool.address
+    CoveragePool.address,
+    deployer
     )
-  }
 
-  if (
-    helpers.address.equal(
-      await read("UnderwriterToken", "owner"),
-      AssetPool.address
-    )
-  ) {
-    log(`transferring ownership of UnderwriterToken to ${AssetPool.address}`)
-
-    await execute(
+  await helpers.ownable.transferOwnership(
       "UnderwriterToken",
-      { from: deployer },
-      "transferOwnership",
-      AssetPool.address
+    AssetPool.address,
+    deployer
     )
-  }
 }
 
 export default func
