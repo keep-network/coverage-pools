@@ -14,19 +14,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
 
   await helpers.ownable.transferOwnership(
-      "AssetPool",
+    "AssetPool",
     CoveragePool.address,
     deployer
-    )
+  )
 
   await helpers.ownable.transferOwnership(
-      "UnderwriterToken",
+    "UnderwriterToken",
     AssetPool.address,
     deployer
-    )
+  )
 }
 
 export default func
 
 func.tags = ["CoveragePool"]
-func.dependencies = ["AssetPool"]
+func.dependencies = ["AssetPool", "UnderwriterToken"]
