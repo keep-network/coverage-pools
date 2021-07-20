@@ -8,6 +8,8 @@ import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "solidity-coverage"
 
+import { RopstenSecrets, MainnetSecrets } from "./.hardhat/secrets"
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -35,8 +37,20 @@ const config: HardhatUserConfig = {
     },
     development: {
       url: "http://localhost:8545",
-      tags: ["local"],
       chainId: 1101,
+      tags: ["local"],
+    },
+    ropsten: {
+      url: RopstenSecrets.url,
+      chainId: 3,
+      from: RopstenSecrets.address,
+      accounts: [RopstenSecrets.privateKey],
+    },
+    mainnet: {
+      url: MainnetSecrets.url,
+      chainId: 1,
+      from: MainnetSecrets.address,
+      accounts: [MainnetSecrets.privateKey],
     },
   },
   external: {
@@ -67,6 +81,8 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 0, // take the first account as deployer
+      ropsten: RopstenSecrets.address,
+      mainnet: MainnetSecrets.address,
     },
     rewardManager: {
       default: 1,

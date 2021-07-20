@@ -15,3 +15,6 @@ coverage.json
 yarn-error.log
 
 .vscode/
+
+.hardhat/*
+!.hardhat/secrets_TEMPLATE.ts
