@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, ethers, helpers } = hre
+  const { getNamedAccounts, deployments, helpers } = hre
   const { read, log } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
@@ -21,6 +21,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await read("AssetPool", "rewardsPool")
   )
 
+  log(
+    `RewardsPool was deployed at ${rewardsPoolAddress} in the same transaction as AssetPool`
+  )
+
   // The`RewardsPool` contract is created in the `AssetPool` constructor so
   // we create an artifact for it.
   const receipt = AssetPool.receipt
@@ -32,10 +36,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       transactionHash: AssetPool.transactionHash,
     },
     RewardsPool
-  )
-
-  log(
-    `RewardsPool was deployed at ${rewardsPoolAddress} in the same transaction as AssetPool`
   )
 
   await deployments.save("RewardsPool", rewardsPoolDeploymentArtifact)
