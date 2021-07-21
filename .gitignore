@@ -17,4 +17,4 @@ yarn-error.log
 .vscode/
 
 .hardhat/*
-!.hardhat/secrets_TEMPLATE.ts
+!.hardhat/networks_TEMPLATE.ts

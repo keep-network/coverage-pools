@@ -1,13 +1,12 @@
 import { HardhatUserConfig } from "hardhat/config"
 
 import "@keep-network/hardhat-helpers"
+import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "solidity-coverage"
-
-import { RopstenSecrets, MainnetSecrets } from "./.hardhat/secrets"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -39,19 +38,9 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
-    ropsten: {
-      url: RopstenSecrets.url,
-      chainId: 3,
-      from: RopstenSecrets.address,
-      accounts: [RopstenSecrets.privateKey],
-    },
-    mainnet: {
-      url: MainnetSecrets.url,
-      chainId: 1,
-      from: MainnetSecrets.address,
-      accounts: [MainnetSecrets.privateKey],
-    },
   },
+  // // Define local networks configuration file path to load networks from the file.
+  // localNetworksConfig: "./.hardhat/networks.ts",
   external: {
     contracts: [
       {
@@ -81,8 +70,6 @@ const config: HardhatUserConfig = {
   namedAccounts: {
     deployer: {
       default: 0, // take the first account as deployer
-      ropsten: RopstenSecrets.address,
-      mainnet: MainnetSecrets.address,
     },
     rewardManager: {
       default: 1,
