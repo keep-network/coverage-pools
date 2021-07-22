@@ -80,7 +80,7 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
-      mainnet: "0xB3726E69Da808A689F2607939a2D9E958724FC2A", // Technical Wallet // TODO: Technical wallet or rewards manager?
+      mainnet: 0, // use deployer account
     },
     keepCommunityMultiSig: {
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
