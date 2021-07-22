@@ -80,6 +80,7 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
+      ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     keepCommunityMultiSig: {
