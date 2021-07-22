@@ -36,13 +36,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["MasterAuction"]
-func.dependencies = [
-  "KeepToken",
-  "BatchedPhasedEscrow",
-  "AssetPool",
-  "CoveragePoolBeneficiary",
-]
+func.tags = ["CoveragePoolBeneficiary"]
+func.dependencies = ["KeepToken", "AssetPool"]
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   return hre.network.name !== "mainnet"
 }
