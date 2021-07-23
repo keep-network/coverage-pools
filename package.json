@@ -2,10 +2,11 @@
   "name": "@keep-network/coverage-pools",
   "version": "0.0.1",
   "files": [
+    "artifacts/",
+    "build/contracts/",
     "contracts/",
-    "!contracts/test/",
+    "!**/test/",
     "deploy/",
-    "deployments/",
     "export.json"
   ],
   "scripts": {
