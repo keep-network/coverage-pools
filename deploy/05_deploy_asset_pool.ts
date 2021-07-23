@@ -39,6 +39,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
 
   await deployments.save("RewardsPool", rewardsPoolDeploymentArtifact)
+
+  await helpers.ownable.transferOwnership(
+    "UnderwriterToken",
+    AssetPool.address,
+    deployer
+  )
 }
 
 export default func
