@@ -11,7 +11,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const CoveragePool = await deployments.get("CoveragePool")
   const SignerBondsManualSwap = await deployments.get("SignerBondsManualSwap")
   const SignerBondsUniswapV2 = await deployments.get("SignerBondsUniswapV2")
-  const MasterAuction = await deployments.get("MasterAuction")
+  const MasterAuction = await deployments.get("Auction")
 
   const auctionLength: number = 604800 // 7 days in seconds
   const bondAuctionThreshold: number = 100 // percentage
@@ -61,5 +61,5 @@ func.dependencies = [
   "CoveragePool",
   "SignerBondsManualSwap",
   "SignerBondsUniswapV2",
-  "MasterAuction",
+  "Auction",
 ]
