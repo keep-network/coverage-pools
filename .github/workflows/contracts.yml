@@ -90,7 +90,6 @@ jobs:
             tbtc-solidity-version = github.com/keep-network/tbtc/solidity#version
 
       - name: Resolve latest contracts
-        if: github.event_name == 'workflow_dispatch'
         run: |
           yarn add \
             @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-solidity-version }} \
