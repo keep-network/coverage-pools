@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity <0.9.0;
+pragma solidity 0.8.4;
 
 library GovernanceUtils {
     /// @notice Gets the time remaining until the governable parameter update

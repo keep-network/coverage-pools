@@ -55,11 +55,11 @@ printf "${LOG_START}Network: $NETWORK ${LOG_END}"
 # Run script.
 printf "${LOG_START}Starting installation...${LOG_END}"
 
-printf "${LOG_START}Linking local dependencies...${LOG_END}"
-yarn link @keep-network/keep-core @keep-network/tbtc
-
 printf "${LOG_START}Installing dependencies...${LOG_END}"
 yarn install
+
+printf "${LOG_START}Linking local dependencies...${LOG_END}"
+yarn link @keep-network/keep-core @keep-network/tbtc
 
 printf "${LOG_START}Migrating contracts...${LOG_END}"
 INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
