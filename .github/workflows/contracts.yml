@@ -122,7 +122,7 @@ jobs:
       - name: Publish to npm
         run: | #TODO: remove `--dry-run` before merging
           echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
-          npm publish --access=public --dry-run
+          npm publish --access=public --network ${{ github.event.inputs.environment }} --dry-run
 
       - name: Notify CI about completion of the workflow
         uses: keep-network/notify-workflow-completed@v1
