@@ -11,14 +11,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const CoveragePool = await deployments.get("CoveragePool")
   const SignerBondsManualSwap = await deployments.get("SignerBondsManualSwap")
   const SignerBondsUniswapV2 = await deployments.get("SignerBondsUniswapV2")
-  const MasterAuction = await deployments.get("MasterAuction")
+  const MasterAuction = await deployments.get("Auction")
 
-  const auctionLength: number = 86400 // 24 hours in seconds
+  const auctionLength: number = 604800 // 7 days in seconds
   const bondAuctionThreshold: number = 100 // percentage
-  const initialSwapStrategy: string =
-    process.env.INITIAL_SWAP_STRATEGY || "SignerBondsManualSwap"
 
-  log(`using ${initialSwapStrategy} as initial risk manager's swap strategy`)
+  let initialSwapStrategy: string = process.env.INITIAL_SWAP_STRATEGY
+  if (!initialSwapStrategy) {
+    initialSwapStrategy =
+      hre.network.name === "mainnet"
+        ? "SignerBondsUniswapV2"
+        : "SignerBondsManualSwap"
+  }
 
   const signerBondStrategy = { SignerBondsManualSwap, SignerBondsUniswapV2 }[
     initialSwapStrategy
@@ -27,6 +31,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (!signerBondStrategy) {
     throw new Error(`signer bond strategy not found: ${initialSwapStrategy}`)
   }
+
+  log(
+    `using ${initialSwapStrategy} (${signerBondStrategy.address}) ` +
+      `as initial risk manager's swap strategy`
+  )
 
   await deployments.deploy("RiskManagerV1", {
     from: deployer,
@@ -52,5 +61,5 @@ func.dependencies = [
   "CoveragePool",
   "SignerBondsManualSwap",
   "SignerBondsUniswapV2",
-  "MasterAuction",
+  "Auction",
 ]
