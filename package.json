@@ -17,7 +17,7 @@
     "lint:fix": "npm run lint:fix:js && npm run lint:fix:sol",
     "lint:fix:js": "eslint . --fix",
     "lint:fix:sol": "solhint 'contracts/**/*.sol' --fix",
-    "lint:js": "eslint . ",
+    "lint:js": "eslint .",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
@@ -29,7 +29,8 @@
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
-    "@keep-network/hardhat-helpers": "github:keep-network/hardhat-helpers#v0.1.0",
+    "@keep-network/hardhat-helpers": "^0.2.0-pre",
+    "@keep-network/hardhat-local-networks-config": "0.1.0-pre.0",
     "@keep-network/prettier-config-keep": "github:keep-network/prettier-config-keep#d6ec02e",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
@@ -42,7 +43,7 @@
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.0.32",
     "hardhat": "^2.1.1",
-    "hardhat-deploy": "^0.8.6",
+    "hardhat-deploy": "^0.8.11",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.3.2",
     "prettier-plugin-sh": "^0.7.1",

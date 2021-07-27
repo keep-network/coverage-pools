@@ -1,7 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config"
 
-// TODO: Output deployment artifacts to `./artifacts` directory (copy from ./deployments/<network> to ./artifacts)
 import "@keep-network/hardhat-helpers"
+import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
@@ -35,10 +35,19 @@ const config: HardhatUserConfig = {
     },
     development: {
       url: "http://localhost:8545",
-      tags: ["local"],
       chainId: 1101,
+      tags: ["local"],
+    },
+    ropsten: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 3,
+      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
+        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+        : undefined,
     },
   },
+  // // Define local networks configuration file path to load networks from the file.
+  // localNetworksConfig: "./.hardhat/networks.ts",
   external: {
     contracts: [
       {
@@ -62,6 +71,7 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/tbtc/artifacts",
         "./external/ropsten",
       ],
+      mainnet: ["./external/mainnet"],
     },
   },
   namedAccounts: {
@@ -70,6 +80,11 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
+      ropsten: 0, // use deployer account
+      mainnet: 0, // use deployer account
+    },
+    keepCommunityMultiSig: {
+      mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
   },
   mocha: {
