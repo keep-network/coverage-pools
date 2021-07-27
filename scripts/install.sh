@@ -50,7 +50,7 @@ shift $(expr $OPTIND - 1) # remove options from positional parameters
 # Overwrite default properties
 NETWORK=${network:-$NETWORK_DEFAULT}
 
-printf "${LOG_START}Network: $NETWORK ${LOG_END}"
+printf "${LOG_START}Network: $NETWORK${LOG_END}"
 
 # Run script.
 printf "${LOG_START}Starting installation...${LOG_END}"
@@ -65,7 +65,7 @@ printf "${LOG_START}Migrating contracts...${LOG_END}"
 INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
   yarn deploy --reset --network $NETWORK
 
-printf "${LOG_START}Creating links...${LOG_END}"
-ln -sf "deployments/${NETWORK}" artifacts
+printf "${LOG_START}Preparing deployment artifacts...${LOG_END}"
+./prepare-artifacts.sh --network $NETWORK
 
 printf "${DONE_START}Installation completed!${DONE_END}"
