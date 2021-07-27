@@ -5,13 +5,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
   const { deployer } = await getNamedAccounts()
 
-  await deployments.deploy("UnderwriterToken", {
+  const CoveragePool = await deployments.get("CoveragePool")
+
+  await deployments.deploy("AuctionBidder", {
     from: deployer,
-    args: ["covKEEP underwriter token", "covKEEP"],
+    args: [CoveragePool.address],
     log: true,
   })
 }
 
 export default func
 
-func.tags = ["UnderwriterToken"]
+func.tags = ["AuctionBidder"]
+func.dependencies = ["CoveragePool"]
