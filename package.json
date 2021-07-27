@@ -2,10 +2,11 @@
   "name": "@keep-network/coverage-pools",
   "version": "0.0.1",
   "files": [
+    "artifacts/",
+    "build/contracts/",
     "contracts/",
-    "!contracts/test/",
+    "!**/test/",
     "deploy/",
-    "deployments/",
     "export.json"
   ],
   "scripts": {
@@ -21,7 +22,8 @@
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "test": "hardhat test",
     "test:system": "NODE_ENV=system-test hardhat test ./test/system/*.test.js",
-    "test:unit:coverage": "hardhat coverage"
+    "test:unit:coverage": "hardhat coverage",
+    "prepublishOnly": "./scripts/prepare-artifacts.sh --network $npm_config_network"
   },
   "dependencies": {
     "@keep-network/keep-core": ">1.8.0-dev <1.8.0-pre",

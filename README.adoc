@@ -87,7 +87,7 @@ Once packages are installed, you can build the smart contracts using:
 ```
 yarn build
 ```
-Compiled contracts will land in the `artifacts` directory.
+Compiled contracts will land in the `build/` directory.
 
 === Test contracts
 
@@ -114,6 +114,12 @@ deployment info will be created. It can be directly used by dApps or other clien
 code as it contains deployment details like chain ID, transaction hash, ABI or
 address for each contract.
 
+The `deployments/` directory contains a separate sub-directory for each network, e.g.
+`deployments/ropsten/`, `deployments/mainnet/`. For a convenient usage of the
+package we publish the deployment artifacts in a separate package for every
+network. The package contains deployment artifacts under `artifacts/` directory,
+which is a a copy of `deployments/<network>/` directory.
+
 ===== Export mode
 
 Apart from deployments saved in the `deployments/` folder the details will be also
@@ -128,6 +134,35 @@ dApps supporting multiple networks at once.
 
 For more details see `hardhat-deploy` plugin https://github.com/wighawag/hardhat-deploy#exporting-deployments[documentation].
 
+==== Published package structure
+
+Deployed contracts are packaged and published to the NPM registry. 
+
+Separate packages for every network are created according to the rules described in
+https://github.com/keep-network/keep-core/blob/main/docs/rfc/rfc-18-release-management.adoc[RFC-18].
+
+A package follows a directory structure described in the <<package-structure-table, table>>.
+
+.Published package structure
+[[package-structure-table]]
+[%autowidth,cols="1,3"]
+|===
+|Path|Description
+
+|`artifacts/`
+|Deployment artifacts for the given network, see <<Deployment artifacts>>
+
+|`build/contracts/`
+|Compiled contracts artifacts, see <<Build contracts>>
+
+|`contracts/`
+|Contracts source code
+
+|`export.json`
+|Single-file deployment export, see <<Export mode>>
+|===
+
+
 ==== Deployment parametrization
 
 The deployment scripts parametrization is handled by environment variables.
@@ -137,6 +172,7 @@ Following parameters are supported:
 [cols="1,2,1"]
 |===
 |Variable|Description|Default
+
 |`INITIAL_SWAP_STRATEGY`
 |Initial swap strategy which will be used by the risk manager.
 This should be the name of one of the `ISignerBondsSwapStrategy` implementations.
