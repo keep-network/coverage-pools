@@ -14,8 +14,8 @@
 
 pragma solidity 0.8.4;
 
-import "./interfaces/IUnderwriterToken.sol";
-import "./ERC20WithPermit.sol";
+import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
+
 import "./AssetPool.sol";
 
 /// @title  UnderwriterToken
@@ -29,7 +29,7 @@ import "./AssetPool.sol";
 ///         Anyone can submit this signature on the user's behalf by calling the
 ///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
-contract UnderwriterToken is ERC20WithPermit, IUnderwriterToken {
+contract UnderwriterToken is ERC20WithPermit {
     constructor(string memory _name, string memory _symbol)
         ERC20WithPermit(_name, _symbol)
     {}
