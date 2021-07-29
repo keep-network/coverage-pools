@@ -65,7 +65,7 @@ yarn link @keep-network/keep-core @keep-network/tbtc
 
 printf "${LOG_START}Migrating contracts...${LOG_END}"
 INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
-  yarn deploy --reset --network $NETWORK
+  yarn deploy --network $NETWORK
 
 printf "${LOG_START}Preparing deployment artifacts...${LOG_END}"
 ./prepare-artifacts.sh --network $NETWORK
