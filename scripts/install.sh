@@ -68,6 +68,6 @@ INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
   yarn deploy --network $NETWORK
 
 printf "${LOG_START}Preparing deployment artifacts...${LOG_END}"
-./prepare-artifacts.sh --network $NETWORK
+./scripts/prepare-artifacts.sh --network $NETWORK
 
 printf "${DONE_START}Installation completed!${DONE_END}"
