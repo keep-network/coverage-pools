@@ -6,11 +6,11 @@ LOG_END='\n\e[0m'       # new line + reset
 DONE_START='\n\e[1;32m' # new line + bold + green
 DONE_END='\n\n\e[0m'    # new line + reset
 
-COVERAGE_POOL_PATH=$(realpath $(dirname $0)/../)
-
 # Defaults, can be overwritten by env variables/input parameters
 NETWORK_DEFAULT="development"
 INITIAL_SWAP_STRATEGY=${INITIAL_SWAP_STRATEGY:-""}
+
+ROOT_DIR="$(realpath "$(dirname $0)"/../)"
 
 help() {
   echo -e "\nUsage: ENV_VAR(S) $0" \
@@ -55,6 +55,8 @@ printf "${LOG_START}Network: $NETWORK${LOG_END}"
 # Run script.
 printf "${LOG_START}Starting installation...${LOG_END}"
 
+cd "$ROOT_DIR"
+
 printf "${LOG_START}Installing dependencies...${LOG_END}"
 yarn install
 
@@ -63,9 +65,9 @@ yarn link @keep-network/keep-core @keep-network/tbtc
 
 printf "${LOG_START}Migrating contracts...${LOG_END}"
 INITIAL_SWAP_STRATEGY=$INITIAL_SWAP_STRATEGY \
-  yarn deploy --reset --network $NETWORK
+  yarn deploy --network $NETWORK
 
 printf "${LOG_START}Preparing deployment artifacts...${LOG_END}"
-./prepare-artifacts.sh --network $NETWORK
+./scripts/prepare-artifacts.sh --network $NETWORK
 
 printf "${DONE_START}Installation completed!${DONE_END}"
