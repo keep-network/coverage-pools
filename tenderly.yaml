@@ -4,4 +4,5 @@ projects:
     networks:
       - "1" # mainnet
   thesis/keep-test:
-    - "3" # ropsten
+    networks:
+      - "3" # ropsten
