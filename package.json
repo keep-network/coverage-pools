@@ -1,6 +1,6 @@
 {
   "name": "@keep-network/coverage-pools",
-  "version": "0.0.1",
+  "version": "0.0.1-dev",
   "files": [
     "artifacts/",
     "build/contracts/",
