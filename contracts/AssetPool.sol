@@ -65,6 +65,12 @@ contract AssetPool is Ownable, IAssetPool {
     mapping(address => uint256) public withdrawalInitiatedTimestamp;
     mapping(address => uint256) public pendingWithdrawal;
 
+    event Deposited(
+        address indexed underwrtier,
+        uint256 amount,
+        uint256 covAmount
+    );
+
     event CoverageClaimed(address recipient, uint256 amount, uint256 timestamp);
 
     event WithdrawalInitiated(
@@ -543,6 +549,8 @@ contract AssetPool is Ownable, IAssetPool {
             amountToMint > 0,
             "Minted tokens amount must be greater than 0"
         );
+
+        emit Deposited(depositor, amountToDeposit, amountToMint);
 
         underwriterToken.mint(depositor, amountToMint);
         collateralToken.safeTransferFrom(

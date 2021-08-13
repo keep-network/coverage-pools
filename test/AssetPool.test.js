@@ -4,6 +4,7 @@ const {
   increaseTime,
   lastBlockTime,
   to1ePrecision,
+  pastEvents,
 } = require("./helpers/contract-test-helpers")
 
 describe("AssetPool", () => {
@@ -95,9 +96,16 @@ describe("AssetPool", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(300)
 
+      let tx1
+      let tx2
+
       beforeEach(async () => {
-        await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        tx1 = await assetPool
+          .connect(underwriter1)
+          .deposit(depositedUnderwriter1)
+        tx2 = await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2)
       })
 
       it("should transfer deposited amount to the pool", async () => {
@@ -114,6 +122,23 @@ describe("AssetPool", () => {
         ).to.be.equal(
           underwriterInitialCollateralBalance.sub(depositedUnderwriter2)
         )
+      })
+
+      it("should emit Deposited event", async () => {
+        await expect(tx1)
+          .to.emit(assetPool, "Deposited")
+          .withArgs(
+            underwriter1.address,
+            depositedUnderwriter1,
+            depositedUnderwriter1
+          )
+        await expect(tx2)
+          .to.emit(assetPool, "Deposited")
+          .withArgs(
+            underwriter2.address,
+            depositedUnderwriter2,
+            depositedUnderwriter2
+          )
       })
     })
 
@@ -169,11 +194,15 @@ describe("AssetPool", () => {
       const depositedUnderwriter3 = to1e18(100)
       const claim = to1e18(25)
 
+      let tx
+
       beforeEach(async () => {
         await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
         await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
         await assetPool.connect(coveragePool).claim(coveragePool.address, claim)
-        await assetPool.connect(underwriter3).deposit(depositedUnderwriter3)
+        tx = await assetPool
+          .connect(underwriter3)
+          .deposit(depositedUnderwriter3)
       })
 
       it("should mint the right amount of underwriter tokens", async () => {
@@ -187,6 +216,12 @@ describe("AssetPool", () => {
           to1e18(120) // 100 * 150 / 125 = 120 COV minted
         )
       })
+
+      it("should emit Deposited event with correct covAmount", async () => {
+        await expect(tx)
+          .to.emit(assetPool, "Deposited")
+          .withArgs(underwriter3.address, depositedUnderwriter3, to1e18(120))
+      })
     })
 
     context("when rewards were allocated", () => {
@@ -194,6 +229,8 @@ describe("AssetPool", () => {
       const depositedUnderwriter2 = to1e18(50)
 
       const allocatedReward = to1e18(70)
+
+      let tx
 
       beforeEach(async () => {
         await collateralToken
@@ -203,7 +240,9 @@ describe("AssetPool", () => {
 
         await assetPool.connect(underwriter1).deposit(depositedUnderwriter1)
         await increaseTime(86400) // +1 day
-        await assetPool.connect(underwriter2).deposit(depositedUnderwriter2)
+        tx = await assetPool
+          .connect(underwriter2)
+          .deposit(depositedUnderwriter2)
       })
 
       it("should transfer released rewards to asset pool", async () => {
@@ -223,6 +262,17 @@ describe("AssetPool", () => {
         expect(
           await underwriterToken.balanceOf(underwriter2.address)
         ).to.be.closeTo("45454545454545454545", assertionPrecision)
+      })
+
+      it("should emit Deposited event with correct covAmount", async () => {
+        const events = pastEvents(await tx.wait(), assetPool, "Deposited")
+        expect(events.length).to.equal(1)
+        expect(events[0].args["underwrtier"]).to.equal(underwriter2.address)
+        expect(events[0].args["amount"]).to.equal(depositedUnderwriter2)
+        expect(events[0].args["covAmount"]).to.be.closeTo(
+          "45454545454545454545",
+          assertionPrecision
+        )
       })
     })
 
