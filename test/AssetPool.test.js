@@ -541,9 +541,12 @@ describe("AssetPool", () => {
 
     context("when underwriter has not enough underwriter tokens", () => {
       it("should revert", async () => {
+        await underwriterToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount.add(1))
         await expect(
           assetPool.connect(underwriter1).initiateWithdrawal(amount.add(1))
-        ).to.be.revertedWith("Underwriter token amount exceeds balance")
+        ).to.be.revertedWith("Transfer amount exceeds balance")
       })
     })
 
@@ -1257,9 +1260,7 @@ describe("AssetPool", () => {
           assetPool
             .connect(underwriter1)
             .upgradeToNewAssetPool(amountToUpgrade, newAssetPool.address)
-        ).to.be.revertedWith(
-          "Underwriter token amount exceeds available balance"
-        )
+        ).to.be.revertedWith("Burn amount exceeds allowance")
       })
     })
 
