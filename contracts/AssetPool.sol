@@ -135,8 +135,8 @@ contract AssetPool is Ownable, IAssetPool {
     ///         mints underwriter tokens representing pool's ownership.
     ///         Optional data in extraData may include a minimal amount of
     ///         underwriter tokens expected to be minted for a depositor. There
-    ///         cases when an amount of minted tokens matters for a depositor, ex
-    ///         tokens might be used in third party exchanges.
+    ///         are cases when an amount of minted tokens matters for a
+    ///         depositor, as tokens might be used in third party exchanges.
     /// @dev This function is a shortcut for approve + deposit.
     function receiveApproval(
         address from,
