@@ -173,10 +173,15 @@ contract AssetPool is Ownable, IAssetPool {
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
     ///                        the asset pool
-    function deposit(uint256 amountToDeposit) external override {
+    /// @return The amount of minted underwriter tokens
+    function deposit(uint256 amountToDeposit)
+        external
+        override
+        returns (uint256)
+    {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
-
         _deposit(msg.sender, amountToDeposit, toMint);
+        return toMint;
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
@@ -189,9 +194,11 @@ contract AssetPool is Ownable, IAssetPool {
     /// @param minAmountToMint Underwriter minimal tokens amount that a user
     ///                        expects to receive in exchange for the deposited
     ///                        collateral tokens
+    /// @return The amount of minted underwriter tokens
     function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
         external
         override
+        returns (uint256)
     {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
@@ -201,6 +208,7 @@ contract AssetPool is Ownable, IAssetPool {
         );
 
         _deposit(msg.sender, amountToDeposit, toMint);
+        return toMint;
     }
 
     /// @notice Initiates the withdrawal of collateral and rewards from the

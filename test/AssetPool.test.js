@@ -322,9 +322,10 @@ describe("AssetPool", () => {
       () => {
         const depositedUnderwriter1 = to1e18(100)
         const minCovToMint1 = depositedUnderwriter1
+        let tx
 
         beforeEach(async () => {
-          await assetPool
+          tx = await assetPool
             .connect(underwriter1)
             .depositWithMin(depositedUnderwriter1, minCovToMint1)
         })
@@ -339,6 +340,16 @@ describe("AssetPool", () => {
           expect(
             await underwriterToken.balanceOf(underwriter1.address)
           ).to.equal(to1e18(100))
+        })
+
+        it("should emit Deposited event", async () => {
+          await expect(tx)
+            .to.emit(assetPool, "Deposited")
+            .withArgs(
+              underwriter1.address,
+              depositedUnderwriter1,
+              depositedUnderwriter1
+            )
         })
       }
     )
