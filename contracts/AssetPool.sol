@@ -372,12 +372,9 @@ contract AssetPool is Ownable, IAssetPool {
 
     /// @notice Allows governance to cancel already approved new asset pool
     ///         in case of some misconfiguration.
-    function cancelNewAssetPoolUpgrade()
-        external
-        onlyOwner
-    {
+    function cancelNewAssetPoolUpgrade() external onlyOwner {
         emit CancelledAssetPoolUpgrade(address(newAssetPool));
-        
+
         newAssetPool = IAssetPoolUpgrade(address(0));
     }
 
