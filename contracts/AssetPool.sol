@@ -71,7 +71,7 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 covAmount
     );
 
-    event CoverageClaimed(address recipient, uint256 amount, uint256 timestamp);
+    event CoverageClaimed(address indexed recipient, uint256 amount, uint256 timestamp);
 
     event WithdrawalInitiated(
         address indexed underwriter,
