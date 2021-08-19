@@ -16,8 +16,6 @@ pragma solidity 0.8.4;
 
 import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 
-import "./AssetPool.sol";
-
 /// @title  UnderwriterToken
 /// @notice Underwriter tokens represent an ownership share in the underlying
 ///         collateral of the asset-specific pool. Underwriter tokens are minted

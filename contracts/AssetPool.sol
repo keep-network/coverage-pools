@@ -225,12 +225,6 @@ contract AssetPool is Ownable, IAssetPool {
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     function initiateWithdrawal(uint256 covAmount) external override {
-        uint256 covBalance = underwriterToken.balanceOf(msg.sender);
-        require(
-            covAmount <= covBalance,
-            "Underwriter token amount exceeds balance"
-        );
-
         uint256 pending = pendingWithdrawal[msg.sender];
         require(
             covAmount > 0 || pending > 0,
@@ -329,12 +323,6 @@ contract AssetPool is Ownable, IAssetPool {
             "Underwriter token amount must be greater than 0"
         );
 
-        uint256 covBalance = underwriterToken.balanceOf(msg.sender);
-        require(
-            covAmount <= covBalance,
-            "Underwriter token amount exceeds available balance"
-        );
-
         uint256 covSupply = underwriterToken.totalSupply();
 
         // slither-disable-next-line reentrancy-events
@@ -349,6 +337,9 @@ contract AssetPool is Ownable, IAssetPool {
             address(newAssetPool),
             collateralToTransfer
         );
+        // old underwriter tokens are burned in favor of new minted in a new
+        // asset pool
+        underwriterToken.burnFrom(msg.sender, covAmount);
         // collateralToTransfer will be sent to a new AssetPool and new
         // underwriter tokens will be minted and transferred back to the underwriter
         newAssetPool.depositFor(msg.sender, collateralToTransfer);
@@ -359,10 +350,6 @@ contract AssetPool is Ownable, IAssetPool {
             covAmount,
             block.timestamp
         );
-
-        // old underwriter tokens are burned in favor of new minted in a new
-        // asset pool
-        underwriterToken.burnFrom(msg.sender, covAmount);
     }
 
     /// @notice Allows governance to set a new asset pool so the underwriters
