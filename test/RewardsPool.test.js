@@ -86,7 +86,7 @@ describe("RewardsPool", () => {
         // the entire allowance was spent in beforeEach
         await expect(
           pool.connect(rewardManager).topUpReward(topUpAmount)
-        ).to.be.revertedWith("ERC20: transfer amount exceeds allowance")
+        ).to.be.revertedWith("Transfer amount exceeds allowance")
       })
 
       it("should emit RewardToppedUp event", async () => {
