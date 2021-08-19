@@ -191,6 +191,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///                        collateral tokens
     function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
         external
+        override
     {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
