@@ -86,9 +86,12 @@ describe("AssetPool", () => {
     context("when the depositor has not enough collateral tokens", () => {
       it("should revert", async () => {
         const amount = underwriterInitialCollateralBalance.add(1)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
         await expect(
           assetPool.connect(underwriter1).deposit(amount)
-        ).to.be.revertedWith("ERC20: transfer amount exceeds balance")
+        ).to.be.revertedWith("Transfer amount exceeds balance")
       })
     })
 
