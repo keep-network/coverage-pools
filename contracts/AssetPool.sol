@@ -71,7 +71,11 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 covAmount
     );
 
-    event CoverageClaimed(address recipient, uint256 amount, uint256 timestamp);
+    event CoverageClaimed(
+        address indexed recipient,
+        uint256 amount,
+        uint256 timestamp
+    );
 
     event WithdrawalInitiated(
         address indexed underwriter,
@@ -136,8 +140,8 @@ contract AssetPool is Ownable, IAssetPool {
     ///         mints underwriter tokens representing pool's ownership.
     ///         Optional data in extraData may include a minimal amount of
     ///         underwriter tokens expected to be minted for a depositor. There
-    ///         cases when an amount of minted tokens matters for a depositor, ex
-    ///         tokens might be used in third party exchanges.
+    ///         are cases when an amount of minted tokens matters for a
+    ///         depositor, as tokens might be used in third party exchanges.
     /// @dev This function is a shortcut for approve + deposit.
     function receiveApproval(
         address from,
@@ -170,10 +174,15 @@ contract AssetPool is Ownable, IAssetPool {
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
     ///                        the asset pool
-    function deposit(uint256 amountToDeposit) external override {
+    /// @return The amount of minted underwriter tokens
+    function deposit(uint256 amountToDeposit)
+        external
+        override
+        returns (uint256)
+    {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
-
         _deposit(msg.sender, amountToDeposit, toMint);
+        return toMint;
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
@@ -186,8 +195,11 @@ contract AssetPool is Ownable, IAssetPool {
     /// @param minAmountToMint Underwriter minimal tokens amount that a user
     ///                        expects to receive in exchange for the deposited
     ///                        collateral tokens
+    /// @return The amount of minted underwriter tokens
     function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
         external
+        override
+        returns (uint256)
     {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
@@ -197,6 +209,7 @@ contract AssetPool is Ownable, IAssetPool {
         );
 
         _deposit(msg.sender, amountToDeposit, toMint);
+        return toMint;
     }
 
     /// @notice Initiates the withdrawal of collateral and rewards from the
@@ -213,12 +226,6 @@ contract AssetPool is Ownable, IAssetPool {
     /// @dev Before calling this function, underwriter token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     function initiateWithdrawal(uint256 covAmount) external override {
-        uint256 covBalance = underwriterToken.balanceOf(msg.sender);
-        require(
-            covAmount <= covBalance,
-            "Underwriter token amount exceeds balance"
-        );
-
         uint256 pending = pendingWithdrawal[msg.sender];
         require(
             covAmount > 0 || pending > 0,
@@ -317,12 +324,6 @@ contract AssetPool is Ownable, IAssetPool {
             "Underwriter token amount must be greater than 0"
         );
 
-        uint256 covBalance = underwriterToken.balanceOf(msg.sender);
-        require(
-            covAmount <= covBalance,
-            "Underwriter token amount exceeds available balance"
-        );
-
         uint256 covSupply = underwriterToken.totalSupply();
 
         // slither-disable-next-line reentrancy-events
@@ -337,6 +338,9 @@ contract AssetPool is Ownable, IAssetPool {
             address(newAssetPool),
             collateralToTransfer
         );
+        // old underwriter tokens are burned in favor of new minted in a new
+        // asset pool
+        underwriterToken.burnFrom(msg.sender, covAmount);
         // collateralToTransfer will be sent to a new AssetPool and new
         // underwriter tokens will be minted and transferred back to the underwriter
         newAssetPool.depositFor(msg.sender, collateralToTransfer);
@@ -347,10 +351,6 @@ contract AssetPool is Ownable, IAssetPool {
             covAmount,
             block.timestamp
         );
-
-        // old underwriter tokens are burned in favor of new minted in a new
-        // asset pool
-        underwriterToken.burnFrom(msg.sender, covAmount);
     }
 
     /// @notice Allows governance to set a new asset pool so the underwriters
