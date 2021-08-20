@@ -5,6 +5,7 @@ const {
   lastBlockTime,
   to1ePrecision,
   pastEvents,
+  ZERO_ADDRESS,
 } = require("./helpers/contract-test-helpers")
 
 describe("AssetPool", () => {
@@ -1202,6 +1203,60 @@ describe("AssetPool", () => {
           assetPool
             .connect(thirdParty)
             .approveNewAssetPoolUpgrade(newAssetPool.address)
+        ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+  })
+
+  describe("cancelNewAssetPoolUpgrade", () => {
+    let newAssetPool
+
+    beforeEach(async () => {
+      const NewUnderwriterToken = await ethers.getContractFactory(
+        "UnderwriterToken"
+      )
+      newUnderwriterToken = await NewUnderwriterToken.deploy(
+        "New Underwriter Token",
+        "newCOV"
+      )
+      await newUnderwriterToken.deployed()
+
+      const NewAssetPoolStub = await ethers.getContractFactory(
+        "NewAssetPoolStub"
+      )
+      newAssetPool = await NewAssetPoolStub.deploy(
+        collateralToken.address,
+        newUnderwriterToken.address
+      )
+      await newAssetPool.deployed()
+
+      await assetPool
+        .connect(coveragePool)
+        .approveNewAssetPoolUpgrade(newAssetPool.address)
+    })
+
+    context("when called by the governance", () => {
+      it("should cancel already approved new asset pool", async () => {
+        await assetPool.connect(coveragePool).cancelNewAssetPoolUpgrade()
+
+        expect(await assetPool.newAssetPool()).to.equal(ZERO_ADDRESS)
+      })
+
+      it("should emit CancelledAssetPoolUpgrade event", async () => {
+        const tx = await assetPool
+          .connect(coveragePool)
+          .cancelNewAssetPoolUpgrade()
+
+        expect(tx)
+          .to.emit(assetPool, "CancelledAssetPoolUpgrade")
+          .withArgs(newAssetPool.address)
+      })
+    })
+
+    context("when called not by the governance", () => {
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(thirdParty).cancelNewAssetPoolUpgrade()
         ).to.be.revertedWith("Ownable: caller is not the owner")
       })
     })

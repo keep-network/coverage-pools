@@ -89,6 +89,7 @@ contract AssetPool is Ownable, IAssetPool {
     );
 
     event ApprovedAssetPoolUpgrade(address newAssetPool);
+    event CancelledAssetPoolUpgrade(address cancelledAssetPool);
     event AssetPoolUpgraded(
         address indexed underwriter,
         uint256 collateralAmount,
@@ -367,6 +368,14 @@ contract AssetPool is Ownable, IAssetPool {
         newAssetPool = _newAssetPool;
 
         emit ApprovedAssetPoolUpgrade(address(_newAssetPool));
+    }
+
+    /// @notice Allows governance to cancel already approved new asset pool
+    ///         in case of some misconfiguration.
+    function cancelNewAssetPoolUpgrade() external onlyOwner {
+        emit CancelledAssetPoolUpgrade(address(newAssetPool));
+
+        newAssetPool = IAssetPoolUpgrade(address(0));
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
