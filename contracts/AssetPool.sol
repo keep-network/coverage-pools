@@ -71,7 +71,11 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 covAmount
     );
 
-    event CoverageClaimed(address recipient, uint256 amount, uint256 timestamp);
+    event CoverageClaimed(
+        address indexed recipient,
+        uint256 amount,
+        uint256 timestamp
+    );
 
     event WithdrawalInitiated(
         address indexed underwriter,
@@ -85,6 +89,7 @@ contract AssetPool is Ownable, IAssetPool {
     );
 
     event ApprovedAssetPoolUpgrade(address newAssetPool);
+    event CancelledAssetPoolUpgrade(address cancelledAssetPool);
     event AssetPoolUpgraded(
         address indexed underwriter,
         uint256 collateralAmount,
@@ -135,8 +140,8 @@ contract AssetPool is Ownable, IAssetPool {
     ///         mints underwriter tokens representing pool's ownership.
     ///         Optional data in extraData may include a minimal amount of
     ///         underwriter tokens expected to be minted for a depositor. There
-    ///         cases when an amount of minted tokens matters for a depositor, ex
-    ///         tokens might be used in third party exchanges.
+    ///         are cases when an amount of minted tokens matters for a
+    ///         depositor, as tokens might be used in third party exchanges.
     /// @dev This function is a shortcut for approve + deposit.
     function receiveApproval(
         address from,
@@ -169,10 +174,15 @@ contract AssetPool is Ownable, IAssetPool {
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
     ///                        the asset pool
-    function deposit(uint256 amountToDeposit) external override {
+    /// @return The amount of minted underwriter tokens
+    function deposit(uint256 amountToDeposit)
+        external
+        override
+        returns (uint256)
+    {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
-
         _deposit(msg.sender, amountToDeposit, toMint);
+        return toMint;
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
@@ -185,8 +195,11 @@ contract AssetPool is Ownable, IAssetPool {
     /// @param minAmountToMint Underwriter minimal tokens amount that a user
     ///                        expects to receive in exchange for the deposited
     ///                        collateral tokens
+    /// @return The amount of minted underwriter tokens
     function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
         external
+        override
+        returns (uint256)
     {
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
@@ -196,6 +209,7 @@ contract AssetPool is Ownable, IAssetPool {
         );
 
         _deposit(msg.sender, amountToDeposit, toMint);
+        return toMint;
     }
 
     /// @notice Initiates the withdrawal of collateral and rewards from the
@@ -354,6 +368,14 @@ contract AssetPool is Ownable, IAssetPool {
         newAssetPool = _newAssetPool;
 
         emit ApprovedAssetPoolUpgrade(address(_newAssetPool));
+    }
+
+    /// @notice Allows governance to cancel already approved new asset pool
+    ///         in case of some misconfiguration.
+    function cancelNewAssetPoolUpgrade() external onlyOwner {
+        emit CancelledAssetPoolUpgrade(address(newAssetPool));
+
+        newAssetPool = IAssetPoolUpgrade(address(0));
     }
 
     /// @notice Allows the coverage pool to demand coverage from the asset hold
