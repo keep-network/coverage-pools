@@ -68,11 +68,16 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Begins risk manager approval process.
-    /// @dev Can be called only by the contract owner. For a risk manager to be
+    /// @dev Can be called only by the contract owner and only when the first
+    ///      risk manager is already approved. For a risk manager to be
     ///      approved, a call to `finalizeRiskManagerApproval` must follow
     ///      (after a governance delay).
     /// @param riskManager Risk manager that will be approved
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
+        require(
+            firstRiskManagerApproved,
+            "First risk manager was not approved"
+        );
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
         /* solhint-disable-next-line not-rely-on-time */

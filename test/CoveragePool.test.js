@@ -88,7 +88,7 @@ describe("CoveragePool", () => {
           .be.true
       })
 
-      it("should set first risk manager flag to false", async () => {
+      it("should set first risk manager flag to true", async () => {
         expect(await coveragePool.firstRiskManagerApproved()).to.be.true
       })
     })
@@ -121,9 +121,22 @@ describe("CoveragePool", () => {
       })
     })
 
-    context("when caller is the governance", () => {
+    context("when first risk manager was not approved", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .beginRiskManagerApproval(riskManager.address)
+        ).to.be.revertedWith("First risk manager was not approved")
+      })
+    })
+
+    context("when first risk manager was approved", () => {
       let tx
       beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(anotherRiskManager.address)
         tx = await coveragePool
           .connect(governance)
           .beginRiskManagerApproval(riskManager.address)
@@ -180,6 +193,9 @@ describe("CoveragePool", () => {
 
     context("when approval was initiated", () => {
       beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(anotherRiskManager.address)
         await coveragePool
           .connect(governance)
           .beginRiskManagerApproval(riskManager.address)
@@ -243,14 +259,9 @@ describe("CoveragePool", () => {
 
   describe("unapproveRiskManager", () => {
     beforeEach(async () => {
-      // approve risk manager
       await coveragePool
         .connect(governance)
-        .beginRiskManagerApproval(riskManager.address)
-      await increaseTime(30 * 24 * 3600)
-      await coveragePool
-        .connect(governance)
-        .finalizeRiskManagerApproval(riskManager.address)
+        .approveFirstRiskManager(riskManager.address)
     })
 
     context("when caller is not the governance", () => {
@@ -296,14 +307,9 @@ describe("CoveragePool", () => {
 
     context("when caller is an approved Risk Manager", () => {
       beforeEach(async () => {
-        // approve risk manager
         await coveragePool
           .connect(governance)
-          .beginRiskManagerApproval(riskManager.address)
-        await increaseTime(30 * 24 * 3600)
-        await coveragePool
-          .connect(governance)
-          .finalizeRiskManagerApproval(riskManager.address)
+          .approveFirstRiskManager(riskManager.address)
       })
 
       it("transfers seized funds to recipient account", async () => {
