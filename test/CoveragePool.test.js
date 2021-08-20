@@ -127,47 +127,55 @@ describe("CoveragePool", () => {
           coveragePool
             .connect(governance)
             .beginRiskManagerApproval(riskManager.address)
-        ).to.be.revertedWith("First risk manager was not approved")
+        ).to.be.revertedWith(
+          "The first risk manager is not yet approved; Please use " +
+            "approveFirstRiskManager instead"
+        )
       })
     })
 
-    context("when first risk manager was approved", () => {
-      let tx
-      beforeEach(async () => {
-        await coveragePool
-          .connect(governance)
-          .approveFirstRiskManager(anotherRiskManager.address)
-        tx = await coveragePool
-          .connect(governance)
-          .beginRiskManagerApproval(riskManager.address)
-      })
+    context(
+      "when called by the governance and first risk manager was approved",
+      () => {
+        let tx
+        beforeEach(async () => {
+          await coveragePool
+            .connect(governance)
+            .approveFirstRiskManager(anotherRiskManager.address)
+          tx = await coveragePool
+            .connect(governance)
+            .beginRiskManagerApproval(riskManager.address)
+        })
 
-      it("should not approve risk manager", async () => {
-        expect(await coveragePool.approvedRiskManagers(riskManager.address)).to
-          .be.false
-      })
+        it("should not approve risk manager", async () => {
+          expect(await coveragePool.approvedRiskManagers(riskManager.address))
+            .to.be.false
+        })
 
-      it("should store approval process begin timestamp", async () => {
-        expect(
-          await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
-        ).to.be.above(0)
-      })
+        it("should store approval process begin timestamp", async () => {
+          expect(
+            await coveragePool.riskManagerApprovalTimestamps(
+              riskManager.address
+            )
+          ).to.be.above(0)
+        })
 
-      it("should emit RiskManagerApprovalStarted event", async () => {
-        await expect(tx)
-          .to.emit(coveragePool, "RiskManagerApprovalStarted")
-          .withArgs(riskManager.address, await lastBlockTime())
-      })
+        it("should emit RiskManagerApprovalStarted event", async () => {
+          await expect(tx)
+            .to.emit(coveragePool, "RiskManagerApprovalStarted")
+            .withArgs(riskManager.address, await lastBlockTime())
+        })
 
-      it("should start the governance delay timer", async () => {
-        const governanceDelay = await assetPool.withdrawalGovernanceDelay()
-        expect(
-          await coveragePool.getRemainingRiskManagerApprovalTime(
-            riskManager.address
-          )
-        ).to.be.equal(governanceDelay)
-      })
-    })
+        it("should start the governance delay timer", async () => {
+          const governanceDelay = await assetPool.withdrawalGovernanceDelay()
+          expect(
+            await coveragePool.getRemainingRiskManagerApprovalTime(
+              riskManager.address
+            )
+          ).to.be.equal(governanceDelay)
+        })
+      }
+    )
   })
 
   describe("finalizeRiskManagerApproval", () => {
@@ -281,7 +289,7 @@ describe("CoveragePool", () => {
           .unapproveRiskManager(riskManager.address)
       })
 
-      it("should remove timestamp of risk manager", async () => {
+      it("should remove timestamp of risk manager approval", async () => {
         expect(
           await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
         ).to.be.equal(0)

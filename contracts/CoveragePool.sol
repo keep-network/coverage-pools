@@ -76,8 +76,10 @@ contract CoveragePool is Ownable {
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
         require(
             firstRiskManagerApproved,
-            "First risk manager was not approved"
+            "The first risk manager is not yet approved; Please use "
+            "approveFirstRiskManager instead"
         );
+
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
         /* solhint-disable-next-line not-rely-on-time */
