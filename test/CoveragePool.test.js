@@ -258,12 +258,6 @@ describe("CoveragePool", () => {
   })
 
   describe("unapproveRiskManager", () => {
-    beforeEach(async () => {
-      await coveragePool
-        .connect(governance)
-        .approveFirstRiskManager(riskManager.address)
-    })
-
     context("when caller is not the governance", () => {
       it("should revert", async () => {
         await expect(
@@ -274,10 +268,37 @@ describe("CoveragePool", () => {
       })
     })
 
-    context("when caller is the governance", () => {
-      let tx
-
+    context("when cancelling risk manager approval process", () => {
       beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(anotherRiskManager.address)
+        await coveragePool
+          .connect(governance)
+          .beginRiskManagerApproval(riskManager.address)
+        tx = await coveragePool
+          .connect(governance)
+          .unapproveRiskManager(riskManager.address)
+      })
+
+      it("should remove timestamp of risk manager", async () => {
+        expect(
+          await coveragePool.riskManagerApprovalTimestamps(riskManager.address)
+        ).to.be.equal(0)
+      })
+
+      it("should emit RiskManagerUnapproved event", async () => {
+        await expect(tx)
+          .to.emit(coveragePool, "RiskManagerUnapproved")
+          .withArgs(riskManager.address, await lastBlockTime())
+      })
+    })
+
+    context("when unapproving risk manager", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(riskManager.address)
         tx = await coveragePool
           .connect(governance)
           .unapproveRiskManager(riskManager.address)

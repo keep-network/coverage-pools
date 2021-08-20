@@ -108,13 +108,17 @@ contract CoveragePool is Ownable {
         delete riskManagerApprovalTimestamps[riskManager];
     }
 
-    /// @notice Unapproves the risk manager. The change takes effect immediately.
+    /// @notice Unapproves an already approved risk manager or cancels the
+    ///         approval process of a risk manager (the latter happens if called
+    ///         between `beginRiskManagerApproval` and `finalizeRiskManagerApproval`).
+    ///         The change takes effect immediately.
     /// @dev Can be called only by the contract owner.
     /// @param riskManager Risk manager that will be unapproved
     function unapproveRiskManager(address riskManager) external onlyOwner {
+        delete riskManagerApprovalTimestamps[riskManager];
+        delete approvedRiskManagers[riskManager];
         /* solhint-disable-next-line not-rely-on-time */
         emit RiskManagerUnapproved(riskManager, block.timestamp);
-        delete approvedRiskManagers[riskManager];
     }
 
     /// @notice Approves upgradeability to the new asset pool.
