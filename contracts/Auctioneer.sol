@@ -14,10 +14,10 @@
 
 pragma solidity 0.8.4;
 
-import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CoveragePool.sol";
 
+import "@thesis/solidity-contracts/contracts/clone/CloneFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Auctioneer

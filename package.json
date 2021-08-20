@@ -28,7 +28,7 @@
   "dependencies": {
     "@keep-network/keep-core": ">1.8.0-dev <1.8.0-pre",
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-ropsten",
-    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#bf514ba",
+    "@thesis/solidity-contracts": "github:thesis/solidity-contracts#507c647",
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
