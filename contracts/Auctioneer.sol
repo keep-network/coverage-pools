@@ -118,6 +118,7 @@ contract Auctioneer is CloneFactory {
         uint256 auctionLength
     ) internal returns (address) {
         address cloneAddress = createClone(masterAuction);
+        require(cloneAddress != address(0), "Cloned auction address is 0");
 
         Auction auction = Auction(address(uint160(cloneAddress)));
         //slither-disable-next-line reentrancy-benign,reentrancy-events
