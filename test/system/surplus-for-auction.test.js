@@ -6,6 +6,7 @@ const {
   resetFork,
   to1ePrecision,
   ZERO_ADDRESS,
+  isCodeAt,
 } = require("../helpers/contract-test-helpers")
 const Auction = hre.artifacts.readArtifactSync("Auction")
 const { initContracts } = require("./init-contracts")
@@ -159,7 +160,7 @@ describeFn("System -- buying a deposit with surplus", () => {
     })
 
     it("should early close cov pool auction for deposit2", async () => {
-      expect(await auction.isOpen()).to.be.false
+      expect(await isCodeAt(auction.address)).to.be.false
     })
 
     it("should buy deposit3 with surplus TBTC without opening an auction", async () => {

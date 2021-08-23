@@ -6,6 +6,7 @@ const {
   resetFork,
   ZERO_ADDRESS,
   increaseTime,
+  isCodeAt,
 } = require("../helpers/contract-test-helpers")
 const hre = require("hardhat")
 
@@ -136,7 +137,7 @@ describeFn("System -- liquidation", () => {
     })
 
     it("should close auction", async () => {
-      expect(await auction.isOpen()).to.be.false
+      expect(await isCodeAt(auction.address)).to.be.false
     })
 
     it("should spend bidder's TBTC", async () => {
@@ -180,7 +181,7 @@ describeFn("System -- liquidation", () => {
       await expect(parseInt(tx.gasLimit)).to.be.lessThan(518000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(255000)
+      await expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(400000)
     })
   })
 })
