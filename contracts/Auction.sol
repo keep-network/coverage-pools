@@ -47,18 +47,6 @@ contract Auction is IAuction {
         uint256 startTime;
         uint256 startTimeOffset;
         uint256 auctionLength;
-        // How fast portions of the collateral pool become available on offer.
-        // It is needed to calculate the right portion value on offer at the
-        // given moment before the auction is over.
-        // Auction length once set is constant and what changes is the auction's
-        // "start time offset" once the takeOffer() call has been processed for
-        // partial fill. The auction's "start time offset" is updated every takeOffer().
-        // velocityPoolDepletingRate = auctionLength / (auctionLength - startTimeOffset)
-        // velocityPoolDepletingRate always starts at 1.0 and then can go up
-        // depending on partial offer calls over auction life span to maintain
-        // the right ratio between the remaining auction time and the remaining
-        // portion of the collateral pool.
-        uint256 velocityPoolDepletingRate;
     }
 
     AuctionStorage public self;
@@ -107,9 +95,6 @@ contract Auction is IAuction {
         self.startTime = block.timestamp;
         self.startTimeOffset = 0;
         self.auctionLength = _auctionLength;
-        self.velocityPoolDepletingRate =
-            1 *
-            CoveragePoolConstants.FLOATING_POINT_DIVISOR;
     }
 
     /// @notice Takes an offer from an auction buyer.
@@ -169,10 +154,6 @@ contract Auction is IAuction {
                 self.startTimeOffset +
                 ((timePassed * ratioAmountPaid) /
                     CoveragePoolConstants.FLOATING_POINT_DIVISOR);
-            self.velocityPoolDepletingRate =
-                (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
-                    self.auctionLength) /
-                (self.auctionLength - self.startTimeOffset);
         }
 
         self.amountOutstanding -= amountToTransfer;
@@ -248,10 +229,26 @@ contract Auction is IAuction {
             return CoveragePoolConstants.FLOATING_POINT_DIVISOR;
         }
 
+        // How fast portions of the collateral pool become available on offer.
+        // It is needed to calculate the right portion value on offer at the
+        // given moment before the auction is over.
+        // Auction length once set is constant and what changes is the auction's
+        // "start time offset" once the takeOffer() call has been processed for
+        // partial fill. The auction's "start time offset" is updated every takeOffer().
+        // velocityPoolDepletingRate = auctionLength / (auctionLength - startTimeOffset)
+        // velocityPoolDepletingRate always starts at 1.0 and then can go up
+        // depending on partial offer calls over auction life span to maintain
+        // the right ratio between the remaining auction time and the remaining
+        // portion of the collateral pool.
+        //slither-disable-next-line divide-before-multiply
+        uint256 velocityPoolDepletingRate = (CoveragePoolConstants
+        .FLOATING_POINT_DIVISOR * self.auctionLength) /
+            (self.auctionLength - self.startTimeOffset);
+
         return
             /* solhint-disable-next-line not-rely-on-time */
             ((block.timestamp - (self.startTime + self.startTimeOffset)) *
-                self.velocityPoolDepletingRate) / self.auctionLength;
+                velocityPoolDepletingRate) / self.auctionLength;
     }
 
     function _isAuctionOver() internal view returns (bool) {
