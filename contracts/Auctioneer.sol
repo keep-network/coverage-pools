@@ -12,12 +12,12 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.4;
+pragma solidity 0.8.5;
 
-import "./CloneFactory.sol";
 import "./Auction.sol";
 import "./CoveragePool.sol";
 
+import "@thesis/solidity-contracts/contracts/clone/CloneFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Auctioneer
@@ -118,6 +118,7 @@ contract Auctioneer is CloneFactory {
         uint256 auctionLength
     ) internal returns (address) {
         address cloneAddress = createClone(masterAuction);
+        require(cloneAddress != address(0), "Cloned auction address is 0");
 
         Auction auction = Auction(address(uint160(cloneAddress)));
         //slither-disable-next-line reentrancy-benign,reentrancy-events
