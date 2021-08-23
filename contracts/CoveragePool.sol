@@ -68,11 +68,18 @@ contract CoveragePool is Ownable {
     }
 
     /// @notice Begins risk manager approval process.
-    /// @dev Can be called only by the contract owner. For a risk manager to be
+    /// @dev Can be called only by the contract owner and only when the first
+    ///      risk manager is already approved. For a risk manager to be
     ///      approved, a call to `finalizeRiskManagerApproval` must follow
     ///      (after a governance delay).
     /// @param riskManager Risk manager that will be approved
     function beginRiskManagerApproval(address riskManager) external onlyOwner {
+        require(
+            firstRiskManagerApproved,
+            "The first risk manager is not yet approved; Please use "
+            "approveFirstRiskManager instead"
+        );
+
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
         /* solhint-disable-next-line not-rely-on-time */
@@ -103,13 +110,17 @@ contract CoveragePool is Ownable {
         delete riskManagerApprovalTimestamps[riskManager];
     }
 
-    /// @notice Unapproves the risk manager. The change takes effect immediately.
+    /// @notice Unapproves an already approved risk manager or cancels the
+    ///         approval process of a risk manager (the latter happens if called
+    ///         between `beginRiskManagerApproval` and `finalizeRiskManagerApproval`).
+    ///         The change takes effect immediately.
     /// @dev Can be called only by the contract owner.
     /// @param riskManager Risk manager that will be unapproved
     function unapproveRiskManager(address riskManager) external onlyOwner {
+        delete riskManagerApprovalTimestamps[riskManager];
+        delete approvedRiskManagers[riskManager];
         /* solhint-disable-next-line not-rely-on-time */
         emit RiskManagerUnapproved(riskManager, block.timestamp);
-        delete approvedRiskManagers[riskManager];
     }
 
     /// @notice Approves upgradeability to the new asset pool.
