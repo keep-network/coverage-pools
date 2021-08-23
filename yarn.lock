@@ -1643,9 +1643,9 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@thesis/solidity-contracts@github:thesis/solidity-contracts#507c647":
+"@thesis/solidity-contracts@github:thesis/solidity-contracts#a1384af":
   version "0.0.1"
-  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/507c64759a2783196b505365e0cb4bf13c1ad1fa"
+  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/a1384afd039f0de4d698872b204a74337c15857f"
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
 
@@ -4497,8 +4497,9 @@ eslint-config-google@^0.13.0:
   version "0.3.0"
   resolved "https://codeload.github.com/keep-network/eslint-config-keep/tar.gz/0c27ade54e725f980e971c3d91ea88bab76b2330"
   dependencies:
+    "@keep-network/prettier-config-keep" "github:keep-network/prettier-config-keep"
     eslint-config-google "^0.13.0"
-    eslint-config-prettier "^6.10.0"
+    eslint-config-prettier "^6.15.0"
     eslint-plugin-no-only-tests "^2.3.1"
     eslint-plugin-prettier "^3.1.2"
 
