@@ -151,6 +151,9 @@ describe("Auction", () => {
         // add 100sec
         await increaseTime(100)
 
+        // make sure auction did not self destruct
+        expect(await isCodeAt(auction.address)).to.be.true
+
         expect(await auction.isOpen()).to.be.equal(true)
       })
     })
@@ -162,6 +165,10 @@ describe("Auction", () => {
         auction = await createAuction(auctionAmountDesired, auctionLength)
 
         await increaseTime(24000)
+      })
+
+      it("should not self destruct", async () => {
+        expect(await isCodeAt(auction.address)).to.be.true
       })
 
       it("should be opened", async () => {
@@ -515,6 +522,10 @@ describe("Auction", () => {
           // Increase time so the auction ends
           // 3,600 + 82,800 + 1 = 86401sec (auction ended)
           await increaseTime(82801)
+          // when auction ends and is partially filled, it should not self
+          // destruct
+          expect(await isCodeAt(auction.address)).to.be.true
+
           // when auction ends and is partially filled, it should stay opened
           expect(await auction.isOpen()).to.be.equal(true)
         })
