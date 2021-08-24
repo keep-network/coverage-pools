@@ -286,6 +286,14 @@ describe("SignerBondsUniswapV2", () => {
           .to.emit(signerBondsUniswapV2, "SignerBondsSwapperApproved")
           .withArgs(swapper.address)
       })
+
+      it("should revert in case the swapper is already approved", async () => {
+        await expect(
+          signerBondsUniswapV2
+            .connect(governance)
+            .approveSwapper(swapper.address)
+        ).to.be.revertedWith("Signer bonds swapper has been already approved")
+      })
     })
   })
 
