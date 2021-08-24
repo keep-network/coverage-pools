@@ -291,7 +291,7 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
 
         // Same as: priceImpact <= priceImpactLimit
         return
-            amount * BASIS_POINT_DIVISOR <=
+            amount * BASIS_POINTS_DIVISOR <=
             maxAllowedPriceImpact * collateralTokenReserve;
     }
 
