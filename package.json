@@ -45,7 +45,7 @@
     "eslint-config-keep": "github:keep-network/eslint-config-keep#0c27ade",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.0.32",
-    "hardhat": "^2.1.1",
+    "hardhat": "^2.6.1",
     "hardhat-deploy": "^0.8.11",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.3.2",

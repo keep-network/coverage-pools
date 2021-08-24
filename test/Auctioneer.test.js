@@ -5,6 +5,7 @@ const {
   to1e18,
   pastEvents,
   increaseTime,
+  isCodeAt,
 } = require("./helpers/contract-test-helpers")
 
 const auctionLength = 86400 // 24h in sec
@@ -264,10 +265,10 @@ describe("Auctioneer", () => {
     })
 
     context("when the auction is still open", () => {
-      it("should close the auction", async () => {
+      it("should destroy the auction", async () => {
         await auctioneer.connect(bidder).publicEarlyCloseAuction(auctionAddress)
 
-        expect(await auction.isOpen()).to.be.false
+        expect(await isCodeAt(auctionAddress)).to.be.false
       })
 
       it("should emit the auction closed event", async () => {
