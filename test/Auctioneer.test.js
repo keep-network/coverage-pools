@@ -140,7 +140,7 @@ describe("Auctioneer", () => {
           let events = pastEvents(receipt1, auctioneer, "AuctionOfferTaken")
           expect(events.length).to.equal(1)
           expect(events[0].args["auction"]).to.equal(auctionAddress)
-          expect(events[0].args["auctionTaker"]).to.equal(bidder.address)
+          expect(events[0].args["offerTaker"]).to.equal(bidder.address)
           expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction1)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -151,7 +151,7 @@ describe("Auctioneer", () => {
           events = pastEvents(receipt2, auctioneer, "AuctionOfferTaken")
           expect(events.length).to.equal(1)
           expect(events[0].args["auction"]).to.equal(auctionAddress)
-          expect(events[0].args["auctionTaker"]).to.equal(bidder.address)
+          expect(events[0].args["offerTaker"]).to.equal(bidder.address)
           expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
           expect(events[0].args["amount"]).to.equal(amountPaidForAuction2)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -211,7 +211,7 @@ describe("Auctioneer", () => {
         const events = pastEvents(receipt, auctioneer, "AuctionOfferTaken")
         expect(events.length).to.equal(1)
         expect(events[0].args["auction"]).to.equal(auctionAddress)
-        expect(events[0].args["auctionTaker"]).to.equal(bidder.address)
+        expect(events[0].args["offerTaker"]).to.equal(bidder.address)
         expect(events[0].args["tokenAccepted"]).to.equal(testToken.address)
         expect(events[0].args["amount"]).to.equal(amountPaidForAuction)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
