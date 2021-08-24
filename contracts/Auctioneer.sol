@@ -43,7 +43,7 @@ contract Auctioneer is CloneFactory {
     event AuctionOfferTaken(
         address indexed auction,
         address indexed auctionTaker,
-        IERC20 tokenAccepted,
+        address tokenAccepted,
         uint256 amount,
         uint256 portionToSeize // This amount should be divided by FLOATING_POINT_DIVISOR
     );
@@ -78,7 +78,7 @@ contract Auctioneer is CloneFactory {
         emit AuctionOfferTaken(
             msg.sender,
             auctionTaker,
-            tokenPaid,
+            address(tokenPaid),
             tokenAmountPaid,
             portionToSeize
         );
@@ -120,14 +120,9 @@ contract Auctioneer is CloneFactory {
         address cloneAddress = createClone(masterAuction);
         require(cloneAddress != address(0), "Cloned auction address is 0");
 
-        Auction auction = Auction(address(uint160(cloneAddress)));
+        Auction auction = Auction(cloneAddress);
         //slither-disable-next-line reentrancy-benign,reentrancy-events
-        auction.initialize(
-            address(this),
-            tokenAccepted,
-            amountDesired,
-            auctionLength
-        );
+        auction.initialize(this, tokenAccepted, amountDesired, auctionLength);
 
         openAuctions[cloneAddress] = true;
         openAuctionsCount += 1;
