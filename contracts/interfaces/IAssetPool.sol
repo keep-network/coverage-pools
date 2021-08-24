@@ -25,6 +25,7 @@ interface IAssetPool {
     ///         mints underwriter tokens representing pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
+    /// @return The amount of minted underwriter tokens
     function deposit(uint256 amount) external returns (uint256);
 
     /// @notice Accepts the given amount of collateral token as a deposit and
@@ -32,6 +33,7 @@ interface IAssetPool {
     ///         pool's ownership.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
+    /// @return The amount of minted underwriter tokens
     function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
         external
         returns (uint256);
@@ -43,5 +45,6 @@ interface IAssetPool {
 
     /// @notice Completes the previously initiated withdrawal for the
     ///         underwriter.
-    function completeWithdrawal(address underwriter) external;
+    /// @return The amount of collateral withdrawn
+    function completeWithdrawal(address underwriter) external returns (uint256);
 }

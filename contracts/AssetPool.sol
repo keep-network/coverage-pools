@@ -260,7 +260,12 @@ contract AssetPool is Ownable, IAssetPool {
     ///         be initiated again and the underwriter has to wait for the
     ///         entire withdrawal delay again before being able to complete
     ///         the withdrawal.
-    function completeWithdrawal(address underwriter) external override {
+    /// @return The amount of collateral withdrawn
+    function completeWithdrawal(address underwriter)
+        external
+        override
+        returns (uint256)
+    {
         /* solhint-disable not-rely-on-time */
         uint256 initiatedAt = withdrawalInitiatedTimestamp[underwriter];
         require(initiatedAt > 0, "No withdrawal initiated for the underwriter");
@@ -297,6 +302,8 @@ contract AssetPool is Ownable, IAssetPool {
 
         /* solhint-enable not-rely-on-time */
         underwriterToken.burn(covAmount);
+
+        return amountToWithdraw;
     }
 
     /// @notice Transfers collateral tokens to a new Asset Pool which previously
