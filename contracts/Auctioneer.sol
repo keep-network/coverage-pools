@@ -43,7 +43,7 @@ contract Auctioneer is CloneFactory {
     event AuctionOfferTaken(
         address indexed auction,
         address indexed auctionTaker,
-        IERC20 tokenAccepted,
+        address tokenAccepted,
         uint256 amount,
         uint256 portionToSeize // This amount should be divided by FLOATING_POINT_DIVISOR
     );
@@ -78,7 +78,7 @@ contract Auctioneer is CloneFactory {
         emit AuctionOfferTaken(
             msg.sender,
             auctionTaker,
-            tokenPaid,
+            address(tokenPaid),
             tokenAmountPaid,
             portionToSeize
         );
