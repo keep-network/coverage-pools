@@ -167,11 +167,8 @@ describe("Auction", () => {
         await increaseTime(24000)
       })
 
-      it("should not self destruct", async () => {
-        expect(await isCodeAt(auction.address)).to.be.true
-      })
-
       it("should be opened", async () => {
+        expect(await isCodeAt(auction.address)).to.be.true
         expect(await auction.isOpen()).to.be.equal(true)
       })
 

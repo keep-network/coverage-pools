@@ -136,7 +136,7 @@ describeFn("System -- liquidation", () => {
       tx = await auction.takeOffer(lotSize)
     })
 
-    it("should close auction", async () => {
+    it("should destroy auction", async () => {
       expect(await isCodeAt(auction.address)).to.be.false
     })
 
