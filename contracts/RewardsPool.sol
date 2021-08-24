@@ -52,6 +52,7 @@ contract RewardsPool is Ownable {
         address owner
     ) {
         rewardToken = _rewardToken;
+        // slither-disable-next-line missing-zero-check
         assetPool = _assetPool;
         transferOwnership(owner);
     }
