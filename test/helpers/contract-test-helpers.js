@@ -78,6 +78,13 @@ async function resetFork(blockNumber) {
   })
 }
 
+// This function checks whether the given address stores contract code. It
+// can be used to determine whether a contract stored at the given address has
+// self destructed.
+async function isCodeAt(address) {
+  return (await ethers.provider.getCode(address)) != ethers.utils.hexlify("0x")
+}
+
 module.exports.to1ePrecision = to1ePrecision
 module.exports.to1e18 = to1e18
 module.exports.pastEvents = pastEvents
@@ -85,5 +92,6 @@ module.exports.lastBlockTime = lastBlockTime
 module.exports.increaseTime = increaseTime
 module.exports.impersonateAccount = impersonateAccount
 module.exports.resetFork = resetFork
+module.exports.isCodeAt = isCodeAt
 
 module.exports.ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"

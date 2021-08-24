@@ -7,6 +7,7 @@ const {
   resetFork,
   ZERO_ADDRESS,
   increaseTime,
+  isCodeAt,
 } = require("../helpers/contract-test-helpers")
 const {
   underwriterAddress,
@@ -128,8 +129,8 @@ describeFn("System -- multiple partial fills", () => {
       tx = await auction.connect(bidder2).takeOffer(lotSize.mul(60).div(100))
     })
 
-    it("should close auction", async () => {
-      expect(await auction.isOpen()).to.be.false
+    it("should destroy auction", async () => {
+      expect(await isCodeAt(auction.address)).to.be.false
     })
 
     it("should decrease the amount of TBTC for bidders", async () => {
@@ -177,7 +178,7 @@ describeFn("System -- multiple partial fills", () => {
       expect(parseInt(tx.gasLimit)).to.be.lessThan(370000)
 
       const txReceipt = await ethers.provider.getTransactionReceipt(tx.hash)
-      expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(181000)
+      expect(parseInt(txReceipt.gasUsed)).to.be.lessThan(280000)
     })
   })
 })

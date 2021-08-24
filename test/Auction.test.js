@@ -7,6 +7,7 @@ const {
   pastEvents,
   increaseTime,
   impersonateAccount,
+  isCodeAt,
 } = require("./helpers/contract-test-helpers")
 
 const { BigNumber } = ethers
@@ -150,6 +151,9 @@ describe("Auction", () => {
         // add 100sec
         await increaseTime(100)
 
+        // make sure auction did not self destruct
+        expect(await isCodeAt(auction.address)).to.be.true
+
         expect(await auction.isOpen()).to.be.equal(true)
       })
     })
@@ -164,6 +168,7 @@ describe("Auction", () => {
       })
 
       it("should be opened", async () => {
+        expect(await isCodeAt(auction.address)).to.be.true
         expect(await auction.isOpen()).to.be.equal(true)
       })
 
@@ -275,17 +280,15 @@ describe("Auction", () => {
     })
 
     context("when the auction was fully paid off and is closed", () => {
-      it("should revert on taking offer again", async () => {
+      it("should destroy the auction", async () => {
         // Increase time 1h -> 3600sec
         await increaseTime(3600)
 
         // take the entire auction
         await auction.connect(bidder1).takeOffer(auctionAmountDesired)
 
-        // another bidder is trying to take offer on a closed auction
-        await expect(
-          auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Address: call to non-contract")
+        // the auction contract address should not store code anymore
+        expect(await isCodeAt(auction.address)).to.be.false
       })
     })
 
@@ -516,6 +519,10 @@ describe("Auction", () => {
           // Increase time so the auction ends
           // 3,600 + 82,800 + 1 = 86401sec (auction ended)
           await increaseTime(82801)
+          // when auction ends and is partially filled, it should not self
+          // destruct
+          expect(await isCodeAt(auction.address)).to.be.true
+
           // when auction ends and is partially filled, it should stay opened
           expect(await auction.isOpen()).to.be.equal(true)
         })
@@ -523,7 +530,7 @@ describe("Auction", () => {
     )
 
     context("when the auction was fully paid off in partial offers", () => {
-      it("should revert on taking another offer", async () => {
+      it("should destroy the auction", async () => {
         // Auction amount desired: 1 * 10^18
         // Increase time 1h -> 3600sec
         await increaseTime(3600)
@@ -538,9 +545,7 @@ describe("Auction", () => {
           .amountOutstanding()
         await auction.connect(bidder2).takeOffer(amountOutstanding)
 
-        await expect(
-          auction.connect(bidder2).takeOffer(BigNumber.from(1))
-        ).to.be.revertedWith("Address: call to non-contract")
+        expect(await isCodeAt(auction.address)).to.be.false
       })
     })
   })
@@ -558,21 +563,21 @@ describe("Auction", () => {
     })
 
     context("when the auction is open and there are no fills", () => {
-      it("should early close the auction", async () => {
+      it("should destroy the auction", async () => {
         await auction.connect(auctioneerSigner).earlyClose()
 
-        expect(await auction.isOpen()).to.be.false
+        expect(await isCodeAt(auction.address)).to.be.false
       })
     })
 
     context("when the auction is open and there are partial fills", () => {
-      it("should early close the auction", async () => {
+      it("should destroy the auction", async () => {
         const partialOfferAmount = auctionAmountDesired.div(BigNumber.from("2"))
         await auction.connect(bidder1).takeOffer(partialOfferAmount)
 
         await auction.connect(auctioneerSigner).earlyClose()
 
-        expect(await auction.isOpen()).to.be.false
+        expect(await isCodeAt(auction.address)).to.be.false
       })
     })
 
@@ -581,19 +586,6 @@ describe("Auction", () => {
         await expect(auction.connect(bidder1).earlyClose()).to.be.revertedWith(
           "Caller is not the auctioneer"
         )
-      })
-    })
-
-    context("when the auction is closed", () => {
-      it("should revert", async () => {
-        // close the auction by taking the whole amount
-        await auction.connect(bidder1).takeOffer(auctionAmountDesired)
-
-        // Will be reverted due to onlyAuctioneer modifier violation as
-        // Auction storage has been destroyed by harikari and current
-        // auctioneer is a zero address.
-        await expect(auction.connect(auctioneerSigner).earlyClose()).to.be
-          .reverted
       })
     })
   })
