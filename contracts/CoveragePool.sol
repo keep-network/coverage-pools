@@ -80,6 +80,11 @@ contract CoveragePool is Ownable {
             "approveFirstRiskManager instead"
         );
 
+        require(
+            !approvedRiskManagers[riskManager],
+            "Risk manager already approved"
+        );
+
         /* solhint-disable-next-line not-rely-on-time */
         riskManagerApprovalTimestamps[riskManager] = block.timestamp;
         /* solhint-disable-next-line not-rely-on-time */

@@ -174,6 +174,16 @@ describe("CoveragePool", () => {
             )
           ).to.be.equal(governanceDelay)
         })
+
+        context("when called for already approved risk manager", () => {
+          it("should revert", async () => {
+            await expect(
+              coveragePool
+                .connect(governance)
+                .beginRiskManagerApproval(anotherRiskManager.address)
+            ).to.be.revertedWith("Risk manager already approved")
+          })
+        })
       }
     )
   })
