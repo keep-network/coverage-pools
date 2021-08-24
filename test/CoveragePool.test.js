@@ -174,6 +174,16 @@ describe("CoveragePool", () => {
             )
           ).to.be.equal(governanceDelay)
         })
+
+        context("when called for already approved risk manager", () => {
+          it("should revert", async () => {
+            await expect(
+              coveragePool
+                .connect(governance)
+                .beginRiskManagerApproval(anotherRiskManager.address)
+            ).to.be.revertedWith("Risk manager already approved")
+          })
+        })
       }
     )
   })
@@ -273,6 +283,18 @@ describe("CoveragePool", () => {
             .connect(thirdParty)
             .unapproveRiskManager(riskManager.address)
         ).to.be.revertedWith("Ownable: caller is not the owner")
+      })
+    })
+
+    context("when called for unknown risk manager", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .unapproveRiskManager(riskManager.address)
+        ).to.be.revertedWith(
+          "Risk manager is neither approved nor with a pending approval"
+        )
       })
     })
 
