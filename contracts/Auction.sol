@@ -212,11 +212,7 @@ contract Auction is IAuction {
     ///      after an auction has closed.
     function harikari() internal {
         require(!isMasterContract, "Master contract can not harikari");
-        address payable addr = payable(
-            address(uint160(address(self.auctioneer)))
-        );
-        delete self;
-        selfdestruct(addr);
+        selfdestruct(payable(address(self.auctioneer)));
     }
 
     function _onOffer() internal view returns (uint256) {
