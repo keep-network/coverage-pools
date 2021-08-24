@@ -122,12 +122,7 @@ contract Auctioneer is CloneFactory {
 
         Auction auction = Auction(cloneAddress);
         //slither-disable-next-line reentrancy-benign,reentrancy-events
-        auction.initialize(
-            address(this),
-            tokenAccepted,
-            amountDesired,
-            auctionLength
-        );
+        auction.initialize(this, tokenAccepted, amountDesired, auctionLength);
 
         openAuctions[cloneAddress] = true;
         openAuctionsCount += 1;

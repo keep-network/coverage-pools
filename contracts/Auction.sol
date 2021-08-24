@@ -78,7 +78,7 @@ contract Auction is IAuction {
     /// @param _auctionLength the amount of time it takes for the auction to get
     ///                       to 100% of all collateral on offer, in seconds.
     function initialize(
-        address _auctioneer,
+        Auctioneer _auctioneer,
         IERC20 _tokenAccepted,
         uint256 _amountDesired,
         uint256 _auctionLength
@@ -87,7 +87,7 @@ contract Auction is IAuction {
         //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
-        self.auctioneer = Auctioneer(_auctioneer);
+        self.auctioneer = _auctioneer;
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
         self.amountDesired = _amountDesired;
