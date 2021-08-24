@@ -286,6 +286,18 @@ describe("CoveragePool", () => {
       })
     })
 
+    context("when called for unknown risk manager", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(governance)
+            .unapproveRiskManager(riskManager.address)
+        ).to.be.revertedWith(
+          "Risk manager is neither approved nor with a pending approval"
+        )
+      })
+    })
+
     context("when cancelling risk manager approval process", () => {
       beforeEach(async () => {
         await coveragePool

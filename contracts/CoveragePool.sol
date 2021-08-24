@@ -122,6 +122,11 @@ contract CoveragePool is Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param riskManager Risk manager that will be unapproved
     function unapproveRiskManager(address riskManager) external onlyOwner {
+        require(
+            riskManagerApprovalTimestamps[riskManager] > 0 ||
+                approvedRiskManagers[riskManager],
+            "Risk manager is neither approved nor with a pending approval"
+        );
         delete riskManagerApprovalTimestamps[riskManager];
         delete approvedRiskManagers[riskManager];
         /* solhint-disable-next-line not-rely-on-time */
