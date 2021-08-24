@@ -133,7 +133,11 @@ contract AssetPool is Ownable, IAssetPool {
         collateralToken = _collateralToken;
         underwriterToken = _underwriterToken;
 
-        rewardsPool = new RewardsPool(_collateralToken, this, rewardsManager);
+        rewardsPool = new RewardsPool(
+            _collateralToken,
+            address(this),
+            rewardsManager
+        );
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and

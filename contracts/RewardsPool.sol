@@ -14,8 +14,6 @@
 
 pragma solidity 0.8.5;
 
-import "./AssetPool.sol";
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -50,11 +48,11 @@ contract RewardsPool is Ownable {
 
     constructor(
         IERC20 _rewardToken,
-        AssetPool _assetPool,
+        address _assetPool,
         address owner
     ) {
         rewardToken = _rewardToken;
-        assetPool = address(_assetPool);
+        assetPool = _assetPool;
         transferOwnership(owner);
     }
 
