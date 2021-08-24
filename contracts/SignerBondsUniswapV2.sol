@@ -261,6 +261,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     /// @dev Can be called only by the contract owner.
     /// @param swapper Swapper that will be approved
     function approveSwapper(address swapper) external onlyOwner {
+        require(
+            !approvedSwappers[swapper],
+            "Signer bonds swapper has been already approved"
+        );
         emit SignerBondsSwapperApproved(swapper);
         approvedSwappers[swapper] = true;
     }
@@ -289,19 +293,10 @@ contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
         (uint256 reserve0, uint256 reserve1, ) = uniswapPair.getReserves();
         uint256 collateralTokenReserve = WETH == token0 ? reserve1 : reserve0;
 
-        // Calculate the price impact. Multiply it by the floating point
-        // divisor to avoid float number.
-        // slither-disable-next-line divide-before-multiply
-        uint256 priceImpact = (CoveragePoolConstants.FLOATING_POINT_DIVISOR *
-            amount) / collateralTokenReserve;
-
-        // Calculate the price impact limit. Multiply it by the floating point
-        // divisor to avoid float number and make it comparable with the
-        // swap's price impact.
-        uint256 priceImpactLimit = (CoveragePoolConstants
-        .FLOATING_POINT_DIVISOR * maxAllowedPriceImpact) / BASIS_POINTS_DIVISOR;
-
-        return priceImpact <= priceImpactLimit;
+        // Same as: priceImpact <= priceImpactLimit
+        return
+            amount * BASIS_POINTS_DIVISOR <=
+            maxAllowedPriceImpact * collateralTokenReserve;
     }
 
     /// @notice Compute Uniswap v2 pair address.
