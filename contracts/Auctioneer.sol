@@ -42,7 +42,7 @@ contract Auctioneer is CloneFactory {
     );
     event AuctionOfferTaken(
         address indexed auction,
-        address indexed auctionTaker,
+        address indexed offerTaker,
         address tokenAccepted,
         uint256 amount,
         uint256 portionToSeize // This amount should be divided by FLOATING_POINT_DIVISOR
@@ -59,8 +59,8 @@ contract Auctioneer is CloneFactory {
     /// @dev This function is meant to be called from a cloned auction. It logs
     ///      "offer taken" and "auction closed" events, seizes funds, and cleans
     ///      up closed auctions.
-    /// @param auctionTaker    The address of the taker of the auction, who will
-    ///                        receive the pool's seized funds
+    /// @param offerTaker      The address of the taker of the auction offer,
+    ///                        who will receive the pool's seized funds
     /// @param tokenPaid       The token this auction is denominated in
     /// @param tokenAmountPaid The amount of the token the taker paid
     /// @param portionToSeize   The portion of the pool the taker won at auction.
@@ -68,7 +68,7 @@ contract Auctioneer is CloneFactory {
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
     function offerTaken(
-        address auctionTaker,
+        address offerTaker,
         IERC20 tokenPaid,
         uint256 tokenAmountPaid,
         uint256 portionToSeize
@@ -77,7 +77,7 @@ contract Auctioneer is CloneFactory {
 
         emit AuctionOfferTaken(
             msg.sender,
-            auctionTaker,
+            offerTaker,
             address(tokenPaid),
             tokenAmountPaid,
             portionToSeize
@@ -91,7 +91,7 @@ contract Auctioneer is CloneFactory {
         // defined in Auction.sol
         //
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
-        coveragePool.seizeFunds(auctionTaker, portionToSeize);
+        coveragePool.seizeFunds(offerTaker, portionToSeize);
 
         if (auction.isOpen()) {
             onAuctionPartiallyFilled(auction);
