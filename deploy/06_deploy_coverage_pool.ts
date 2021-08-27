@@ -13,6 +13,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
+  if (hre.network.name == "ropsten") {
+    await hre.tenderly.persistArtifacts({
+      name: "CoveragePool",
+      address: CoveragePool.address,
+    })
+
+    await hre.tenderly.verify({
+      name: "CoveragePool",
+      address: CoveragePool.address,
+    })
+  }
+
   await helpers.ownable.transferOwnership(
     "AssetPool",
     CoveragePool.address,

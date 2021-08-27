@@ -17,6 +17,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
+  if (hre.network.name == "ropsten") {
+    await hre.tenderly.persistArtifacts({
+      name: "AssetPool",
+      address: AssetPool.address,
+    })
+
+    await hre.tenderly.verify({
+      name: "AssetPool",
+      address: AssetPool.address,
+    })
+  }
+
   const rewardsPoolAddress = helpers.address.validate(
     await read("AssetPool", "rewardsPool")
   )

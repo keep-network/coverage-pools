@@ -7,6 +7,7 @@ import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "solidity-coverage"
+import "@tenderly/hardhat-tenderly"
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -45,6 +46,10 @@ const config: HardhatUserConfig = {
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
     },
+  },
+  tenderly: {
+    username: "thesis",
+    project: "keep-test", // hardhat-tenderly plugin is used on ropsten only
   },
   // // Define local networks configuration file path to load networks from the file.
   // localNetworksConfig: "./.hardhat/networks.ts",

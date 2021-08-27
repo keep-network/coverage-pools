@@ -95,6 +95,12 @@ jobs:
             @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
             @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
+      - name: Configure tenderly
+        if: github.event.inputs.environment == 'ropsten'
+        env:
+          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+        run: ./config_tenderly.sh
+
       - name: Deploy contracts
         env:
           CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
@@ -108,17 +114,6 @@ jobs:
           environment: ${{ github.event.inputs.environment }}
           branch: ${{ github.ref }}
           commit: ${{ github.sha }}
-
-      - name: Push contracts to Tenderly
-        if: github.event.inputs.environment == 'ropsten'
-        uses: keep-network/tenderly-push-action@v1
-        continue-on-error: true
-        with:
-          tenderly-token: ${{ secrets.TENDERLY_TOKEN }}
-          tenderly-project: thesis/keep-test
-          eth-network-id: ${{ env.NETWORK_ID }}
-          github-project-name: coverage-pools
-          version-tag: ${{ steps.npm-version-bump.outputs.version }}
 
       - name: Publish to npm
         run: |

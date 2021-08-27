@@ -7,11 +7,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   // Deploy a master Auction contract that will be used by Auctioneer to create
   // clones instances.
-  await deployments.deploy("Auction", {
+  const Auction = await deployments.deploy("Auction", {
     contract: "Auction",
     from: deployer,
     log: true,
   })
+
+  if (hre.network.name == "ropsten") {
+    await hre.tenderly.persistArtifacts({
+      name: "Auction",
+      address: Auction.address,
+    })
+
+    await hre.tenderly.verify({
+      name: "Auction",
+      address: Auction.address,
+    })
+  }
 }
 
 export default func
