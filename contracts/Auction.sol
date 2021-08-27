@@ -158,6 +158,9 @@ contract Auction is IAuction {
 
         self.amountOutstanding -= amountToTransfer;
 
+        //slither-disable-next-line incorrect-equality
+        bool isFullyFilled = self.amountOutstanding == 0;
+
         // inform auctioneer of proceeds and winner. the auctioneer seizes funds
         // from the collateral pool in the name of the winner, and controls all
         // proceeds
@@ -167,11 +170,12 @@ contract Auction is IAuction {
             msg.sender,
             self.tokenAccepted,
             amountToTransfer,
-            portionToSeize
+            portionToSeize,
+            isFullyFilled
         );
 
         //slither-disable-next-line incorrect-equality
-        if (self.amountOutstanding == 0) {
+        if (isFullyFilled) {
             harikari();
         }
     }
@@ -202,10 +206,6 @@ contract Auction is IAuction {
 
     function amountTransferred() external view returns (uint256) {
         return self.amountDesired - self.amountOutstanding;
-    }
-
-    function isOpen() external view returns (bool) {
-        return self.amountOutstanding > 0;
     }
 
     /// @dev Delete all storage and destroy the contract. Should only be called
