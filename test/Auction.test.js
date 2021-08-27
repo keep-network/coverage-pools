@@ -62,12 +62,6 @@ describe("Auction", () => {
     const auctionAmountDesired = to1e18(1) // ex. 1 TBTC
 
     context("when the auction has been initialized", () => {
-      it("should be opened", async () => {
-        auction = await createAuction(auctionAmountDesired, auctionLength)
-
-        expect(await auction.isOpen()).to.equal(true)
-      })
-
       it("should not be initialized again", async () => {
         auction = await createAuction(auctionAmountDesired, auctionLength)
 
@@ -151,10 +145,7 @@ describe("Auction", () => {
         // add 100sec
         await increaseTime(100)
 
-        // make sure auction did not self destruct
         expect(await isCodeAt(auction.address)).to.be.true
-
-        expect(await auction.isOpen()).to.be.equal(true)
       })
     })
 
@@ -165,11 +156,6 @@ describe("Auction", () => {
         auction = await createAuction(auctionAmountDesired, auctionLength)
 
         await increaseTime(24000)
-      })
-
-      it("should be opened", async () => {
-        expect(await isCodeAt(auction.address)).to.be.true
-        expect(await auction.isOpen()).to.be.equal(true)
       })
 
       it("should return a portion of a collateral pool", async () => {
@@ -522,9 +508,6 @@ describe("Auction", () => {
           // when auction ends and is partially filled, it should not self
           // destruct
           expect(await isCodeAt(auction.address)).to.be.true
-
-          // when auction ends and is partially filled, it should stay opened
-          expect(await auction.isOpen()).to.be.equal(true)
         })
       }
     )

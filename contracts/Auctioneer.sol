@@ -63,15 +63,20 @@ contract Auctioneer is CloneFactory {
     ///                        who will receive the pool's seized funds
     /// @param tokenPaid       The token this auction is denominated in
     /// @param tokenAmountPaid The amount of the token the taker paid
-    /// @param portionToSeize   The portion of the pool the taker won at auction.
+    /// @param portionToSeize  The portion of the pool the taker won at auction.
     ///                        This amount should be divided by FLOATING_POINT_DIVISOR
     ///                        to calculate how much of the pool should be set
     ///                        aside as the taker's winnings.
+    /// @param fullyFilled     Indicates whether the auction was taken fully or
+    ///                        partially. If auction was fully filled, it is
+    ///                        closed. If auction was partially filled, it is
+    ///                        sill open and waiting for remaining bids.
     function offerTaken(
         address offerTaker,
         IERC20 tokenPaid,
         uint256 tokenAmountPaid,
-        uint256 portionToSeize
+        uint256 portionToSeize,
+        bool fullyFilled
     ) external {
         require(openAuctions[msg.sender], "Sender isn't an auction");
 
@@ -83,8 +88,6 @@ contract Auctioneer is CloneFactory {
             portionToSeize
         );
 
-        Auction auction = Auction(msg.sender);
-
         // actually seize funds, setting them aside for the taker to withdraw
         // from the coverage pool.
         // `portionToSeize` will be divided by FLOATING_POINT_DIVISOR which is
@@ -93,14 +96,15 @@ contract Auctioneer is CloneFactory {
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
         coveragePool.seizeFunds(offerTaker, portionToSeize);
 
-        if (auction.isOpen()) {
-            onAuctionPartiallyFilled(auction);
-        } else {
+        Auction auction = Auction(msg.sender);
+        if (fullyFilled) {
             onAuctionFullyFilled(auction);
 
             emit AuctionClosed(msg.sender);
             delete openAuctions[msg.sender];
             openAuctionsCount -= 1;
+        } else {
+            onAuctionPartiallyFilled(auction);
         }
     }
 
