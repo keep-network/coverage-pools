@@ -45,6 +45,7 @@ const config: HardhatUserConfig = {
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
+      tags: ["test"],
     },
   },
   tenderly: {

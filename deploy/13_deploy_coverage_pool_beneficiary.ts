@@ -21,12 +21,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
-  if (hre.network.name == "ropsten") {
-    await hre.tenderly.persistArtifacts({
-      name: "CoveragePoolBeneficiary",
-      address: CoveragePoolBeneficiary.address,
-    })
-
+  const tags = hre.network.config.tags
+  if (tags.includes("test") || tags.includes("mainnet")) {
     await hre.tenderly.verify({
       name: "CoveragePoolBeneficiary",
       address: CoveragePoolBeneficiary.address,
