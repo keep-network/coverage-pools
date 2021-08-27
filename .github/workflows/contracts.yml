@@ -98,7 +98,7 @@ jobs:
       - name: Configure tenderly
         if: github.event.inputs.environment == 'ropsten'
         env:
-          TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+          TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
 
       - name: Deploy contracts

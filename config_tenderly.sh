@@ -9,4 +9,4 @@ printf "${LOG_START}Configuring Tenderly...${LOG_END}"
 
 mkdir $HOME/.tenderly && touch $HOME/.tenderly/config.yaml
 
-echo access_key: ${TENDERLY_ACCESS_KEY} > $HOME/.tenderly/config.yaml
+echo access_key: ${TENDERLY_TOKEN} > $HOME/.tenderly/config.yaml
