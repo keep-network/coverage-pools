@@ -66,7 +66,7 @@ contract AssetPool is Ownable, IAssetPool {
     mapping(address => uint256) public pendingWithdrawal;
 
     event Deposited(
-        address indexed underwrtier,
+        address indexed underwriter,
         uint256 amount,
         uint256 covAmount
     );
