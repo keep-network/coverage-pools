@@ -271,7 +271,7 @@ describe("AssetPool", () => {
       it("should emit Deposited event with correct covAmount", async () => {
         const events = pastEvents(await tx.wait(), assetPool, "Deposited")
         expect(events.length).to.equal(1)
-        expect(events[0].args["underwrtier"]).to.equal(underwriter2.address)
+        expect(events[0].args["underwriter"]).to.equal(underwriter2.address)
         expect(events[0].args["amount"]).to.equal(depositedUnderwriter2)
         expect(events[0].args["covAmount"]).to.be.closeTo(
           "45454545454545454545",
