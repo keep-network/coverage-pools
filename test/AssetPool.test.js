@@ -753,16 +753,22 @@ describe("AssetPool", () => {
         // We can approve the number of tokens equal to the number of tokens
         // deposited - there were no claims and no rewards were allocated so
         // those numbers are equal.
+        const covAmount = amount
         await underwriterToken
           .connect(underwriter1)
-          .approve(assetPool.address, amount)
-        await assetPool.connect(underwriter1).initiateWithdrawal(amount)
+          .approve(assetPool.address, covAmount)
+        await assetPool.connect(underwriter1).initiateWithdrawal(covAmount)
         await increaseTime(withdrawalDelay)
         const tx = await assetPool.completeWithdrawal(underwriter1.address)
 
-        expect(tx)
+        await expect(tx)
           .to.emit(assetPool, "WithdrawalCompleted")
-          .withArgs(underwriter1.address, amount, await lastBlockTime())
+          .withArgs(
+            underwriter1.address,
+            amount,
+            covAmount,
+            await lastBlockTime()
+          )
       })
 
       context("when no collateral tokens were claimed by the pool", () => {
