@@ -8,7 +8,6 @@ on:
       - "contracts/**"
       - "package.json"
       - "yarn.lock"
-  pull_request: #TODO: remove before merging
   workflow_dispatch:
 
 jobs:
@@ -45,4 +44,4 @@ jobs:
       - name: Publish package
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access=public --network=hardhat --dry-run #TODO: remove `--dry-run` before merging
+        run: npm publish --access=public --network=hardhat
