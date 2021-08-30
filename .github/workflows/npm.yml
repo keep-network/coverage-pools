@@ -29,9 +29,11 @@ jobs:
             @keep-network/keep-core \
             @keep-network/tbtc
 
-      - name: Compile contracts
+      # Deploy contracts to a local network to generate deployment artifacts that
+      # are required by dashboard compilation.
+      - name: Deploy contracts
         run: yarn deploy --network hardhat --write true
-        
+
       - name: Bump up package version
         id: npm-version-bump
         uses: keep-network/npm-version-bump@v2
