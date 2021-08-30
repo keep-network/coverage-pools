@@ -31,12 +31,7 @@ jobs:
 
       - name: Compile contracts
         run: yarn deploy --network hardhat --write true
-
-      - name: Copy artifacts
-        run: |
-          mkdir -p artifacts
-          cp -r build/contracts/* artifacts/
-
+        
       - name: Bump up package version
         id: npm-version-bump
         uses: keep-network/npm-version-bump@v2
