@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
   },
   tenderly: {
     username: "thesis",
-    project: "keep-test", // hardhat-tenderly plugin is used on ropsten only
+    project: "",
   },
   // // Define local networks configuration file path to load networks from the file.
   // localNetworksConfig: "./.hardhat/networks.ts",
