@@ -87,6 +87,7 @@ contract Auction is IAuction {
         //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
+        require(_auctionLength > 0, "Auction length must be greater than zero");
         self.auctioneer = _auctioneer;
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
