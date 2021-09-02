@@ -35,14 +35,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     reward
   )
 
-  await execute(
-    "RewardsPool",
-    { from: rewardManager },
-    "topUpReward",
-    reward
-  )
+  await execute("RewardsPool", { from: rewardManager }, "topUpReward", reward)
 }
 
 export default func
 
 func.tags = ["TopUpRewardsPool"]
+func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
+  return hre.network.name === "hardhat"
+}
