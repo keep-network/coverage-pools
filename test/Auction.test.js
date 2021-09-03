@@ -101,6 +101,19 @@ describe("Auction", () => {
         ).to.be.revertedWith("Amount desired must be greater than zero")
       })
     })
+
+    context("when auction length is zero", () => {
+      it("should revert", async () => {
+        const auctionLength = 0
+        await expect(
+          auctioneer.publicCreateAuction(
+            testToken.address,
+            auctionAmountDesired,
+            auctionLength
+          )
+        ).to.be.revertedWith("Auction length must be greater than zero")
+      })
+    })
   })
 
   describe("onOffer", () => {
