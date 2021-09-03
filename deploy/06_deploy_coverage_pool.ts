@@ -13,8 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  const tags = hre.network.config.tags
-  if (tags.includes("test") || tags.includes("mainnet")) {
+  if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "CoveragePool",
       address: CoveragePool.address,
