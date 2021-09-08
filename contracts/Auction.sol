@@ -50,7 +50,7 @@ contract Auction is IAuction {
     }
 
     AuctionStorage public self;
-    bool public isMasterContract;
+    address public immutable masterContract;
 
     /// @notice Throws if called by any account other than the auctioneer.
     modifier onlyAuctioneer() {
@@ -64,7 +64,7 @@ contract Auction is IAuction {
     }
 
     constructor() {
-        isMasterContract = true;
+        masterContract = address(this);
     }
 
     /// @notice Initializes auction
@@ -83,10 +83,11 @@ contract Auction is IAuction {
         uint256 _amountDesired,
         uint256 _auctionLength
     ) external {
-        require(!isMasterContract, "Can not initialize master contract");
+        require(!isMasterContract(), "Can not initialize master contract");
         //slither-disable-next-line incorrect-equality
         require(self.startTime == 0, "Auction already initialized");
         require(_amountDesired > 0, "Amount desired must be greater than zero");
+        require(_auctionLength > 0, "Auction length must be greater than zero");
         self.auctioneer = _auctioneer;
         self.tokenAccepted = _tokenAccepted;
         self.amountOutstanding = _amountDesired;
@@ -130,7 +131,7 @@ contract Auction is IAuction {
         uint256 portionToSeize = (amountOnOffer * amountToTransfer) /
             self.amountOutstanding;
 
-        if (!_isAuctionOver() && amountToTransfer != self.amountOutstanding) {
+        if (!isAuctionOver() && amountToTransfer != self.amountOutstanding) {
             // Time passed since the auction start or the last takeOffer call
             // with a partial fill.
 
@@ -211,13 +212,13 @@ contract Auction is IAuction {
     /// @dev Delete all storage and destroy the contract. Should only be called
     ///      after an auction has closed.
     function harikari() internal {
-        require(!isMasterContract, "Master contract can not harikari");
+        require(!isMasterContract(), "Master contract can not harikari");
         selfdestruct(payable(address(self.auctioneer)));
     }
 
     function _onOffer() internal view returns (uint256) {
         // when the auction is over, entire pool is on offer
-        if (_isAuctionOver()) {
+        if (isAuctionOver()) {
             // Down the road, for determining a portion on offer, a value returned
             // by this function will be divided by FLOATING_POINT_DIVISOR. To
             // return the entire pool, we need to return just this divisor in order
@@ -247,8 +248,12 @@ contract Auction is IAuction {
                 velocityPoolDepletingRate) / self.auctionLength;
     }
 
-    function _isAuctionOver() internal view returns (bool) {
+    function isAuctionOver() internal view returns (bool) {
         /* solhint-disable-next-line not-rely-on-time */
         return block.timestamp >= self.startTime + self.auctionLength;
+    }
+
+    function isMasterContract() internal view returns (bool) {
+        return masterContract == address(this);
     }
 }

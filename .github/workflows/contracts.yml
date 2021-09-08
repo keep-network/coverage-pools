@@ -1,6 +1,8 @@
 name: Solidity
 
 on:
+  schedule:
+    - cron: "0 0 * * *"
   push:
     branches:
       - main
@@ -46,6 +48,7 @@ jobs:
 
   contracts-deployment-dry-run:
     runs-on: ubuntu-latest
+    if: github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v2
 
@@ -134,7 +137,9 @@ jobs:
 
   contracts-lint:
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch'
+    if: |
+      github.event_name != 'workflow_dispatch'
+        && github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v2
 
@@ -151,7 +156,9 @@ jobs:
 
   contracts-slither:
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch'
+    if: |
+      github.event_name != 'workflow_dispatch'
+        && github.event_name != 'schedule'
     steps:
       - uses: actions/checkout@v2
 
