@@ -271,7 +271,7 @@ describe("AssetPool", () => {
       it("should emit Deposited event with correct covAmount", async () => {
         const events = pastEvents(await tx.wait(), assetPool, "Deposited")
         expect(events.length).to.equal(1)
-        expect(events[0].args["underwrtier"]).to.equal(underwriter2.address)
+        expect(events[0].args["underwriter"]).to.equal(underwriter2.address)
         expect(events[0].args["amount"]).to.equal(depositedUnderwriter2)
         expect(events[0].args["covAmount"]).to.be.closeTo(
           "45454545454545454545",
@@ -753,16 +753,22 @@ describe("AssetPool", () => {
         // We can approve the number of tokens equal to the number of tokens
         // deposited - there were no claims and no rewards were allocated so
         // those numbers are equal.
+        const covAmount = amount
         await underwriterToken
           .connect(underwriter1)
-          .approve(assetPool.address, amount)
-        await assetPool.connect(underwriter1).initiateWithdrawal(amount)
+          .approve(assetPool.address, covAmount)
+        await assetPool.connect(underwriter1).initiateWithdrawal(covAmount)
         await increaseTime(withdrawalDelay)
         const tx = await assetPool.completeWithdrawal(underwriter1.address)
 
-        expect(tx)
+        await expect(tx)
           .to.emit(assetPool, "WithdrawalCompleted")
-          .withArgs(underwriter1.address, amount, await lastBlockTime())
+          .withArgs(
+            underwriter1.address,
+            amount,
+            covAmount,
+            await lastBlockTime()
+          )
       })
 
       context("when no collateral tokens were claimed by the pool", () => {

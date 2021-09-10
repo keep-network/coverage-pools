@@ -66,7 +66,7 @@ contract AssetPool is Ownable, IAssetPool {
     mapping(address => uint256) public pendingWithdrawal;
 
     event Deposited(
-        address indexed underwrtier,
+        address indexed underwriter,
         uint256 amount,
         uint256 covAmount
     );
@@ -85,6 +85,7 @@ contract AssetPool is Ownable, IAssetPool {
     event WithdrawalCompleted(
         address indexed underwriter,
         uint256 amount,
+        uint256 covAmount,
         uint256 timestamp
     );
 
@@ -296,6 +297,7 @@ contract AssetPool is Ownable, IAssetPool {
         emit WithdrawalCompleted(
             underwriter,
             amountToWithdraw,
+            covAmount,
             block.timestamp
         );
         collateralToken.safeTransfer(underwriter, amountToWithdraw);
