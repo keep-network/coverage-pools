@@ -17,6 +17,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "AssetPool",
+      address: AssetPool.address,
+    })
+  }
+
   const rewardsPoolAddress = helpers.address.validate(
     await read("AssetPool", "rewardsPool")
   )

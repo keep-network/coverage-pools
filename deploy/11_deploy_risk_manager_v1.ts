@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       `as initial risk manager's swap strategy`
   )
 
-  await deployments.deploy("RiskManagerV1", {
+  const riskManagerV1 = await deployments.deploy("RiskManagerV1", {
     from: deployer,
     args: [
       TBTCToken.address,
@@ -50,6 +50,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     log: true,
   })
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "RiskManagerV1",
+      address: riskManagerV1.address,
+    })
+  }
 }
 
 export default func

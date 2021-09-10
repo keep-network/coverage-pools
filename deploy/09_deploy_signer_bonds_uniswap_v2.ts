@@ -8,11 +8,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const UniswapV2Router = await deployments.get("UniswapV2Router")
   const CoveragePool = await deployments.get("CoveragePool")
 
-  await deployments.deploy("SignerBondsUniswapV2", {
-    from: deployer,
-    args: [UniswapV2Router.address, CoveragePool.address],
-    log: true,
-  })
+  const signerBondsUniswapV2 = await deployments.deploy(
+    "SignerBondsUniswapV2",
+    {
+      from: deployer,
+      args: [UniswapV2Router.address, CoveragePool.address],
+      log: true,
+    }
+  )
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "SignerBondsUniswapV2",
+      address: signerBondsUniswapV2.address,
+    })
+  }
 }
 
 export default func

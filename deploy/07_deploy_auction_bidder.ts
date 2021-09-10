@@ -7,11 +7,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const CoveragePool = await deployments.get("CoveragePool")
 
-  await deployments.deploy("AuctionBidder", {
+  const auctionBidder = await deployments.deploy("AuctionBidder", {
     from: deployer,
     args: [CoveragePool.address],
     log: true,
   })
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "AuctionBidder",
+      address: auctionBidder.address,
+    })
+  }
 }
 
 export default func

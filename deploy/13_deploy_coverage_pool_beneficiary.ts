@@ -21,6 +21,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "CoveragePoolBeneficiary",
+      address: CoveragePoolBeneficiary.address,
+    })
+  }
+
   await helpers.ownable.transferOwnership(
     "CoveragePoolBeneficiary",
     BatchedPhasedEscrow.address,
