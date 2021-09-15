@@ -32,6 +32,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     CoveragePoolBeneficiary.address,
     rewardManager
   )
+
+  if (hre.network.tags.etherscan) {
+    await hre.ethers.provider.waitForTransaction(CoveragePoolBeneficiary.transactionHash, 10, 900000)
+
+    await hre.run("verify:verify", {
+      address: CoveragePoolBeneficiary.address,
+      constructorArguments: [
+        KeepToken.address,
+        RewardsPoolAddress,
+      ],
+      contract: "contracts/CoveragePoolBeneficiary.sol:CoveragePoolBeneficiary",
+    })
+  }
 }
 
 export default func

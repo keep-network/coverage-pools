@@ -18,6 +18,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     CoveragePool.address,
     deployer
   )
+
+  if (hre.network.tags.etherscan) {
+    await hre.ethers.provider.waitForTransaction(CoveragePool.transactionHash, 10, 900000)
+
+    await hre.run("verify:verify", {
+      address: CoveragePool.address,
+      constructorArguments: [
+        AssetPool.address,
+      ],
+      contract: "contracts/CoveragePool.sol:CoveragePool",
+    })
+  }
 }
 
 export default func

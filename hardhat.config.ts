@@ -2,6 +2,7 @@ import { HardhatUserConfig } from "hardhat/config"
 
 import "@keep-network/hardhat-helpers"
 import "@keep-network/hardhat-local-networks-config"
+import "@nomiclabs/hardhat-etherscan"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
@@ -44,7 +45,11 @@ const config: HardhatUserConfig = {
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
+      tags: ["etherscan"],
     },
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY
   },
   // // Define local networks configuration file path to load networks from the file.
   // localNetworksConfig: "./.hardhat/networks.ts",

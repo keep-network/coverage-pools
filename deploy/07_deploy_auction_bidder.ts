@@ -7,11 +7,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const CoveragePool = await deployments.get("CoveragePool")
 
-  await deployments.deploy("AuctionBidder", {
+  const AuctionBidder = await deployments.deploy("AuctionBidder", {
     from: deployer,
     args: [CoveragePool.address],
     log: true,
   })
+
+  if (hre.network.tags.etherscan) {
+    await hre.ethers.provider.waitForTransaction(AuctionBidder.transactionHash, 10, 900000)
+
+    await hre.run("verify:verify", {
+      address: AuctionBidder.address,
+      constructorArguments: [
+        CoveragePool.address,
+      ],
+      contract: "contracts/AuctionBidder.sol:AuctionBidder",
+    })
+  }
 }
 
 export default func

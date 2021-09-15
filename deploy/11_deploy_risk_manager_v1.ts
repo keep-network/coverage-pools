@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       `as initial risk manager's swap strategy`
   )
 
-  await deployments.deploy("RiskManagerV1", {
+  const RiskManagerV1 = await deployments.deploy("RiskManagerV1", {
     from: deployer,
     args: [
       TBTCToken.address,
@@ -50,6 +50,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     log: true,
   })
+
+  if (hre.network.tags.etherscan) {
+    await hre.ethers.provider.waitForTransaction(RiskManagerV1.transactionHash, 10, 900000)
+
+    await hre.run("verify:verify", {
+      address: RiskManagerV1.address,
+      constructorArguments: [
+        TBTCToken.address,
+        TBTCDepositToken.address,
+        CoveragePool.address,
+        signerBondStrategy.address,
+        MasterAuction.address,
+        auctionLength,
+        bondAuctionThreshold,
+      ],
+      contract: "contracts/RiskManagerV1.sol:RiskManagerV1",
+    })
+  }
 }
 
 export default func

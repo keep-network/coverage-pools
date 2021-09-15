@@ -8,11 +8,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const UniswapV2Router = await deployments.get("UniswapV2Router")
   const CoveragePool = await deployments.get("CoveragePool")
 
-  await deployments.deploy("SignerBondsUniswapV2", {
+  const SignerBondsUniswapV2 = await deployments.deploy("SignerBondsUniswapV2", {
     from: deployer,
     args: [UniswapV2Router.address, CoveragePool.address],
     log: true,
   })
+
+  if (hre.network.tags.etherscan) {
+    await hre.ethers.provider.waitForTransaction(SignerBondsUniswapV2.transactionHash, 10, 900000)
+
+    await hre.run("verify:verify", {
+      address: SignerBondsUniswapV2.address,
+      constructorArguments: [
+        UniswapV2Router.address,
+        CoveragePool.address,
+      ],
+      contract: "contracts/SignerBondsUniswapV2.sol:SignerBondsUniswapV2",
+    })
+  }
 }
 
 export default func
