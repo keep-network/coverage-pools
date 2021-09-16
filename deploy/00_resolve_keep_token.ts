@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log(`using external KeepToken at ${KeepToken.address}`)
   } else if (
     hre.network.name !== "hardhat" ||
-    (hre.network.config as HardhatNetworkConfig).forking.enabled == true
+    (hre.network.config as HardhatNetworkConfig).forking.enabled
   ) {
     throw new Error("deployed KeepToken contract not found")
   } else {
