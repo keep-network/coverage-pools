@@ -17,6 +17,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   )
 
+  const uniswapPair = await deployments.read(
+    "SignerBondsUniswapV2",
+    "uniswapPair"
+  )
+  console.log(`expected uniswap pair address: ${uniswapPair}`)
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "SignerBondsUniswapV2",
