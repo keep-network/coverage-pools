@@ -1,4 +1,4 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { HardhatRuntimeEnvironment, HardhatNetworkConfig } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -10,7 +10,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (KeepToken && helpers.address.isValid(KeepToken.address)) {
     log(`using external KeepToken at ${KeepToken.address}`)
-  } else if (hre.network.name !== "hardhat") {
+  } else if (
+    hre.network.name !== "hardhat" ||
+    (hre.network.config as HardhatNetworkConfig).forking.enabled
+  ) {
     throw new Error("deployed KeepToken contract not found")
   } else {
     log(`deploying KeepToken stub`)
