@@ -1,6 +1,7 @@
 {
   "name": "@keep-network/coverage-pools",
   "version": "1.1.0-dev",
+  "license": "MIT",
   "files": [
     "artifacts/",
     "build/contracts/",
@@ -9,6 +10,14 @@
     "deploy/",
     "export.json"
   ],
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@github.com/keep-network/coverage-pools"
+  },
+  "bugs": {
+    "url": "https://github.com/keep-network/coverage-pools/issues"
+  },
+  "homepage": "https://github.com/keep-network/coverage-pools",
   "scripts": {
     "build": "hardhat compile",
     "deploy": "hardhat deploy --export export.json",
