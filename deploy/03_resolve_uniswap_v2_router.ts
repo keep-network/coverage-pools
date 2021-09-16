@@ -1,4 +1,4 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { HardhatRuntimeEnvironment, HardhatNetworkConfig } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -10,7 +10,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (UniswapV2Router && helpers.address.isValid(UniswapV2Router.address)) {
     log(`using external UniswapV2Router at ${UniswapV2Router.address}`)
-  } else if (!hre.network.tags.local) {
+  } else if (
+    hre.network.name !== "hardhat" ||
+    (hre.network.config as HardhatNetworkConfig).forking.enabled == true
+  ) {
     throw new Error("deployed UniswapV2Router contract not found")
   } else {
     // For any network tagged as `local` we want to deploy a stub if external
