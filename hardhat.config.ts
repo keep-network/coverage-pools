@@ -52,6 +52,9 @@ const config: HardhatUserConfig = {
     username: "thesis",
     project: "",
   },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
   // // Define local networks configuration file path to load networks from the file.
   // localNetworksConfig: "./.hardhat/networks.ts",
   external: {
