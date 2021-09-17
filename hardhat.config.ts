@@ -69,6 +69,9 @@ const config: HardhatUserConfig = {
       },
     ],
     deployments: {
+      // For hardhat environment we can fork the mainnet, so we need to point it
+      // to the contract artifacts.
+      // hardhat: ["./external/mainnet"],
       // For development environment we expect the local dependencies to be linked
       // with `yarn link` command.
       development: [
@@ -98,6 +101,9 @@ const config: HardhatUserConfig = {
   },
   mocha: {
     timeout: 30000,
+  },
+  etherscan: {
+    apiKey: "PUT API KEY HERE",
   },
 }
 
