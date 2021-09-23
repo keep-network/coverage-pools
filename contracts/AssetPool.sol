@@ -61,7 +61,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         After the withdrawal timeout elapses, tokens stay in the pool
     ///         and the underwriter has to initiate the withdrawal again and
     ///         wait for the full withdrawal delay to complete the withdrawal.
-    uint256 public withdrawalTimeout = 15 minutes;
+    uint256 public withdrawalTimeout = 20 minutes;
     uint256 public newWithdrawalTimeout;
     uint256 public withdrawalTimeoutChangeInitiated;
 
