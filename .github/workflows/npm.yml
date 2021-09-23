@@ -24,7 +24,7 @@ jobs:
 
       - name: Resolve latest contracts
         run: |
-          yarn add \
+          yarn upgrade \
             @keep-network/keep-core \
             @keep-network/tbtc
 
