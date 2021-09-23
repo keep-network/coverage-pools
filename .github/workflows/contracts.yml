@@ -22,49 +22,49 @@ on:
         default: "main"
 
 jobs:
-  contracts-build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-build-and-test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
 
-      - name: Install dependencies
-        run: yarn install
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Build contracts
-        run: yarn build
+  #     - name: Build contracts
+  #       run: yarn build
 
-      - name: Run tests
-        run: yarn test
+  #     - name: Run tests
+  #       run: yarn test
 
-      - name: Run system tests
-        env:
-          FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
-        run: yarn test:system
+  #     - name: Run system tests
+  #       env:
+  #         FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
+  #       run: yarn test:system
 
-  contracts-deployment-dry-run:
-    runs-on: ubuntu-latest
-    if: github.event_name != 'schedule'
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-deployment-dry-run:
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name != 'schedule'
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
 
-      - name: Install dependencies
-        run: yarn install
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Deploy contracts
-        run: yarn deploy
+  #     - name: Deploy contracts
+  #       run: yarn deploy
 
   contracts-deployment-testnet:
-    needs: [contracts-build-and-test]
+    # needs: [contracts-build-and-test]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -110,18 +110,65 @@ jobs:
           CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
         run: yarn deploy --network ${{ github.event.inputs.environment }}
 
-      - name: Bump up package version
-        id: npm-version-bump
-        uses: keep-network/npm-version-bump@v2
-        with:
-          environment: ${{ github.event.inputs.environment }}
-          branch: ${{ github.ref }}
-          commit: ${{ github.sha }}
+      # - name: Bump up package version
+      #   id: npm-version-bump
+      #   uses: keep-network/npm-version-bump@v2
+      #   with:
+      #     environment: ${{ github.event.inputs.environment }}
+      #     branch: ${{ github.ref }}
+      #     commit: ${{ github.sha }}
 
-      - name: Publish to npm
-        run: |
-          echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
-          npm publish --access=public --network=${{ github.event.inputs.environment }}
+      # - name: Publish to npm
+      #   run: |
+      #     echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
+      #     npm publish --access=public --network=${{ github.event.inputs.environment }}
+
+      # - name: Notify CI about completion of the workflow
+      #   uses: keep-network/ci/actions/notify-workflow-completed@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
+      #   with:
+      #     module: "github.com/keep-network/coverage-pools"
+      #     url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      #     environment: ${{ github.event.inputs.environment }}
+      #     upstream_builds: ${{ github.event.inputs.upstream_builds }}
+      #     upstream_ref: ${{ github.event.inputs.upstream_ref }}
+      #     version: ${{ steps.npm-version-bump.outputs.version }}
+
+      # - name: Tar files needed for etherscan verification
+      #   run: |
+      #     tar -cvf etherscan-verify.tar \
+      #       ./deployments \
+      #       ./package.json \
+      #       ./yarn.lock
+
+      - name: Upload files needed for etherscan verification
+        uses: actions/upload-artifact@v2
+        with:
+          name: Artifacts for etherscan verifcation
+          path: |
+            ./deployments
+            ./package.json
+            ./yarn.lock
+
+  contracts-etherscan-verification:
+    needs: [contracts-deployment-testnet]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download files needed for etherscan verification
+        uses: actions/download-artifact@v2
+        with:
+          name: Artifacts for etherscan verifcation
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14.x"
+          cache: "yarn"
+
+      - name: Install needed dependencies
+        run: yarn install --frozen-lockfile
 
       # If we don't remove the `keep-core` and `tbtc` contracts from `node-modules`,
       # the `etherscan-verify` plugins tries to verify them, which is not desired.
@@ -131,86 +178,62 @@ jobs:
           rm -rf ./node_modules/@keep-network/tbtc
 
       - name: Verify contracts on Etherscan
-        continue-on-error: true
-        id: verify-contracts
         env:
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
         run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
 
-      - name: Annotate in case of verification failure
-        if: steps.verify-contracts.outcome == 'failure'
-        continue-on-error: true
-        uses: thesis/github-action-create-annotations@v0.2.0
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          json-file-path: "./.github/annotations.json"
-          fail-on-error: false
-          check-name: "contracts-deployment-testnet"
+  # contracts-lint:
+  #   runs-on: ubuntu-latest
+  #   if: |
+  #     github.event_name != 'workflow_dispatch'
+  #       && github.event_name != 'schedule'
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
-        with:
-          module: "github.com/keep-network/coverage-pools"
-          url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          environment: ${{ github.event.inputs.environment }}
-          upstream_builds: ${{ github.event.inputs.upstream_builds }}
-          upstream_ref: ${{ github.event.inputs.upstream_ref }}
-          version: ${{ steps.npm-version-bump.outputs.version }}
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
 
-  contracts-lint:
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name != 'workflow_dispatch'
-        && github.event_name != 'schedule'
-    steps:
-      - uses: actions/checkout@v2
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
+  #     - name: Lint
+  #       run: yarn lint
 
-      - name: Install dependencies
-        run: yarn install
+  # contracts-slither:
+  #   runs-on: ubuntu-latest
+  #   if: |
+  #     github.event_name != 'workflow_dispatch'
+  #       && github.event_name != 'schedule'
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - name: Lint
-        run: yarn lint
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
 
-  contracts-slither:
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name != 'workflow_dispatch'
-        && github.event_name != 'schedule'
-    steps:
-      - uses: actions/checkout@v2
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.8.5
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
+  #     - name: Install Solidity
+  #       env:
+  #         SOLC_VERSION: 0.8.5 # according to solidity.version in hardhat.config.ts
+  #       run: |
+  #         pip3 install solc-select
+  #         solc-select install $SOLC_VERSION
+  #         solc-select use $SOLC_VERSION
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: 3.8.5
+  #     - name: Install Slither
+  #       env:
+  #         SLITHER_VERSION: 0.8.0
+  #       run: pip3 install slither-analyzer==$SLITHER_VERSION
 
-      - name: Install Solidity
-        env:
-          SOLC_VERSION: 0.8.5 # according to solidity.version in hardhat.config.ts
-        run: |
-          pip3 install solc-select
-          solc-select install $SOLC_VERSION
-          solc-select use $SOLC_VERSION
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Install Slither
-        env:
-          SLITHER_VERSION: 0.8.0
-        run: pip3 install slither-analyzer==$SLITHER_VERSION
-
-      - name: Install dependencies
-        run: yarn install
-
-      - name: Run Slither
-        run: slither .
+  #     - name: Run Slither
+  #       run: slither .
