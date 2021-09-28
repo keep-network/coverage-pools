@@ -94,7 +94,7 @@ jobs:
 
       - name: Resolve latest contracts
         run: |
-          yarn add \
+          yarn upgrade \
             @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
             @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
