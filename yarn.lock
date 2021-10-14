@@ -1300,6 +1300,11 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.1.0.tgz#baec89a7f5f73e3d8ea582a78f1980134b605375"
   integrity sha512-TihZitscnaHNcZgXGj9zDLDyCqjziytB4tMCwXq0XimfWkAjBYyk5/pOsDbbwcavhlc79HhpTEpQcrMnPVa1mw==
 
+"@openzeppelin/contracts@^4.3":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.3.2.tgz#ff80affd6d352dbe1bbc5b4e1833c41afd6283b6"
+  integrity sha512-AybF1cesONZStg5kWf6ao9OlqTZuPqddvprc0ky7lrUVOjXeKpmQ2Y9FK+6ygxasb+4aic4O5pneFBfwVsRRRg==
+
 "@openzeppelin/upgrades@^2.7.2":
   version "2.8.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades/-/upgrades-2.8.0.tgz#8086ab9c99d9f8dac7205030b0f9e7e4a280c4a3"
@@ -1572,11 +1577,24 @@
     fs-extra "^9.0.1"
     js-yaml "^3.14.0"
 
-"@thesis/solidity-contracts@github:thesis/solidity-contracts#a1384af":
+"@thesis/solidity-contracts@github:thesis/solidity-contracts#4985bcf":
   version "0.0.1"
-  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/a1384afd039f0de4d698872b204a74337c15857f"
+  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/4985bcfc28e36eed9838993b16710e1b500f9e85"
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
+
+"@thesis/solidity-contracts@github:thesis/solidity-contracts#507c647":
+  version "0.0.1"
+  resolved "https://codeload.github.com/thesis/solidity-contracts/tar.gz/507c64759a2783196b505365e0cb4bf13c1ad1fa"
+  dependencies:
+    "@openzeppelin/contracts" "^4.1.0"
+
+"@threshold-network/solidity-contracts@github:threshold-network/solidity-contracts#6664c73":
+  version "0.0.1"
+  resolved "https://codeload.github.com/threshold-network/solidity-contracts/tar.gz/6664c738660f79de3add7fdff735fcb19d5165ad"
+  dependencies:
+    "@openzeppelin/contracts" "^4.3"
+    "@thesis/solidity-contracts" "github:thesis/solidity-contracts#507c647"
 
 "@truffle/error@^0.0.14":
   version "0.0.14"
@@ -4474,8 +4492,9 @@ eslint-config-google@^0.13.0:
   version "0.3.0"
   resolved "https://codeload.github.com/keep-network/eslint-config-keep/tar.gz/0c27ade54e725f980e971c3d91ea88bab76b2330"
   dependencies:
+    "@keep-network/prettier-config-keep" "github:keep-network/prettier-config-keep"
     eslint-config-google "^0.13.0"
-    eslint-config-prettier "^6.10.0"
+    eslint-config-prettier "^6.15.0"
     eslint-plugin-no-only-tests "^2.3.1"
     eslint-plugin-prettier "^3.1.2"
 

@@ -31,6 +31,10 @@ async function lastBlockTime() {
   return (await ethers.provider.getBlock("latest")).timestamp
 }
 
+async function lastBlockNumber() {
+  return (await ethers.provider.getBlock("latest")).number
+}
+
 async function increaseTime(time) {
   const now = await lastBlockTime()
   await ethers.provider.send("evm_setNextBlockTimestamp", [now + time])
@@ -89,6 +93,7 @@ module.exports.to1ePrecision = to1ePrecision
 module.exports.to1e18 = to1e18
 module.exports.pastEvents = pastEvents
 module.exports.lastBlockTime = lastBlockTime
+module.exports.lastBlockNumber = lastBlockNumber
 module.exports.increaseTime = increaseTime
 module.exports.impersonateAccount = impersonateAccount
 module.exports.resetFork = resetFork
