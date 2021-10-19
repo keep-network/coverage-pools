@@ -11,8 +11,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (UniswapV2Router && helpers.address.isValid(UniswapV2Router.address)) {
     log(`using external UniswapV2Router at ${UniswapV2Router.address}`)
   } else if (
-    hre.network.name !== "hardhat" ||
-    (hre.network.config as HardhatNetworkConfig).forking.enabled
+    !hre.network.tags.local ||
+    ("forking" in hre.network.config && hre.network.config.forking.enabled)
   ) {
     throw new Error("deployed UniswapV2Router contract not found")
   } else {
