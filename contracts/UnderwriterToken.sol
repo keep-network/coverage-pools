@@ -29,10 +29,6 @@ import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.s
 ///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
 contract UnderwriterToken is ERC20WithPermit, Checkpoints {
-    /// @notice Replay protection nonces that are used to construct EIP-712
-    ///         signature provided to `delegateBySig` function.
-    mapping(address => uint256) public delegationNonce;
-
     /// @notice The EIP-712 typehash for the delegation struct used by
     ///         `delegateBySig`.
     bytes32 public constant DELEGATION_TYPEHASH =
@@ -79,7 +75,7 @@ contract UnderwriterToken is ERC20WithPermit, Checkpoints {
                     abi.encode(
                         DELEGATION_TYPEHASH,
                         delegatee,
-                        delegationNonce[signatory]++,
+                        nonce[signatory]++,
                         deadline
                     )
                 )

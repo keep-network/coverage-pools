@@ -267,7 +267,7 @@ describe("UnderwriterToken", () => {
 
       const domainSeparator = await underwriterToken.DOMAIN_SEPARATOR()
       const delegationTypehash = await underwriterToken.DELEGATION_TYPEHASH()
-      const nonce = await underwriterToken.delegationNonce(delegator.address)
+      const nonce = await underwriterToken.nonce(delegator.address)
 
       const delegationDigest = ethers.utils.keccak256(
         ethers.utils.solidityPack(
