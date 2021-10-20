@@ -82,6 +82,11 @@ async function resetFork(blockNumber) {
   })
 }
 
+async function mineBlock() {
+  await ethers.provider.send("evm_mine")
+  return await lastBlockNumber()
+}
+
 // This function checks whether the given address stores contract code. It
 // can be used to determine whether a contract stored at the given address has
 // self destructed.
@@ -97,6 +102,10 @@ module.exports.lastBlockNumber = lastBlockNumber
 module.exports.increaseTime = increaseTime
 module.exports.impersonateAccount = impersonateAccount
 module.exports.resetFork = resetFork
+module.exports.mineBlock = mineBlock
 module.exports.isCodeAt = isCodeAt
 
 module.exports.ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+module.exports.MAX_UINT96 = ethers.BigNumber.from(
+  "79228162514264337593543950335"
+)

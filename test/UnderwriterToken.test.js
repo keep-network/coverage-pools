@@ -3,7 +3,9 @@ const {
   to1e18,
   lastBlockNumber,
   lastBlockTime,
+  mineBlock,
   ZERO_ADDRESS,
+  MAX_UINT96,
 } = require("./helpers/contract-test-helpers")
 
 describe("UnderwriterToken", () => {
@@ -31,6 +33,10 @@ describe("UnderwriterToken", () => {
       .connect(deployer)
       .mint(tokenHolder.address, initialBalance)
   })
+
+  const previousBlockNumber = async () => {
+    return (await lastBlockNumber()) - 1
+  }
 
   const describeDelegate = (getDelegator, doDelegate) => {
     context("when delegated to someone else", () => {
@@ -290,5 +296,890 @@ describe("UnderwriterToken", () => {
         await signingKey.signDigest(delegationDigest)
       )
     }
+  })
+
+  const describeTransfer = (doTransfer) => {
+    context("when no vote delegation was done for sender and recipient", () => {
+      beforeEach(async () => {
+        await doTransfer(to1e18(100))
+      })
+
+      it("should keep current votes at zero", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(0)
+      })
+
+      it("should keep prior votes at zero", async () => {
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenRecipient.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+      })
+    })
+
+    context(
+      "when both sender and receiver delegated votes to someone else",
+      () => {
+        const amount = to1e18(100)
+        let tx
+
+        beforeEach(async () => {
+          await underwriterToken
+            .connect(tokenHolder)
+            .delegate(delegatee.address)
+          await underwriterToken
+            .connect(tokenRecipient)
+            .delegate(delegatee2.address)
+          tx = await doTransfer(amount)
+        })
+
+        it("should update current votes", async () => {
+          expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+            initialBalance.sub(amount)
+          )
+          expect(await underwriterToken.getVotes(delegatee2.address)).to.equal(
+            amount
+          )
+          expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+            0
+          )
+          expect(
+            await underwriterToken.getVotes(tokenRecipient.address)
+          ).to.equal(0)
+        })
+
+        it("should keep track of prior votes", async () => {
+          expect(
+            await underwriterToken.getPastVotes(
+              delegatee.address,
+              await previousBlockNumber()
+            )
+          ).to.equal(initialBalance)
+          expect(
+            await underwriterToken.getPastVotes(
+              delegatee2.address,
+              await previousBlockNumber()
+            )
+          ).to.equal(0)
+          expect(
+            await underwriterToken.getPastVotes(
+              tokenHolder.address,
+              await previousBlockNumber()
+            )
+          ).to.equal(0)
+          expect(
+            await underwriterToken.getPastVotes(
+              tokenRecipient.address,
+              await previousBlockNumber()
+            )
+          ).to.equal(0)
+        })
+
+        it("should emit DelegateVotesChanged", async () => {
+          await expect(tx)
+            .to.emit(underwriterToken, "DelegateVotesChanged")
+            .withArgs(
+              delegatee.address,
+              initialBalance,
+              initialBalance.sub(amount)
+            )
+
+          await expect(tx)
+            .to.emit(underwriterToken, "DelegateVotesChanged")
+            .withArgs(delegatee2.address, 0, amount)
+        })
+      }
+    )
+
+    context("when both sender and recipient self-delegated votes", () => {
+      const amount = to1e18(120)
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken
+          .connect(tokenHolder)
+          .delegate(tokenHolder.address)
+        await underwriterToken
+          .connect(tokenRecipient)
+          .delegate(tokenRecipient.address)
+        tx = await doTransfer(amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(amount)
+      })
+
+      it("should keep track of prior votes", async () => {
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(initialBalance)
+
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenRecipient.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(
+            tokenHolder.address,
+            initialBalance,
+            initialBalance.sub(amount)
+          )
+
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(tokenRecipient.address, 0, amount)
+      })
+    })
+
+    context("when sender delegated votes to someone else", () => {
+      const amount = to1e18(70)
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken.connect(tokenHolder).delegate(delegatee.address)
+        tx = await doTransfer(amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(0)
+      })
+
+      it("should keep track of prior votes", async () => {
+        expect(
+          await underwriterToken.getPastVotes(
+            delegatee.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(initialBalance)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenRecipient.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(
+            delegatee.address,
+            initialBalance,
+            initialBalance.sub(amount)
+          )
+      })
+    })
+
+    context("when sender self-delegated votes", () => {
+      const amount = to1e18(991)
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken
+          .connect(tokenHolder)
+          .delegate(tokenHolder.address)
+        tx = await doTransfer(amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(0)
+      })
+
+      it("should keep track of prior votes", async () => {
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(initialBalance)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenRecipient.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(
+            tokenHolder.address,
+            initialBalance,
+            initialBalance.sub(amount)
+          )
+      })
+    })
+
+    context("when recipient delegated votes to someone else", () => {
+      const amount = to1e18(214)
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken
+          .connect(tokenRecipient)
+          .delegate(delegatee2.address)
+        tx = await doTransfer(amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(delegatee2.address)).to.equal(
+          amount
+        )
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(0)
+      })
+
+      it("should keep track of prior votes", async () => {
+        expect(
+          await underwriterToken.getPastVotes(
+            delegatee2.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenRecipient.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(delegatee2.address, 0, amount)
+      })
+    })
+
+    context("when recipient self-delegated votes", () => {
+      const amount = to1e18(124)
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken
+          .connect(tokenRecipient)
+          .delegate(tokenRecipient.address)
+        tx = await doTransfer(amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(amount)
+      })
+
+      it("should keep track of prior votes", async () => {
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(
+            tokenRecipient.address,
+            await previousBlockNumber()
+          )
+        ).to.equal(0)
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(tokenRecipient.address, 0, amount)
+      })
+    })
+
+    context("when transferred multiple times", () => {
+      let block1
+      let block2
+      let block3
+
+      beforeEach(async () => {
+        await underwriterToken.connect(tokenHolder).delegate(delegatee.address)
+        await underwriterToken
+          .connect(tokenRecipient)
+          .delegate(delegatee2.address)
+
+        await underwriterToken
+          .connect(tokenHolder)
+          .transfer(tokenRecipient.address, to1e18(1))
+        block1 = await lastBlockNumber()
+        await underwriterToken
+          .connect(tokenHolder)
+          .transfer(tokenRecipient.address, to1e18(2))
+        block2 = await lastBlockNumber()
+        await underwriterToken
+          .connect(tokenHolder)
+          .transfer(tokenRecipient.address, to1e18(3))
+        block3 = await lastBlockNumber()
+        await underwriterToken
+          .connect(tokenHolder)
+          .transfer(tokenRecipient.address, to1e18(4))
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+        expect(
+          await underwriterToken.getVotes(tokenRecipient.address)
+        ).to.equal(0)
+        expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+          initialBalance.sub(to1e18(10))
+        )
+        expect(await underwriterToken.getVotes(delegatee2.address)).to.equal(
+          to1e18(10)
+        )
+      })
+
+      it("should keep track of prior votes", async () => {
+        expect(
+          await underwriterToken.getPastVotes(tokenHolder.address, block1)
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(tokenRecipient.address, block1)
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(delegatee.address, block1)
+        ).to.equal(initialBalance.sub(to1e18(1)))
+        expect(
+          await underwriterToken.getPastVotes(delegatee2.address, block1)
+        ).to.equal(to1e18(1))
+
+        expect(
+          await underwriterToken.getPastVotes(tokenHolder.address, block2)
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(tokenRecipient.address, block2)
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(delegatee.address, block2)
+        ).to.equal(initialBalance.sub(to1e18(3)))
+        expect(
+          await underwriterToken.getPastVotes(delegatee2.address, block2)
+        ).to.equal(to1e18(3))
+
+        expect(
+          await underwriterToken.getPastVotes(tokenHolder.address, block3)
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(tokenRecipient.address, block3)
+        ).to.equal(0)
+        expect(
+          await underwriterToken.getPastVotes(delegatee.address, block3)
+        ).to.equal(initialBalance.sub(to1e18(6)))
+        expect(
+          await underwriterToken.getPastVotes(delegatee2.address, block3)
+        ).to.equal(to1e18(6))
+      })
+    })
+  }
+
+  describe("transfer", () => {
+    describeTransfer(async (amount) => {
+      return await underwriterToken
+        .connect(tokenHolder)
+        .transfer(tokenRecipient.address, amount)
+    })
+  })
+
+  describe("transferFrom", () => {
+    describeTransfer(async (amount) => {
+      await underwriterToken
+        .connect(tokenHolder)
+        .approve(thirdParty.address, amount)
+      return await underwriterToken
+        .connect(thirdParty)
+        .transferFrom(tokenHolder.address, tokenRecipient.address, amount)
+    })
+  })
+
+  describe("mint", () => {
+    context("when trying to mint more than the checkpoint can store", () => {
+      context("in one step", () => {
+        it("should revert", async () => {
+          await expect(
+            underwriterToken
+              .connect(deployer)
+              .mint(thirdParty.address, MAX_UINT96)
+          ).to.be.revertedWith("Maximum total supply exceeded")
+        })
+      })
+
+      context("in multiple steps", () => {
+        it("should revert", async () => {
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, MAX_UINT96.div(3))
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, MAX_UINT96.div(3))
+          await expect(
+            underwriterToken
+              .connect(deployer)
+              .mint(thirdParty.address, MAX_UINT96.div(3))
+          ).to.be.revertedWith("Maximum total supply exceeded")
+        })
+      })
+    })
+
+    context("when no delegation was done", () => {
+      it("should keep current votes at zero", async () => {
+        await underwriterToken
+          .connect(deployer)
+          .mint(thirdParty.address, initialBalance)
+        expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(0)
+
+        // one more time, when not starting from zero balance
+        await underwriterToken
+          .connect(deployer)
+          .mint(thirdParty.address, initialBalance)
+        expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(0)
+      })
+    })
+
+    context("when delegated to someone else", () => {
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken.connect(thirdParty).delegate(delegatee.address)
+        tx = await underwriterToken
+          .connect(deployer)
+          .mint(thirdParty.address, initialBalance)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(0)
+        expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+          initialBalance
+        )
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(delegatee.address, 0, initialBalance)
+      })
+    })
+
+    context("when self-delegated", () => {
+      let tx
+
+      beforeEach(async () => {
+        await underwriterToken.connect(thirdParty).delegate(thirdParty.address)
+        tx = await underwriterToken
+          .connect(deployer)
+          .mint(thirdParty.address, initialBalance)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(
+          initialBalance
+        )
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(thirdParty.address, 0, initialBalance)
+      })
+    })
+
+    context("when minted just once", () => {
+      it("should keep track of historic supply", async () => {
+        const lastBlock = await mineBlock()
+        expect(
+          await underwriterToken.getPastTotalSupply(lastBlock - 1)
+        ).to.equal(initialBalance)
+      })
+    })
+
+    context("when minted several times", () => {
+      context("when minted to the same account", () => {
+        let block1
+        let block2
+        let block3
+
+        beforeEach(async () => {
+          await underwriterToken.connect(thirdParty).delegate(delegatee.address)
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, to1e18(10))
+          block1 = await lastBlockNumber()
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, to1e18(12))
+          block2 = await lastBlockNumber()
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, to1e18(15))
+          block3 = await lastBlockNumber()
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, to1e18(17))
+        })
+
+        it("should update votes", async () => {
+          expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(
+            0
+          )
+          expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+            to1e18(54)
+          )
+        })
+
+        it("should keep track of past votes", async () => {
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block1)
+          ).to.equal(to1e18(10))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block2)
+          ).to.equal(to1e18(22))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block3)
+          ).to.equal(to1e18(37))
+        })
+
+        it("should keep track of historic supply", async () => {
+          expect(
+            await underwriterToken.getPastTotalSupply(block1 - 1)
+          ).to.equal(initialBalance)
+          expect(
+            await underwriterToken.getPastTotalSupply(block2 - 1)
+          ).to.equal(initialBalance.add(to1e18(10)))
+          expect(
+            await underwriterToken.getPastTotalSupply(block3 - 1)
+          ).to.equal(initialBalance.add(to1e18(22)))
+        })
+      })
+
+      context("when minted to different accounts", () => {
+        let block1
+        let block2
+        let block3
+
+        beforeEach(async () => {
+          await underwriterToken
+            .connect(tokenHolder)
+            .delegate(delegatee.address)
+          await underwriterToken.connect(thirdParty).delegate(delegatee.address)
+          await underwriterToken
+            .connect(deployer)
+            .mint(tokenHolder.address, to1e18(10))
+          block1 = await lastBlockNumber()
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, to1e18(11))
+          block2 = await lastBlockNumber()
+          await underwriterToken
+            .connect(deployer)
+            .mint(tokenHolder.address, to1e18(12))
+          block3 = await lastBlockNumber()
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, to1e18(13))
+        })
+
+        it("should update votes", async () => {
+          expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+            0
+          )
+          expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(
+            0
+          )
+          expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+            initialBalance.add(to1e18(46))
+          )
+        })
+
+        it("should keep track of past votes", async () => {
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block1)
+          ).to.equal(initialBalance.add(to1e18(10)))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block2)
+          ).to.equal(initialBalance.add(to1e18(21)))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block3)
+          ).to.equal(initialBalance.add(to1e18(33)))
+        })
+
+        it("should keep track of historic supply", async () => {
+          expect(
+            await underwriterToken.getPastTotalSupply(block1 - 1)
+          ).to.equal(initialBalance)
+          expect(
+            await underwriterToken.getPastTotalSupply(block2 - 1)
+          ).to.equal(initialBalance.add(to1e18(10)))
+          expect(
+            await underwriterToken.getPastTotalSupply(block3 - 1)
+          ).to.equal(initialBalance.add(to1e18(21)))
+        })
+      })
+    })
+  })
+
+  const describeBurn = (doBurn) => {
+    context("when no delegation was done", () => {
+      const amount = to1e18(10)
+
+      beforeEach(async () => {
+        await doBurn(tokenHolder, amount)
+      })
+
+      it("should keep current votes at zero", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+      })
+    })
+
+    context("when delegated to someone else", () => {
+      const amount = to1e18(15)
+      let tx
+
+      beforeEach(async () => {
+        underwriterToken.connect(tokenHolder).delegate(delegatee.address)
+        tx = await doBurn(tokenHolder, amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+        expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(
+            delegatee.address,
+            initialBalance,
+            initialBalance.sub(amount)
+          )
+      })
+    })
+
+    context("when self-delegated", () => {
+      const amount = to1e18(16)
+      let tx
+
+      beforeEach(async () => {
+        underwriterToken.connect(tokenHolder).delegate(tokenHolder.address)
+        tx = await doBurn(tokenHolder, amount)
+      })
+
+      it("should update current votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+          initialBalance.sub(amount)
+        )
+      })
+
+      it("should emit DelegateVotesChanged", async () => {
+        await expect(tx)
+          .to.emit(underwriterToken, "DelegateVotesChanged")
+          .withArgs(
+            tokenHolder.address,
+            initialBalance,
+            initialBalance.sub(amount)
+          )
+      })
+    })
+
+    context("when burned just once", () => {
+      beforeEach(async () => {
+        await doBurn(tokenHolder, to1e18(1))
+      })
+
+      it("should keep track of historic supply", async () => {
+        const lastBlock = await lastBlockNumber()
+        expect(
+          await underwriterToken.getPastTotalSupply(lastBlock - 1)
+        ).to.equal(initialBalance)
+      })
+    })
+
+    context("when burned several times", () => {
+      context("when burned from the same account", () => {
+        let block1
+        let block2
+        let block3
+
+        beforeEach(async () => {
+          await underwriterToken
+            .connect(tokenHolder)
+            .delegate(delegatee.address)
+          await doBurn(tokenHolder, to1e18(1))
+          block1 = await lastBlockNumber()
+          await doBurn(tokenHolder, to1e18(2))
+          block2 = await lastBlockNumber()
+          await doBurn(tokenHolder, to1e18(3))
+          block3 = await lastBlockNumber()
+          await doBurn(tokenHolder, to1e18(4))
+        })
+
+        it("should update votes", async () => {
+          expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+            0
+          )
+          expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+            initialBalance.sub(to1e18(10))
+          )
+        })
+
+        it("should keep track of past votes", async () => {
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block1)
+          ).to.equal(initialBalance.sub(to1e18(1)))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block2)
+          ).to.equal(initialBalance.sub(to1e18(3)))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block3)
+          ).to.equal(initialBalance.sub(to1e18(6)))
+        })
+
+        it("should keep track of historic supply", async () => {
+          expect(
+            await underwriterToken.getPastTotalSupply(block1 - 1)
+          ).to.equal(initialBalance)
+          expect(
+            await underwriterToken.getPastTotalSupply(block2 - 1)
+          ).to.equal(initialBalance.sub(to1e18(1)))
+          expect(
+            await underwriterToken.getPastTotalSupply(block3 - 1)
+          ).to.equal(initialBalance.sub(to1e18(3)))
+        })
+      })
+
+      context("when burned from different accounts", () => {
+        let block1
+        let block2
+        let block3
+
+        // tokenHolder and thirdParty has initialBalance minted
+        // to total initial balance in this test is initialBalance x 2
+        const initialBalance2 = initialBalance.mul(2)
+
+        beforeEach(async () => {
+          await underwriterToken
+            .connect(deployer)
+            .mint(thirdParty.address, initialBalance)
+          await underwriterToken
+            .connect(tokenHolder)
+            .delegate(delegatee.address)
+          await underwriterToken.connect(thirdParty).delegate(delegatee.address)
+          await doBurn(tokenHolder, to1e18(2))
+          block1 = await lastBlockNumber()
+          await doBurn(thirdParty, to1e18(4))
+          block2 = await lastBlockNumber()
+          await doBurn(tokenHolder, to1e18(6))
+          block3 = await lastBlockNumber()
+          await doBurn(thirdParty, to1e18(8))
+        })
+
+        it("should update votes", async () => {
+          expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(
+            0
+          )
+          expect(await underwriterToken.getVotes(thirdParty.address)).to.equal(
+            0
+          )
+          expect(await underwriterToken.getVotes(delegatee.address)).to.equal(
+            initialBalance2.sub(to1e18(20))
+          )
+        })
+
+        it("should keep track of past votes", async () => {
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block1)
+          ).to.equal(initialBalance2.sub(to1e18(2)))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block2)
+          ).to.equal(initialBalance2.sub(to1e18(6)))
+          expect(
+            await underwriterToken.getPastVotes(delegatee.address, block3)
+          ).to.equal(initialBalance2.sub(to1e18(12)))
+        })
+
+        it("should keep track of historic supply", async () => {
+          expect(
+            await underwriterToken.getPastTotalSupply(block1 - 1)
+          ).to.equal(initialBalance2)
+          expect(
+            await underwriterToken.getPastTotalSupply(block2 - 1)
+          ).to.equal(initialBalance2.sub(to1e18(2)))
+          expect(
+            await underwriterToken.getPastTotalSupply(block3 - 1)
+          ).to.equal(initialBalance2.sub(to1e18(6)))
+        })
+      })
+    })
+  }
+
+  describe("burn", () => {
+    describeBurn(async (account, amount) => {
+      return await underwriterToken.connect(account).burn(amount)
+    })
+  })
+
+  describe("burnFrom", () => {
+    describeBurn(async (account, amount) => {
+      await underwriterToken
+        .connect(account)
+        .approve(thirdParty.address, amount)
+      return await underwriterToken
+        .connect(thirdParty)
+        .burnFrom(account.address, amount)
+    })
   })
 })

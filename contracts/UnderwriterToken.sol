@@ -97,6 +97,38 @@ contract UnderwriterToken is ERC20WithPermit, Checkpoints {
         return delegate(msg.sender, delegatee);
     }
 
+    /// @notice Moves voting power when tokens are minted, burned or transferred.
+    /// @dev Overrides the empty function from the parent contract.
+    /// @param from The address that loses tokens and voting power
+    /// @param to The address that gains tokens and voting power
+    /// @param amount The amount of tokens and voting power that is transferred
+    // slither-disable-next-line dead-code
+    function beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        uint96 safeAmount = SafeCast.toUint96(amount);
+
+        // When minting:
+        if (from == address(0)) {
+            // Does not allow to mint more than uint96 can fit. Otherwise, the
+            // Checkpoint might not fit the balance.
+            require(
+                totalSupply + amount <= maxSupply(),
+                "Maximum total supply exceeded"
+            );
+            writeCheckpoint(_totalSupplyCheckpoints, add, safeAmount);
+        }
+
+        // When burning:
+        if (to == address(0)) {
+            writeCheckpoint(_totalSupplyCheckpoints, subtract, safeAmount);
+        }
+
+        moveVotingPower(delegates(from), delegates(to), safeAmount);
+    }
+
     /// @notice Delegate votes from `delegator` to `delegatee`.
     /// @param delegator The address to delegate votes from
     /// @param delegatee The address to delegate votes to
