@@ -6,6 +6,7 @@ const {
   to1ePrecision,
   pastEvents,
   ZERO_ADDRESS,
+  MAX_UINT96,
 } = require("./helpers/contract-test-helpers")
 
 describe("AssetPool", () => {
@@ -84,6 +85,23 @@ describe("AssetPool", () => {
   })
 
   describe("deposit", () => {
+    context(
+      "when the depositor deposits more than max unsigned 96-bit integer",
+      () => {
+        it("should revert", async () => {
+          const amount = MAX_UINT96.add(1)
+          await collateralToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amount)
+          await expect(
+            assetPool.connect(underwriter1).deposit(amount)
+          ).to.be.revertedWith(
+            "deposited amount must be <= max unsigned 96-bit integer"
+          )
+        })
+      }
+    )
+
     context("when the depositor has not enough collateral tokens", () => {
       it("should revert", async () => {
         const amount = underwriterInitialCollateralBalance.add(1)
@@ -304,6 +322,24 @@ describe("AssetPool", () => {
 
   describe("depositWithMin", () => {
     context(
+      "when the depositor deposits more than max unsigned 96-bit integer",
+      () => {
+        it("should revert", async () => {
+          const amount = MAX_UINT96.add(1)
+          const minCovToMint = amount
+          await collateralToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amount)
+          await expect(
+            assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
+          ).to.be.revertedWith(
+            "deposited amount must be <= max unsigned 96-bit integer"
+          )
+        })
+      }
+    )
+
+    context(
       "when amount to be minted is smaller than the minimal required",
       () => {
         const depositedUnderwriter1 = to1e18(100)
@@ -397,6 +433,23 @@ describe("AssetPool", () => {
     context("when called via approveAndCall", () => {
       const amount = to1e18(100)
       const abiCoder = ethers.utils.defaultAbiCoder
+
+      context(
+        "when amount to deposit is > than max unsigned 96-bit integer",
+        () => {
+          it("should revert", async () => {
+            const amount = MAX_UINT96.add(1)
+            const data = abiCoder.encode(["uint256"], [amount])
+            await expect(
+              collateralToken
+                .connect(underwriter1)
+                .approveAndCall(assetPool.address, amount, data)
+            ).to.be.revertedWith(
+              "deposited amount must be <= max unsigned 96-bit integer"
+            )
+          })
+        }
+      )
 
       context("when passed minimum amount to mint uint256 in extradata", () => {
         beforeEach(async () => {
