@@ -318,6 +318,35 @@ describe("AssetPool", () => {
         ).to.be.revertedWith("Minted tokens amount must be greater than 0")
       })
     })
+
+    context("when minting more underwriter tokens than allowed", () => {
+      const amountToDeposit = MAX_UINT96.div(2)
+      const amountToClaim = amountToDeposit.sub(1)
+
+      beforeEach(async () => {
+        // Deposit a large amount of collateral tokens
+        await collateralToken.mint(underwriter1.address, amountToDeposit)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amountToDeposit)
+        await assetPool.connect(underwriter1).deposit(amountToDeposit)
+        // Simulate the coverage pools claims most of the collateral tokens,
+        // leaving just 1 in the asset pool. Depositing collateral tokens again,
+        // even a small amount, should cause minting more tokens than
+        // type(uint96).max
+        await assetPool
+          .connect(coveragePool)
+          .claim(underwriter2.address, amountToClaim)
+      })
+
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(underwriter2).deposit(3)
+        ).to.be.revertedWith(
+          "Minted tokens amount must be <= max unsigned 96-bit integer"
+        )
+      })
+    })
   })
 
   describe("depositWithMin", () => {

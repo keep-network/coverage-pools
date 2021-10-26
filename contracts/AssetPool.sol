@@ -572,7 +572,15 @@ contract AssetPool is Ownable, IAssetPool {
             return amountToDeposit;
         }
 
-        return (amountToDeposit * covSupply) / collateralBalance;
+        uint256 tokensToMint = (amountToDeposit * covSupply) /
+            collateralBalance;
+
+        require(
+            tokensToMint <= type(uint96).max,
+            "Minted tokens amount must be <= max unsigned 96-bit integer"
+        );
+
+        return tokensToMint;
     }
 
     function _deposit(
