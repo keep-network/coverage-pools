@@ -142,7 +142,8 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints underwriter tokens representing pool's ownership.
+    ///         mints underwriter tokens representing pool's ownership. The
+    ///         amount must be smaller or equal `type(uint96).max`.
     ///         Optional data in extraData may include a minimal amount of
     ///         underwriter tokens expected to be minted for a depositor. There
     ///         are cases when an amount of minted tokens matters for a
@@ -154,6 +155,10 @@ contract AssetPool is Ownable, IAssetPool {
         address token,
         bytes calldata extraData
     ) external {
+        require(
+            amount <= type(uint96).max,
+            "deposited amount must be <= max unsigned 96-bit integer"
+        );
         require(msg.sender == token, "Only token caller allowed");
         require(
             token == address(collateralToken),
@@ -178,13 +183,18 @@ contract AssetPool is Ownable, IAssetPool {
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
-    ///                        the asset pool
+    ///                        the asset pool (must be smaller or equal
+    ///                        `type(uint96).max`)
     /// @return The amount of minted underwriter tokens
     function deposit(uint256 amountToDeposit)
         external
         override
         returns (uint256)
     {
+        require(
+            amountToDeposit <= type(uint96).max,
+            "deposited amount must be <= max unsigned 96-bit integer"
+        );
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
         _deposit(msg.sender, amountToDeposit, toMint);
         return toMint;
@@ -196,7 +206,8 @@ contract AssetPool is Ownable, IAssetPool {
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
-    ///                        the asset pool
+    ///                        the asset pool (must be smaller or equal
+    ///                        `type(uint96).max`)
     /// @param minAmountToMint Underwriter minimal tokens amount that a user
     ///                        expects to receive in exchange for the deposited
     ///                        collateral tokens
@@ -206,6 +217,10 @@ contract AssetPool is Ownable, IAssetPool {
         override
         returns (uint256)
     {
+        require(
+            amountToDeposit <= type(uint96).max,
+            "deposited amount must be <= max unsigned 96-bit integer"
+        );
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
         require(
@@ -557,7 +572,20 @@ contract AssetPool is Ownable, IAssetPool {
             return amountToDeposit;
         }
 
-        return (amountToDeposit * covSupply) / collateralBalance;
+        uint256 tokensToMint = (amountToDeposit * covSupply) /
+            collateralBalance;
+
+        // The total supply of underwriter tokens cannot exceed `type(uint96).max`,
+        // because the maximum voting power in the underwriter token is
+        // `type(uint96).max`. Therefore the asset pool should not allow to mint
+        // more than `type(uint96).max` either. The amount of tokens to mint is
+        // stored in `uint256` just for gas efficiency.
+        require(
+            tokensToMint <= type(uint96).max,
+            "Minted tokens amount must be <= max unsigned 96-bit integer"
+        );
+
+        return tokensToMint;
     }
 
     function _deposit(

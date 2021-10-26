@@ -6,6 +6,7 @@ const {
   to1ePrecision,
   pastEvents,
   ZERO_ADDRESS,
+  MAX_UINT96,
 } = require("./helpers/contract-test-helpers")
 
 describe("AssetPool", () => {
@@ -84,6 +85,23 @@ describe("AssetPool", () => {
   })
 
   describe("deposit", () => {
+    context(
+      "when the depositor deposits more than max unsigned 96-bit integer",
+      () => {
+        it("should revert", async () => {
+          const amount = MAX_UINT96.add(1)
+          await collateralToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amount)
+          await expect(
+            assetPool.connect(underwriter1).deposit(amount)
+          ).to.be.revertedWith(
+            "deposited amount must be <= max unsigned 96-bit integer"
+          )
+        })
+      }
+    )
+
     context("when the depositor has not enough collateral tokens", () => {
       it("should revert", async () => {
         const amount = underwriterInitialCollateralBalance.add(1)
@@ -166,6 +184,22 @@ describe("AssetPool", () => {
         )
         expect(await underwriterToken.balanceOf(underwriter3.address)).to.equal(
           to1e18(20) // 20 * 400 / 400  = 20 COV minted
+        )
+      })
+    })
+
+    context("when depositing maximum allowed amount of tokens", () => {
+      beforeEach(async () => {
+        await collateralToken.mint(underwriter1.address, MAX_UINT96)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, MAX_UINT96)
+        await assetPool.connect(underwriter1).deposit(MAX_UINT96)
+      })
+
+      it("should mint the right amount of underwriter tokens", async () => {
+        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
+          MAX_UINT96
         )
       })
     })
@@ -300,9 +334,79 @@ describe("AssetPool", () => {
         ).to.be.revertedWith("Minted tokens amount must be greater than 0")
       })
     })
+
+    context("when minting more underwriter tokens than allowed", () => {
+      const amountToDeposit = MAX_UINT96.div(2)
+      const amountToClaim = amountToDeposit.sub(1)
+
+      beforeEach(async () => {
+        // Deposit a large amount of collateral tokens
+        await collateralToken.mint(underwriter1.address, amountToDeposit)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amountToDeposit)
+        await assetPool.connect(underwriter1).deposit(amountToDeposit)
+        // Simulate the coverage pools claims most of the collateral tokens,
+        // leaving just 1 in the asset pool. Depositing collateral tokens again,
+        // even a small amount, should cause minting more tokens than
+        // type(uint96).max
+        await assetPool
+          .connect(coveragePool)
+          .claim(underwriter2.address, amountToClaim)
+      })
+
+      it("should revert", async () => {
+        await expect(
+          assetPool.connect(underwriter2).deposit(3)
+        ).to.be.revertedWith(
+          "Minted tokens amount must be <= max unsigned 96-bit integer"
+        )
+      })
+    })
   })
 
   describe("depositWithMin", () => {
+    context(
+      "when the depositor deposits more than max unsigned 96-bit integer",
+      () => {
+        it("should revert", async () => {
+          const amount = MAX_UINT96.add(1)
+          const minCovToMint = amount
+          await collateralToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amount)
+          await expect(
+            assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
+          ).to.be.revertedWith(
+            "deposited amount must be <= max unsigned 96-bit integer"
+          )
+        })
+      }
+    )
+
+    context(
+      "when the depositor deposits maximum allowed amount of tokens",
+      () => {
+        beforeEach(async () => {
+          const amount = MAX_UINT96
+          const minCovToMint = amount
+          await collateralToken.mint(underwriter1.address, amount)
+          await collateralToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amount)
+          await assetPool
+            .connect(underwriter1)
+            .depositWithMin(amount, minCovToMint)
+        })
+
+        it("should mint the right amount of underwriter tokens", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(MAX_UINT96)
+        })
+      }
+    )
+
     context(
       "when amount to be minted is smaller than the minimal required",
       () => {
@@ -398,6 +502,23 @@ describe("AssetPool", () => {
       const amount = to1e18(100)
       const abiCoder = ethers.utils.defaultAbiCoder
 
+      context(
+        "when amount to deposit is > than max unsigned 96-bit integer",
+        () => {
+          it("should revert", async () => {
+            const amount = MAX_UINT96.add(1)
+            const data = abiCoder.encode(["uint256"], [amount])
+            await expect(
+              collateralToken
+                .connect(underwriter1)
+                .approveAndCall(assetPool.address, amount, data)
+            ).to.be.revertedWith(
+              "deposited amount must be <= max unsigned 96-bit integer"
+            )
+          })
+        }
+      )
+
       context("when passed minimum amount to mint uint256 in extradata", () => {
         beforeEach(async () => {
           const data = abiCoder.encode(["uint256"], [amount])
@@ -420,6 +541,33 @@ describe("AssetPool", () => {
           expect(
             await collateralToken.balanceOf(underwriter1.address)
           ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+        })
+      })
+
+      context("when amount to deposit is the maximum allowed", () => {
+        const amount = MAX_UINT96
+
+        beforeEach(async () => {
+          await collateralToken.mint(underwriter1.address, amount)
+          const data = abiCoder.encode(["uint256"], [amount])
+          await collateralToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, data)
+        })
+
+        it("should mint underwriter tokens to the caller", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amount)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            amount
+          )
+          expect(
+            await collateralToken.balanceOf(underwriter1.address)
+          ).to.be.equal(underwriterInitialCollateralBalance)
         })
       })
 
