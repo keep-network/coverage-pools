@@ -188,6 +188,22 @@ describe("AssetPool", () => {
       })
     })
 
+    context("when depositing maximum allowed amount of tokens", () => {
+      beforeEach(async () => {
+        await collateralToken.mint(underwriter1.address, MAX_UINT96)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, MAX_UINT96)
+        await assetPool.connect(underwriter1).deposit(MAX_UINT96)
+      })
+
+      it("should mint the right amount of underwriter tokens", async () => {
+        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
+          MAX_UINT96
+        )
+      })
+    })
+
     context("when there is already a deposit for the given underwriter", () => {
       const depositedUnderwriter1 = to1e18(100)
       const depositedUnderwriter2 = to1e18(70)
