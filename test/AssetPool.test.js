@@ -96,7 +96,7 @@ describe("AssetPool", () => {
           await expect(
             assetPool.connect(underwriter1).deposit(amount)
           ).to.be.revertedWith(
-            "deposited amount must be <= max unsigned 96-bit integer"
+            "deposited amount must be <= 2^96 - 1"
           )
         })
       }
@@ -359,7 +359,7 @@ describe("AssetPool", () => {
         await expect(
           assetPool.connect(underwriter2).deposit(3)
         ).to.be.revertedWith(
-          "Minted tokens amount must be <= max unsigned 96-bit integer"
+          "Minted tokens amount must be <= 2^96 - 1"
         )
       })
     })
@@ -378,7 +378,7 @@ describe("AssetPool", () => {
           await expect(
             assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
           ).to.be.revertedWith(
-            "deposited amount must be <= max unsigned 96-bit integer"
+            "deposited amount must be <= 2^96 - 1"
           )
         })
       }
@@ -513,7 +513,7 @@ describe("AssetPool", () => {
                 .connect(underwriter1)
                 .approveAndCall(assetPool.address, amount, data)
             ).to.be.revertedWith(
-              "deposited amount must be <= max unsigned 96-bit integer"
+              "deposited amount must be <= 2^96 - 1"
             )
           })
         }

@@ -30,7 +30,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///         underwriter token. For example, an asset pool might accept deposits
 ///         in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
 ///         represent an ownership share in the underlying collateral of the
-///         Asset Pool.
+///         Asset Pool. Asset Pool accepts no more than 2^96-1 collateral tokens
+///         as a deposit. It means that the total supply of the collateral token
+///         can not be greater than 2^96-1 or, if that supply is greater, it is
+///         acceptable that not all tokens can be deposited into the pool.
 contract AssetPool is Ownable, IAssetPool {
     using SafeERC20 for IERC20;
     using SafeERC20 for UnderwriterToken;
@@ -143,7 +146,7 @@ contract AssetPool is Ownable, IAssetPool {
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints underwriter tokens representing pool's ownership. The
-    ///         amount must be smaller or equal `type(uint96).max`.
+    ///         amount must be smaller or equal to 2^96-1.
     ///         Optional data in extraData may include a minimal amount of
     ///         underwriter tokens expected to be minted for a depositor. There
     ///         are cases when an amount of minted tokens matters for a
@@ -157,7 +160,7 @@ contract AssetPool is Ownable, IAssetPool {
     ) external {
         require(
             amount <= type(uint96).max,
-            "deposited amount must be <= max unsigned 96-bit integer"
+            "deposited amount must be <= 2^96 - 1"
         );
         require(msg.sender == token, "Only token caller allowed");
         require(
@@ -183,8 +186,8 @@ contract AssetPool is Ownable, IAssetPool {
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
-    ///                        the asset pool (must be smaller or equal
-    ///                        `type(uint96).max`)
+    ///                        the asset pool; must be smaller or equal to
+    ///                        2^96-1
     /// @return The amount of minted underwriter tokens
     function deposit(uint256 amountToDeposit)
         external
@@ -193,7 +196,7 @@ contract AssetPool is Ownable, IAssetPool {
     {
         require(
             amountToDeposit <= type(uint96).max,
-            "deposited amount must be <= max unsigned 96-bit integer"
+            "deposited amount must be <= 2^96 - 1"
         );
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
         _deposit(msg.sender, amountToDeposit, toMint);
@@ -206,8 +209,8 @@ contract AssetPool is Ownable, IAssetPool {
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
-    ///                        the asset pool (must be smaller or equal
-    ///                        `type(uint96).max`)
+    ///                        the asset pool; must be smaller or equal
+    ///                        to 2^96-1
     /// @param minAmountToMint Underwriter minimal tokens amount that a user
     ///                        expects to receive in exchange for the deposited
     ///                        collateral tokens
@@ -219,7 +222,7 @@ contract AssetPool is Ownable, IAssetPool {
     {
         require(
             amountToDeposit <= type(uint96).max,
-            "deposited amount must be <= max unsigned 96-bit integer"
+            "deposited amount must be <= 2^96 - 1"
         );
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
@@ -582,7 +585,7 @@ contract AssetPool is Ownable, IAssetPool {
         // stored in `uint256` just for gas efficiency.
         require(
             tokensToMint <= type(uint96).max,
-            "Minted tokens amount must be <= max unsigned 96-bit integer"
+            "Minted tokens amount must be <= 2^96 - 1"
         );
 
         return tokensToMint;
