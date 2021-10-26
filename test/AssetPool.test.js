@@ -85,23 +85,6 @@ describe("AssetPool", () => {
   })
 
   describe("deposit", () => {
-    context(
-      "when the depositor deposits more than max unsigned 96-bit integer",
-      () => {
-        it("should revert", async () => {
-          const amount = MAX_UINT96.add(1)
-          await collateralToken
-            .connect(underwriter1)
-            .approve(assetPool.address, amount)
-          await expect(
-            assetPool.connect(underwriter1).deposit(amount)
-          ).to.be.revertedWith(
-            "deposited amount must be <= max unsigned 96-bit integer"
-          )
-        })
-      }
-    )
-
     context("when the depositor has not enough collateral tokens", () => {
       it("should revert", async () => {
         const amount = underwriterInitialCollateralBalance.add(1)
@@ -185,6 +168,18 @@ describe("AssetPool", () => {
         expect(await underwriterToken.balanceOf(underwriter3.address)).to.equal(
           to1e18(20) // 20 * 400 / 400  = 20 COV minted
         )
+      })
+    })
+
+    context("when depositing more than max allowed amount of tokens", () => {
+      it("should revert", async () => {
+        const amount = MAX_UINT96.add(1)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+        await expect(
+          assetPool.connect(underwriter1).deposit(amount)
+        ).to.be.revertedWith("deposited amount must be <= 2^96 - 1")
       })
     })
 
@@ -358,54 +353,44 @@ describe("AssetPool", () => {
       it("should revert", async () => {
         await expect(
           assetPool.connect(underwriter2).deposit(3)
-        ).to.be.revertedWith(
-          "Minted tokens amount must be <= max unsigned 96-bit integer"
-        )
+        ).to.be.revertedWith("Minted tokens amount must be <= 2^96 - 1")
       })
     })
   })
 
   describe("depositWithMin", () => {
-    context(
-      "when the depositor deposits more than max unsigned 96-bit integer",
-      () => {
-        it("should revert", async () => {
-          const amount = MAX_UINT96.add(1)
-          const minCovToMint = amount
-          await collateralToken
-            .connect(underwriter1)
-            .approve(assetPool.address, amount)
-          await expect(
-            assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
-          ).to.be.revertedWith(
-            "deposited amount must be <= max unsigned 96-bit integer"
-          )
-        })
-      }
-    )
+    context("when depositing more than max allowed amount of tokens", () => {
+      it("should revert", async () => {
+        const amount = MAX_UINT96.add(1)
+        const minCovToMint = amount
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+        await expect(
+          assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
+        ).to.be.revertedWith("deposited amount must be <= 2^96 - 1")
+      })
+    })
 
-    context(
-      "when the depositor deposits maximum allowed amount of tokens",
-      () => {
-        beforeEach(async () => {
-          const amount = MAX_UINT96
-          const minCovToMint = amount
-          await collateralToken.mint(underwriter1.address, amount)
-          await collateralToken
-            .connect(underwriter1)
-            .approve(assetPool.address, amount)
-          await assetPool
-            .connect(underwriter1)
-            .depositWithMin(amount, minCovToMint)
-        })
+    context("when depositing maximum allowed amount of tokens", () => {
+      beforeEach(async () => {
+        const amount = MAX_UINT96
+        const minCovToMint = amount
+        await collateralToken.mint(underwriter1.address, amount)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+        await assetPool
+          .connect(underwriter1)
+          .depositWithMin(amount, minCovToMint)
+      })
 
-        it("should mint the right amount of underwriter tokens", async () => {
-          expect(
-            await underwriterToken.balanceOf(underwriter1.address)
-          ).to.equal(MAX_UINT96)
-        })
-      }
-    )
+      it("should mint the right amount of underwriter tokens", async () => {
+        expect(await underwriterToken.balanceOf(underwriter1.address)).to.equal(
+          MAX_UINT96
+        )
+      })
+    })
 
     context(
       "when amount to be minted is smaller than the minimal required",
@@ -502,22 +487,17 @@ describe("AssetPool", () => {
       const amount = to1e18(100)
       const abiCoder = ethers.utils.defaultAbiCoder
 
-      context(
-        "when amount to deposit is > than max unsigned 96-bit integer",
-        () => {
-          it("should revert", async () => {
-            const amount = MAX_UINT96.add(1)
-            const data = abiCoder.encode(["uint256"], [amount])
-            await expect(
-              collateralToken
-                .connect(underwriter1)
-                .approveAndCall(assetPool.address, amount, data)
-            ).to.be.revertedWith(
-              "deposited amount must be <= max unsigned 96-bit integer"
-            )
-          })
-        }
-      )
+      context("when depositing more than max allowed amount of tokens", () => {
+        it("should revert", async () => {
+          const amount = MAX_UINT96.add(1)
+          const data = abiCoder.encode(["uint256"], [amount])
+          await expect(
+            collateralToken
+              .connect(underwriter1)
+              .approveAndCall(assetPool.address, amount, data)
+          ).to.be.revertedWith("deposited amount must be <= 2^96 - 1")
+        })
+      })
 
       context("when passed minimum amount to mint uint256 in extradata", () => {
         beforeEach(async () => {
@@ -544,7 +524,7 @@ describe("AssetPool", () => {
         })
       })
 
-      context("when amount to deposit is the maximum allowed", () => {
+      context("when depositing maximum allowed amount of tokens", () => {
         const amount = MAX_UINT96
 
         beforeEach(async () => {
