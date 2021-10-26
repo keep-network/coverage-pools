@@ -385,6 +385,29 @@ describe("AssetPool", () => {
     )
 
     context(
+      "when the depositor deposits maximum allowed amount of tokens",
+      () => {
+        beforeEach(async () => {
+          const amount = MAX_UINT96
+          const minCovToMint = amount
+          await collateralToken.mint(underwriter1.address, amount)
+          await collateralToken
+            .connect(underwriter1)
+            .approve(assetPool.address, amount)
+          await assetPool
+            .connect(underwriter1)
+            .depositWithMin(amount, minCovToMint)
+        })
+
+        it("should mint the right amount of underwriter tokens", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(MAX_UINT96)
+        })
+      }
+    )
+
+    context(
       "when amount to be minted is smaller than the minimal required",
       () => {
         const depositedUnderwriter1 = to1e18(100)
@@ -518,6 +541,33 @@ describe("AssetPool", () => {
           expect(
             await collateralToken.balanceOf(underwriter1.address)
           ).to.be.equal(underwriterInitialCollateralBalance.sub(amount))
+        })
+      })
+
+      context("when amount to deposit is the maximum allowed", () => {
+        const amount = MAX_UINT96
+
+        beforeEach(async () => {
+          await collateralToken.mint(underwriter1.address, amount)
+          const data = abiCoder.encode(["uint256"], [amount])
+          await collateralToken
+            .connect(underwriter1)
+            .approveAndCall(assetPool.address, amount, data)
+        })
+
+        it("should mint underwriter tokens to the caller", async () => {
+          expect(
+            await underwriterToken.balanceOf(underwriter1.address)
+          ).to.equal(amount)
+        })
+
+        it("should transfer deposited amount to the pool", async () => {
+          expect(await collateralToken.balanceOf(assetPool.address)).to.equal(
+            amount
+          )
+          expect(
+            await collateralToken.balanceOf(underwriter1.address)
+          ).to.be.equal(underwriterInitialCollateralBalance)
         })
       })
 
