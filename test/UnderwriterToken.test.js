@@ -38,6 +38,27 @@ describe("UnderwriterToken", () => {
     return (await lastBlockNumber()) - 1
   }
 
+  describe("getVotes", () => {
+    context("when no delegation was done", () => {
+      it("should return zero votes", async () => {
+        expect(await underwriterToken.getVotes(tokenHolder.address)).to.equal(0)
+      })
+    })
+  })
+
+  describe("getPastVotes", () => {
+    context("when executed for the last block", () => {
+      it("should revert", async () => {
+        await expect(
+          underwriterToken.getPastVotes(
+            tokenHolder.address,
+            await lastBlockNumber()
+          )
+        ).to.be.revertedWith("Block not yet determined")
+      })
+    })
+  })
+
   const describeDelegate = (getDelegator, doDelegate) => {
     context("when delegated to someone else", () => {
       let delegator
