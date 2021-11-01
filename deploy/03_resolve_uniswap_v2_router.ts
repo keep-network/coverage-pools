@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment, HardhatNetworkConfig } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
-// TODO: THIS DEPLOYMENT CAN BE DONE ONLY IF THERE IS A UNISWAP POOL WITH 
+// TODO: THIS DEPLOYMENT CAN BE DONE ONLY IF THERE IS A UNISWAP POOL WITH
 //       ETH<->T TOKENS.
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
