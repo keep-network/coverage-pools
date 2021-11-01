@@ -6,7 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { read } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
-  const KeepToken = await deployments.get("KeepToken")
+  const TToken = await deployments.get("TToken")
   const BatchedPhasedEscrow = await deployments.get("BatchedPhasedEscrow")
 
   const RewardsPoolAddress = await read("AssetPool", "rewardsPool")
@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     {
       contract: "CoveragePoolBeneficiary",
       from: deployer,
-      args: [KeepToken.address, RewardsPoolAddress],
+      args: [TToken.address, RewardsPoolAddress],
       log: true,
     }
   )
@@ -44,7 +44,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["CoveragePoolBeneficiary"]
-func.dependencies = ["KeepToken", "AssetPool"]
+func.dependencies = ["TToken", "AssetPool"]
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   return hre.network.name !== "mainnet"
 }

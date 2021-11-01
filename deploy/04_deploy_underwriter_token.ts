@@ -7,7 +7,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const underwriterToken = await deployments.deploy("UnderwriterToken", {
     from: deployer,
-    args: ["covKEEP underwriter token", "covKEEP"],
+    args: ["covT underwriter token", "covT"],
     log: true,
   })
 

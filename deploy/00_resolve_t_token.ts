@@ -6,19 +6,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const KeepToken = await deployments.getOrNull("KeepToken")
+  const TToken = await deployments.getOrNull("TToken")
 
-  if (KeepToken && helpers.address.isValid(KeepToken.address)) {
-    log(`using external KeepToken at ${KeepToken.address}`)
+  if (TToken && helpers.address.isValid(TToken.address)) {
+    log(`using external TToken at ${TToken.address}`)
   } else if (
     hre.network.name !== "hardhat" ||
     (hre.network.config as HardhatNetworkConfig).forking.enabled
   ) {
-    throw new Error("deployed KeepToken contract not found")
+    throw new Error("deployed TToken contract not found")
   } else {
-    log(`deploying KeepToken stub`)
+    log(`deploying TToken stub`)
 
-    await deployments.deploy("KeepToken", {
+    await deployments.deploy("TToken", {
       contract: "TestToken",
       from: deployer,
       log: true,
@@ -28,4 +28,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["KeepToken"]
+func.tags = ["TToken"]

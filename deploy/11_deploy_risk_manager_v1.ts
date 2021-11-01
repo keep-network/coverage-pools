@@ -10,6 +10,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const TBTCDepositToken = await deployments.get("TBTCDepositToken")
   const CoveragePool = await deployments.get("CoveragePool")
   const SignerBondsManualSwap = await deployments.get("SignerBondsManualSwap")
+  // TODO: Determine if the ETH<->T pool exists. If there's no pool, then 
+  //       this strategy should not be deployed.
   const SignerBondsUniswapV2 = await deployments.get("SignerBondsUniswapV2")
   const MasterAuction = await deployments.get("Auction")
 
