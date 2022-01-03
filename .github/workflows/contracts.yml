@@ -79,6 +79,7 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -119,9 +120,9 @@ jobs:
           commit: ${{ github.sha }}
 
       - name: Publish to npm
-        run: |
-          echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
-          npm publish --access=public --network=${{ github.event.inputs.environment }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --network=${{ github.event.inputs.environment }}
 
       - name: Notify CI about completion of the workflow
         uses: keep-network/ci/actions/notify-workflow-completed@v1
