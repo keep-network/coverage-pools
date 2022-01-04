@@ -70,15 +70,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Load environment variables
-        uses: keep-network/ci/actions/load-env-variables@v1
-        with:
-          environment: ${{ github.event.inputs.environment }}
-
       - uses: actions/setup-node@v2
         with:
           node-version: "14.x"
           cache: "yarn"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -119,9 +115,9 @@ jobs:
           commit: ${{ github.sha }}
 
       - name: Publish to npm
-        run: |
-          echo //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }} > .npmrc
-          npm publish --access=public --network=${{ github.event.inputs.environment }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access=public --network=${{ github.event.inputs.environment }}
 
       - name: Notify CI about completion of the workflow
         uses: keep-network/ci/actions/notify-workflow-completed@v1
@@ -214,7 +210,7 @@ jobs:
 
       - name: Install Solidity
         env:
-          SOLC_VERSION: 0.8.5 # according to solidity.version in hardhat.config.ts
+          SOLC_VERSION: 0.8.5 # according to solidity.version in hardhat.config.js
         run: |
           pip3 install solc-select
           solc-select install $SOLC_VERSION
