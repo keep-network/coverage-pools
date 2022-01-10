@@ -366,7 +366,7 @@ describe("AssetPool", () => {
       it("should revert", async () => {
         await expect(
           assetPool.connect(underwriter2).deposit(3)
-        ).to.be.revertedWith("Minted tokens amount must be <= 2^96 - 1")
+        ).to.be.revertedWith("Maximum total supply exceeded")
       })
     })
   })

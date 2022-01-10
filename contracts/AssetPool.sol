@@ -583,16 +583,6 @@ contract AssetPool is Ownable, IAssetPool {
         uint256 tokensToMint = (amountToDeposit * covSupply) /
             collateralBalance;
 
-        // The total supply of underwriter tokens cannot exceed `type(uint96).max`,
-        // because the maximum voting power in the underwriter token is
-        // `type(uint96).max`. Therefore the asset pool should not allow to mint
-        // more than `type(uint96).max` either. The amount of tokens to mint is
-        // stored in `uint256` just for gas efficiency.
-        require(
-            tokensToMint <= type(uint96).max,
-            "Minted tokens amount must be <= 2^96 - 1"
-        );
-
         return tokensToMint;
     }
 
