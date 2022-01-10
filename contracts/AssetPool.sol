@@ -16,11 +16,11 @@ pragma solidity 0.8.5;
 
 import "./interfaces/IAssetPool.sol";
 import "./interfaces/IAssetPoolUpgrade.sol";
+import "./interfaces/ICollateralToken.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 import "./GovernanceUtils.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -35,10 +35,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///         can not be greater than 2^96-1 or, if that supply is greater, it is
 ///         acceptable that not all tokens can be deposited into the pool.
 contract AssetPool is Ownable, IAssetPool {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ICollateralToken;
     using SafeERC20 for UnderwriterToken;
 
-    IERC20 public immutable collateralToken;
+    ICollateralToken public immutable collateralToken;
     UnderwriterToken public immutable underwriterToken;
 
     RewardsPool public immutable rewardsPool;
@@ -130,7 +130,7 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     constructor(
-        IERC20 _collateralToken,
+        ICollateralToken _collateralToken,
         UnderwriterToken _underwriterToken,
         address rewardsManager
     ) {

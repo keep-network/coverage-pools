@@ -15,12 +15,12 @@
 pragma solidity 0.8.5;
 
 import "./interfaces/IAssetPoolUpgrade.sol";
+import "./interfaces/ICollateralToken.sol";
 import "./AssetPool.sol";
 import "./CoveragePoolConstants.sol";
 import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Coverage Pool
 /// @notice A contract that manages a single asset pool. Handles approving and
@@ -30,7 +30,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///      owner of the asset pool contract.
 contract CoveragePool is Ownable {
     AssetPool public immutable assetPool;
-    IERC20 public immutable collateralToken;
+    ICollateralToken public immutable collateralToken;
 
     bool public firstRiskManagerApproved = false;
 
