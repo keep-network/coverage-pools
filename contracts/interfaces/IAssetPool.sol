@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
 /// @title Asset Pool interface
 /// @notice Asset Pool accepts a single ERC20 token as collateral, and returns
