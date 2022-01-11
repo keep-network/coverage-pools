@@ -25,10 +25,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///         Coverage Pool underwriters can participate in token holder DAO.
 /// @dev See @threshold-network/solidity-contracts/contracts/governance/Checkpoints.sol
 interface ICollateralToken is IERC20 {
-    /// @notice Determine the prior number of votes for an account as of
+    /// @notice Delegate DAO votes from `msg.sender` to `delegatee`.
+    /// @param delegatee The address to delegate votes to
+    function delegate(address delegatee) external;
+
+    /// @notice Determine the prior number of DAO votes for an account as of
     ///         a block number.
-    /// @dev Block number must be a finalized block or else this function will
-    ///      revert to prevent misinformation.
     /// @param account The address of the account to check
     /// @param blockNumber The block number to get the vote balance at
     /// @return The number of votes the account had as of the given block

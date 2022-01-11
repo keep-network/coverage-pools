@@ -142,6 +142,8 @@ contract AssetPool is Ownable, IAssetPool {
             address(this),
             rewardsManager
         );
+
+        _collateralToken.delegate(address(this));
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
