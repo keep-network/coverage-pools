@@ -580,10 +580,7 @@ contract AssetPool is Ownable, IAssetPool {
             return amountToDeposit;
         }
 
-        uint256 tokensToMint = (amountToDeposit * covSupply) /
-            collateralBalance;
-
-        return tokensToMint;
+        return (amountToDeposit * covSupply) / collateralBalance;
     }
 
     function _deposit(
