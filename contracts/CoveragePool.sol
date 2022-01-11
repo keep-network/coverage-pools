@@ -31,6 +31,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract CoveragePool is Ownable {
     AssetPool public immutable assetPool;
     ICollateralToken public immutable collateralToken;
+    UnderwriterToken public immutable underwriterToken;
 
     bool public firstRiskManagerApproved = false;
 
@@ -52,6 +53,7 @@ contract CoveragePool is Ownable {
     constructor(AssetPool _assetPool) {
         assetPool = _assetPool;
         collateralToken = _assetPool.collateralToken();
+        underwriterToken = _assetPool.underwriterToken();
     }
 
     /// @notice Approves the first risk manager
@@ -249,6 +251,39 @@ contract CoveragePool is Ownable {
             GovernanceUtils.getRemainingChangeTime(
                 riskManagerApprovalTimestamps[riskManager],
                 assetPool.withdrawalGovernanceDelay()
+            );
+    }
+
+    /// @notice Determine the prior number of DAO votes for the given coverage
+    ///         pool underwriter.
+    /// @param account The underwriter address to check
+    /// @param blockNumber The block number to get the vote balance at
+    /// @return The number of votes the underwriter had as of the given block
+    function getPastVotes(address account, uint256 blockNumber)
+        external
+        view
+        returns (uint96)
+    {
+        uint96 underwriterVotes = underwriterToken.getPastVotes(
+            account,
+            blockNumber
+        );
+        uint96 underwriterSupply = underwriterToken.getPastTotalSupply(
+            blockNumber
+        );
+
+        if (underwriterSupply == 0) {
+            return 0;
+        }
+
+        uint96 covPoolVotes = collateralToken.getPastVotes(
+            address(assetPool),
+            blockNumber
+        );
+
+        return
+            uint96(
+                (uint256(underwriterVotes) * covPoolVotes) / underwriterSupply
             );
     }
 
