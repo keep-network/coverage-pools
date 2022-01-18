@@ -477,12 +477,11 @@ describe("CoveragePool", () => {
 
     context("when underwriter did not delegate voting", () => {
       beforeEach(async () => {
-        // Underwriter deposits into the asset pool
-        await collateralToken.mint(underwriter1.address, to1e18(400))
+        await collateralToken.mint(thirdParty.address, to1e18(400))
         await collateralToken
-          .connect(underwriter1)
+          .connect(thirdParty)
           .approve(assetPool.address, to1e18(400))
-        await assetPool.connect(underwriter1).deposit(to1e18(400))
+        await assetPool.connect(thirdParty).deposit(to1e18(400))
 
         lastFinalizedBlock = (await lastBlockNumber()) - 1
       })
@@ -490,7 +489,7 @@ describe("CoveragePool", () => {
       it("should return zero", async () => {
         expect(
           await collateralToken.getPastVotes(
-            underwriter1.address,
+            thirdParty.address,
             lastFinalizedBlock
           )
         ).to.equal(0)
@@ -499,7 +498,6 @@ describe("CoveragePool", () => {
 
     context("when account did not deposit into the pool", () => {
       beforeEach(async () => {
-        // Some other underwriter deposits into the asset pool
         await collateralToken.mint(underwriter1.address, to1e18(400))
         await collateralToken
           .connect(underwriter1)
