@@ -268,11 +268,11 @@ contract CoveragePool is Ownable {
             account,
             blockNumber
         );
-        uint96 underwriterSupply = underwriterToken.getPastTotalSupply(
+        uint96 underwriterTokenSupply = underwriterToken.getPastTotalSupply(
             blockNumber
         );
 
-        if (underwriterSupply == 0) {
+        if (underwriterTokenSupply == 0) {
             return 0;
         }
 
@@ -283,7 +283,8 @@ contract CoveragePool is Ownable {
 
         return
             uint96(
-                (uint256(underwriterVotes) * covPoolVotes) / underwriterSupply
+                (uint256(underwriterVotes) * covPoolVotes) /
+                    underwriterTokenSupply
             );
     }
 
