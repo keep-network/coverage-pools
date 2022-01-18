@@ -1143,14 +1143,6 @@
     deepmerge "^4.2.2"
     untildify "^4.0.0"
 
-"@keep-network/keep-core@1.7.0":
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.7.0.tgz#0923d539fc431810bd9b239f91e09a92a2b255a0"
-  integrity sha512-jU0ol4L5a7vFUXCTlYGsjZYhl87cUpiAYz9LgDgvM3sGmwNIVZ9dY3gziINXIbSSFZjoqh3eGDxDPcQmA+Rjrg==
-  dependencies:
-    "@openzeppelin/upgrades" "^2.7.2"
-    openzeppelin-solidity "2.4.0"
-
 "@keep-network/keep-core@1.8.0-rc.6":
   version "1.8.0-rc.6"
   resolved "https://registry.yarnpkg.com/@keep-network/keep-core/-/keep-core-1.8.0-rc.6.tgz#a9f6bec312aa8b1bc40f95c8a27c2ba8d09886f7"
@@ -1293,6 +1285,11 @@
   dependencies:
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
+
+"@openzeppelin/contracts-upgradeable@^4.4":
+  version "4.4.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.4.2.tgz#748a5986a02548ef541cabc2ce8c67a890044c40"
+  integrity sha512-bavxs18L47EmcdnL9I6DzsVSUJO+0/zD6zH7/6qG7QRBugvR3VNVZR+nMvuZlCNwuTTnCa3apR00PYzYr/efAw==
 
 "@openzeppelin/contracts@^2.4.0":
   version "2.5.1"
@@ -1592,13 +1589,13 @@
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
 
-"@threshold-network/solidity-contracts@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.0.0.tgz#030f388de2b6ed730fafc2575189797ac5690133"
-  integrity sha512-Y/2FeMAKPZREDvxZC/doIezNW3ScgBb4blAyCrlswhTCmpxofRCuBuEkoaZRMRmvS8aaT0ln47DTzkn6bRq6DQ==
+"@threshold-network/solidity-contracts@github:threshold-network/solidity-contracts#0f07c2f":
+  version "1.1.0-dev"
+  resolved "https://codeload.github.com/threshold-network/solidity-contracts/tar.gz/0f07c2fc06788d5f9d7080e00b42efa63e406690"
   dependencies:
-    "@keep-network/keep-core" "1.7.0"
+    "@keep-network/keep-core" ">1.8.0-dev <1.8.0-pre"
     "@openzeppelin/contracts" "^4.4"
+    "@openzeppelin/contracts-upgradeable" "^4.4"
     "@thesis/solidity-contracts" "github:thesis/solidity-contracts#4985bcf"
 
 "@truffle/error@^0.0.14":

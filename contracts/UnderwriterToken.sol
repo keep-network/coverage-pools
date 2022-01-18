@@ -14,6 +14,7 @@
 
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.sol";
 
