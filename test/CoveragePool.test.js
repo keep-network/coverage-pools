@@ -488,7 +488,7 @@ describe("CoveragePool", () => {
 
       it("should return zero", async () => {
         expect(
-          await collateralToken.getPastVotes(
+          await coveragePool.getPastVotes(
             thirdParty.address,
             lastFinalizedBlock
           )
