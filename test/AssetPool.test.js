@@ -84,6 +84,14 @@ describe("AssetPool", () => {
     underwriter4 = await createUnderwriterWithTokens(7)
   })
 
+  describe("constructor", () => {
+    it("should self-delegate voting power", async () => {
+      expect(await collateralToken.delegatee(assetPool.address)).to.equal(
+        assetPool.address
+      )
+    })
+  })
+
   describe("deposit", () => {
     context("when the depositor has not enough collateral tokens", () => {
       it("should revert", async () => {

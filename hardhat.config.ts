@@ -6,6 +6,7 @@ import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
+import "hardhat-dependency-compiler"
 import "solidity-coverage"
 import "@tenderly/hardhat-tenderly"
 
@@ -13,12 +14,16 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.5",
+        version: "0.8.9",
       },
     ],
   },
   paths: {
     artifacts: "./build",
+  },
+  dependencyCompiler: {
+    paths: ["@threshold-network/solidity-contracts/contracts/token/T.sol"],
+    keep: true,
   },
   networks: {
     hardhat: {
