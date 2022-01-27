@@ -14,37 +14,28 @@
 
 pragma solidity 0.8.9;
 
-/// @title Asset Pool interface
-/// @notice Asset Pool accepts a single ERC20 token as collateral, and returns
-///         an underwriter token. For example, an asset pool might accept deposits
-///         in KEEP in return for covKEEP underwriter tokens. Underwriter tokens
-///         represent an ownership share in the underlying collateral of the
-///         Asset Pool.
-interface IAssetPool {
-    /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints underwriter tokens representing pool's ownership.
-    /// @dev Before calling this function, collateral token needs to have the
-    ///      required amount accepted to transfer to the asset pool.
-    /// @return The amount of minted underwriter tokens
-    function deposit(uint256 amount) external returns (uint256);
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-    /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints at least a minAmountToMint underwriter tokens representing
-    ///         pool's ownership.
-    /// @dev Before calling this function, collateral token needs to have the
-    ///      required amount accepted to transfer to the asset pool.
-    /// @return The amount of minted underwriter tokens
-    function depositWithMin(uint256 amountToDeposit, uint256 minAmountToMint)
+/// @title Collateral Token interface
+/// @notice ERC-20 token which is accepted by the pool as collateral and used
+///         as a deposit token by underwriters. Collateral token positions of
+///         underwriters can be affected when the Risk Manager claims coverage.
+///         Collateral token needs to support DAO checkpoints and let to
+///         retrieve past number of votes for the given address so that
+///         Coverage Pool underwriters can participate in token holder DAO.
+/// @dev See @threshold-network/solidity-contracts/contracts/governance/Checkpoints.sol
+interface ICollateralToken is IERC20 {
+    /// @notice Delegate DAO votes from `msg.sender` to `delegatee`.
+    /// @param delegatee The address to delegate votes to
+    function delegate(address delegatee) external;
+
+    /// @notice Determine the prior number of DAO votes for an account as of
+    ///         a block number.
+    /// @param account The address of the account to check
+    /// @param blockNumber The block number to get the vote balance at
+    /// @return The number of votes the account had as of the given block
+    function getPastVotes(address account, uint256 blockNumber)
         external
-        returns (uint256);
-
-    /// @notice Initiates the withdrawal of collateral and rewards from the pool.
-    /// @dev Before calling this function, underwriter token needs to have the
-    ///      required amount accepted to transfer to the asset pool.
-    function initiateWithdrawal(uint256 covAmount) external;
-
-    /// @notice Completes the previously initiated withdrawal for the
-    ///         underwriter.
-    /// @return The amount of collateral withdrawn
-    function completeWithdrawal(address underwriter) external returns (uint256);
+        view
+        returns (uint96);
 }

@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
 /// @title Auction interface
 /// @notice Auction runs a linear falling-price auction against a diverse

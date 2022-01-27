@@ -12,15 +12,15 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
 import "./interfaces/IAssetPoolUpgrade.sol";
+import "./interfaces/ICollateralToken.sol";
 import "./AssetPool.sol";
 import "./CoveragePoolConstants.sol";
 import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Coverage Pool
 /// @notice A contract that manages a single asset pool. Handles approving and
@@ -30,7 +30,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 ///      owner of the asset pool contract.
 contract CoveragePool is Ownable {
     AssetPool public immutable assetPool;
-    IERC20 public immutable collateralToken;
+    ICollateralToken public immutable collateralToken;
+    UnderwriterToken public immutable underwriterToken;
 
     bool public firstRiskManagerApproved = false;
 
@@ -52,6 +53,7 @@ contract CoveragePool is Ownable {
     constructor(AssetPool _assetPool) {
         assetPool = _assetPool;
         collateralToken = _assetPool.collateralToken();
+        underwriterToken = _assetPool.underwriterToken();
     }
 
     /// @notice Approves the first risk manager
@@ -249,6 +251,40 @@ contract CoveragePool is Ownable {
             GovernanceUtils.getRemainingChangeTime(
                 riskManagerApprovalTimestamps[riskManager],
                 assetPool.withdrawalGovernanceDelay()
+            );
+    }
+
+    /// @notice Determine the prior number of DAO votes for the given coverage
+    ///         pool underwriter.
+    /// @param account The underwriter address to check
+    /// @param blockNumber The block number to get the vote balance at
+    /// @return The number of votes the underwriter had as of the given block
+    function getPastVotes(address account, uint256 blockNumber)
+        external
+        view
+        returns (uint96)
+    {
+        uint96 underwriterVotes = underwriterToken.getPastVotes(
+            account,
+            blockNumber
+        );
+        uint96 underwriterTokenSupply = underwriterToken.getPastTotalSupply(
+            blockNumber
+        );
+
+        if (underwriterTokenSupply == 0) {
+            return 0;
+        }
+
+        uint96 covPoolVotes = collateralToken.getPastVotes(
+            address(assetPool),
+            blockNumber
+        );
+
+        return
+            uint96(
+                (uint256(underwriterVotes) * covPoolVotes) /
+                    underwriterTokenSupply
             );
     }
 

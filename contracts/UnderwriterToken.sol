@@ -12,8 +12,9 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.sol";
 
@@ -28,6 +29,7 @@ import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.s
 ///         Anyone can submit this signature on the user's behalf by calling the
 ///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
+// slither-disable-next-line missing-inheritance
 contract UnderwriterToken is ERC20WithPermit, Checkpoints {
     /// @notice The EIP-712 typehash for the delegation struct used by
     ///         `delegateBySig`.
