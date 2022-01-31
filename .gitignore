@@ -6,6 +6,7 @@ build/
 cache/
 deployments/
 export.json
+external/
 
 typechain/
 
