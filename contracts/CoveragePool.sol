@@ -264,7 +264,7 @@ contract CoveragePool is Ownable {
         view
         returns (uint96)
     {
-        uint96 underwriterVotes = underwriterToken.getPastVotes(
+        uint256 underwriterVotes = underwriterToken.getPastVotes(
             account,
             blockNumber
         );
@@ -282,9 +282,7 @@ contract CoveragePool is Ownable {
         );
 
         return
-            uint96(
-                (uint256(underwriterVotes) * covPoolVotes) / underwriterSupply
-            );
+            uint96(underwriterVotes * covPoolVotes / underwriterSupply);
     }
 
     /// @notice Calculates amount of tokens to be seized from the coverage pool.
