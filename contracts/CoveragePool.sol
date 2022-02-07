@@ -264,27 +264,25 @@ contract CoveragePool is Ownable {
         view
         returns (uint96)
     {
-        // uint256 underwriterVotes = underwriterToken.getPastVotes(
-        //     account,
-        //     blockNumber
-        // );
-        // uint96 underwriterSupply = underwriterToken.getPastTotalSupply(
-        //     blockNumber
-        // );
+        uint256 underwriterVotes = underwriterToken.getPastVotes(
+            account,
+            blockNumber
+        );
+        uint96 underwriterSupply = underwriterToken.getPastTotalSupply(
+            blockNumber
+        );
 
-        // if (underwriterSupply == 0) {
-        //     return 0;
-        // }
+        if (underwriterSupply == 0) {
+            return 0;
+        }
 
-        // uint96 covPoolVotes = collateralToken.getPastVotes(
-        //     address(assetPool),
-        //     blockNumber
-        // );
+        uint96 covPoolVotes = collateralToken.getPastVotes(
+            address(assetPool),
+            blockNumber
+        );
 
-        // return
-        //     uint96(underwriterVotes * covPoolVotes / underwriterSupply);
-
-        return 0;
+        return
+            uint96(underwriterVotes * covPoolVotes / underwriterSupply);
     }
 
     /// @notice Calculates amount of tokens to be seized from the coverage pool.
