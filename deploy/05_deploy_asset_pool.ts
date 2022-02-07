@@ -1,5 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
+import { ethers } from "hardhat"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
@@ -16,6 +17,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [KeepToken.address, UnderwriterToken.address, rewardManager],
     log: true,
     gasLimit: 5000000,
+    gasPrice: ethers.utils.parseUnits('5', 'gwei')
   })
 
   if (hre.network.tags.tenderly) {
