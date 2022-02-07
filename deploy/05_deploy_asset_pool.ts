@@ -15,6 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [KeepToken.address, UnderwriterToken.address, rewardManager],
     log: true,
+    gasLimit: 5000000,
   })
 
   if (hre.network.tags.tenderly) {
