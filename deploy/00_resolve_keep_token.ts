@@ -10,7 +10,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (KeepToken && helpers.address.isValid(KeepToken.address)) {
     log(`using external KeepToken at ${KeepToken.address}`)
-    log(`KEEP token abi ${KeepToken}`)
+    log("KEEP token abi", KeepToken)
   } else if (
     hre.network.name !== "hardhat" ||
     (hre.network.config as HardhatNetworkConfig).forking.enabled
