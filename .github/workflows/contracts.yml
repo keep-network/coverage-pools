@@ -87,12 +87,14 @@ jobs:
           query: |
             keep-core-contracts-version = github.com/keep-network/keep-core/solidity-v1#version
             tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+            solidity-contracts-version = github.com/threshold-network/solidity-contracts#version
 
       - name: Resolve latest contracts
         run: |
           yarn upgrade \
             @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
-            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }} \
+            @threshold-network/solidity-contracts@${{ steps.upstream-builds-query.outputs.solidity-contracts-version }}
 
       - name: Configure tenderly
         if: github.event.inputs.environment == 'ropsten'
