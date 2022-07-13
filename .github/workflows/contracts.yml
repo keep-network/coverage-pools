@@ -27,41 +27,41 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
+      # - uses: actions/setup-node@v2
+      #   with:
+      #     node-version: "14.x"
+      #     cache: "yarn"
 
-      - name: Install dependencies
-        run: yarn install
+      # - name: Install dependencies
+      #   run: yarn install
 
-      - name: Build contracts
-        run: yarn build
+      # - name: Build contracts
+      #   run: yarn build
 
-      - name: Run tests
-        run: yarn test
+      # - name: Run tests
+      #   run: yarn test
 
-      - name: Run system tests
-        env:
-          FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
-        run: yarn test:system
+      # - name: Run system tests
+      #   env:
+      #     FORKING_URL: ${{ secrets.MAINNET_ETH_HOSTNAME }}
+      #   run: yarn test:system
 
-  contracts-deployment-dry-run:
-    runs-on: ubuntu-latest
-    if: github.event_name != 'schedule'
-    steps:
-      - uses: actions/checkout@v2
+  # contracts-deployment-dry-run:
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name != 'schedule'
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
+  #     - uses: actions/setup-node@v2
+  #       with:
+  #         node-version: "14.x"
+  #         cache: "yarn"
 
-      - name: Install dependencies
-        run: yarn install
+  #     - name: Install dependencies
+  #       run: yarn install
 
-      - name: Deploy contracts
-        run: yarn deploy
+  #     - name: Deploy contracts
+  #       run: yarn deploy
 
   contracts-deployment-testnet:
     needs: [contracts-build-and-test]

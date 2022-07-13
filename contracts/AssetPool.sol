@@ -143,16 +143,16 @@ contract AssetPool is Ownable, IAssetPool {
             rewardsManager
         );
 
-        initGovernance(_collateralToken);
-    }
+    //     initGovernance(_collateralToken);
+    // }
 
-    /// @dev Overwrite to empty if collateral token used by the AssetPool
-    ///      does not support DAO checkpoints. Used for tests with KEEP token.
-    function initGovernance(ICollateralToken _collateralToken)
-        internal
-        virtual
-    {
-        _collateralToken.delegate(address(this));
+    // /// @dev Overwrite to empty if collateral token used by the AssetPool
+    // ///      does not support DAO checkpoints. Used for tests with KEEP token.
+    // function initGovernance(ICollateralToken _collateralToken)
+    //     internal
+    //     virtual
+    // {
+    //     _collateralToken.delegate(address(this));
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
