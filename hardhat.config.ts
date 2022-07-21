@@ -44,9 +44,9 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
-    ropsten: {
+    goerli: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
+      chainId: 5,
       accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
@@ -83,6 +83,11 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
       ],
+      goerli: [
+        "node_modules/@keep-network/keep-core/artifacts",
+        "node_modules/@keep-network/tbtc/artifacts",
+        "./external/ropsten",
+      ],
       ropsten: [
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
@@ -97,6 +102,7 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
+      goerli: 0, // use deployer account
       ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
