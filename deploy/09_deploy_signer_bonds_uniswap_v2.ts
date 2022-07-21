@@ -14,6 +14,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       args: [UniswapV2Router.address, CoveragePool.address],
       log: true,
+      waitConfirmations: 1,
     }
   )
 

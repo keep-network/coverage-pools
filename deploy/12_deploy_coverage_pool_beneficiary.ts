@@ -18,6 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       args: [KeepToken.address, RewardsPoolAddress],
       log: true,
+      waitConfirmations: 1,
     }
   )
 
