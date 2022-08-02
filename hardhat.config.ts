@@ -86,12 +86,7 @@ const config: HardhatUserConfig = {
       goerli: [
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
-        "./external/ropsten",
-      ],
-      ropsten: [
-        "node_modules/@keep-network/keep-core/artifacts",
-        "node_modules/@keep-network/tbtc/artifacts",
-        "./external/ropsten",
+        "./external/goerli",
       ],
       mainnet: ["./external/mainnet"],
     },
