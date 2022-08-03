@@ -93,12 +93,13 @@ const config: HardhatUserConfig = {
   },
   namedAccounts: {
     deployer: {
-      default: 0, // take the first account as deployer
+      default: 1,
+      goerli: 0,
+      mainnet: 0,
     },
     rewardManager: {
-      default: 1,
+      default: 2,
       goerli: 0, // use deployer account
-      ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     keepCommunityMultiSig: {
