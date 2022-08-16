@@ -38,7 +38,7 @@
     "@keep-network/keep-core": ">1.8.0-dev <1.8.0-goerli",
     "@keep-network/tbtc": ">1.1.2-dev <1.1.2-goerli",
     "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf",
-    "@threshold-network/solidity-contracts": ">1.2.0-dev <1.2.0-goerli",
+    "@threshold-network/solidity-contracts": "development",
     "@openzeppelin/contracts": "^4.3",
     "@tenderly/hardhat-tenderly": "^1.0.12"
   },

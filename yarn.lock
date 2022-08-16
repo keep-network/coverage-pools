@@ -107,7 +107,7 @@
   resolved "https://registry.yarnpkg.com/@celo/utils/-/utils-0.1.11.tgz#c35e3b385091fc6f0c0c355b73270f4a8559ad38"
   integrity sha512-i3oK1guBxH89AEBaVA1d5CHnANehL36gPIcSpPBWiYZrKTGGVvbwNmVoaDwaKFXih0N22vXQAf2Rul8w5VzC3w==
   dependencies:
-    "@umpirsky/country-list" "git+https://github.com/umpirsky/country-list#05fda51"
+    "@umpirsky/country-list" "git://github.com/umpirsky/country-list#05fda51"
     bigi "^1.1.0"
     bignumber.js "^9.0.0"
     bip32 "2.0.5"
@@ -1177,6 +1177,10 @@
     "@openzeppelin/upgrades" "^2.7.2"
     openzeppelin-solidity "2.3.0"
 
+"@keep-network/prettier-config-keep@github:keep-network/prettier-config-keep":
+  version "0.0.1"
+  resolved "https://codeload.github.com/keep-network/prettier-config-keep/tar.gz/a1a333e7ac49928a0f6ed39421906dd1e46ab0f3"
+
 "@keep-network/prettier-config-keep@github:keep-network/prettier-config-keep#d6ec02e":
   version "0.0.1"
   resolved "https://codeload.github.com/keep-network/prettier-config-keep/tar.gz/d6ec02e80dd76edfba073ca58ef99aee39002c2c"
@@ -1597,10 +1601,10 @@
   dependencies:
     "@openzeppelin/contracts" "^4.1.0"
 
-"@threshold-network/solidity-contracts@>1.2.0-dev <1.2.0-goerli":
-  version "1.2.0-dev.17"
-  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dev.17.tgz#c12157f199bb1ef95ca3748654286abb08ed8f7b"
-  integrity sha512-YJE4fgwjBha+61iVo4TiUN/F5eND835U8rWxHy1uBU4e/CZGG99Vv1n33NMDvTNHw6pi2HKLKYqWSyc01/5/PA==
+"@threshold-network/solidity-contracts@development":
+  version "1.2.0-dev.18"
+  resolved "https://registry.yarnpkg.com/@threshold-network/solidity-contracts/-/solidity-contracts-1.2.0-dev.18.tgz#814721dea03e47c3fe2f21644802e99d49dd9260"
+  integrity sha512-ao6Kngc8Q9rPg42/DlSlsOi2k/GH0DfdAOB4fmzcQSBl4H4D+dP0k0ymqvK6zfeMgxYmjRYP2KI5kDLPpaF2jg==
   dependencies:
     "@keep-network/keep-core" ">1.8.1-dev <1.8.1-goerli"
     "@openzeppelin/contracts" "~4.5.0"
@@ -4509,7 +4513,7 @@ eslint-config-google@^0.13.0:
     eslint-plugin-no-only-tests "^2.3.1"
     eslint-plugin-prettier "^3.1.2"
 
-eslint-config-prettier@^6.10.0:
+eslint-config-prettier@^6.15.0:
   version "6.15.0"
   resolved "https://registry.yarnpkg.com/eslint-config-prettier/-/eslint-config-prettier-6.15.0.tgz#7f93f6cb7d45a92f1537a70ecc06366e1ac6fed9"
   integrity sha512-a1+kOYLR8wMGustcgAjdydMsQ2A/2ipRPwRKUmfYaSxc9ZPcrku080Ctl6zrZzZNs/U82MjSv+qKREkoq3bJaw==
