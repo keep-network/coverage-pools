@@ -106,10 +106,13 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # We provide explicit version of the `keep-core` package, because using
+      # `goerli` tag results in `expected manifest` error - probably caused by
+      # bug in Yarn: https://github.com/yarnpkg/yarn/issues/4731.
       - name: Resolve latest contracts
         run: |
           yarn upgrade \
-            @keep-network/keep-core@${{ github.event.inputs.environment }} \
+            @keep-network/keep-core@1.8.1-goerli.0 \
             @keep-network/tbtc@${{ github.event.inputs.environment }} \
             @threshold-network/solidity-contracts@${{ github.event.inputs.environment }}
 
