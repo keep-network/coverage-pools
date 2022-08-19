@@ -139,6 +139,9 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     ///         assuming enough surplus will accumulate up to that point.
     uint256 public tbtcSurplus;
 
+    /// @notice TODO: add description
+    address public councilMultisig;
+
     /// @notice Keeps track of notifier rewards for those calling
     ///         `notifyLiquidation` and `notifyLiquidated`.
     RiskManagerV1Rewards.Storage public rewards;
@@ -203,6 +206,15 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         _;
     }
 
+    /// @notice TODO: Add description
+    modifier onlyCouncilMultisig() {
+        require(
+            msg.sender == councilMultisig,
+            "Caller is not the council multisig"
+        );
+        _;
+    }
+
     constructor(
         IERC20 _tbtcToken,
         ITBTCDepositToken _tbtcDepositToken,
@@ -210,13 +222,15 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         ISignerBondsSwapStrategy _signerBondsSwapStrategy,
         address _masterAuction,
         uint256 _auctionLength,
-        uint256 _bondAuctionThreshold
+        uint256 _bondAuctionThreshold,
+        address _councilMultisig
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
         tbtcDepositToken = _tbtcDepositToken;
         signerBondsSwapStrategy = _signerBondsSwapStrategy;
         auctionLength = _auctionLength;
         bondAuctionThreshold = _bondAuctionThreshold;
+        councilMultisig = _councilMultisig;
     }
 
     /// @notice Receives ETH from tBTC for purchasing and withdrawing deposit
@@ -535,6 +549,11 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         );
         require(success, "Failed to send Ether");
         /* solhint-enable avoid-low-level-calls */
+    }
+
+    // TODO: Add description
+    function claimCoverage(uint256 amountToSeize) external onlyCouncilMultisig {
+        coveragePool.seizeFunds(amountToSeize, msg.sender);
     }
 
     /// @notice Get the time remaining until the bond auction threshold

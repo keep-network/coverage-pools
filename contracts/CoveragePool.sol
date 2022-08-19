@@ -223,6 +223,19 @@ contract CoveragePool is Ownable {
         assetPool.claim(recipient, amountToSeize(portionToSeize));
     }
 
+    /// TODO: add description
+    function seizeFunds(uint256 amount, address recipient)
+        external
+        onlyApprovedRiskManager
+    {
+        require(
+            amount <= collateralToken.balanceOf(address(assetPool)),
+            "Amount to seize exceeds the pool balance"
+        );
+
+        assetPool.claim(recipient, amount);
+    }
+
     /// @notice Grants asset pool shares by minting a given amount of the
     ///         underwriter tokens for the recipient address. In result, the
     ///         recipient obtains part of the pool ownership without depositing
