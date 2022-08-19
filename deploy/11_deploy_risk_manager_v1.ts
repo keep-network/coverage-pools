@@ -4,7 +4,7 @@ import { DeployFunction } from "hardhat-deploy/types"
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
   const { log } = deployments
-  const { deployer } = await getNamedAccounts()
+  const { deployer, keepCommunityMultiSig } = await getNamedAccounts()
 
   const TBTCToken = await deployments.get("TBTCToken")
   const TBTCDepositToken = await deployments.get("TBTCDepositToken")
@@ -47,6 +47,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       MasterAuction.address,
       auctionLength,
       bondAuctionThreshold,
+      keepCommunityMultiSig,
     ],
     log: true,
   })

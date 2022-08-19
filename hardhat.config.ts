@@ -101,6 +101,7 @@ const config: HardhatUserConfig = {
       mainnet: 0, // use deployer account
     },
     keepCommunityMultiSig: {
+      default: 2,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
   },
