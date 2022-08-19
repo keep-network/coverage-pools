@@ -34,6 +34,7 @@ describe("RiskManagerV1", () => {
     owner = await ethers.getSigner(0)
     notifier = await ethers.getSigner(1)
     bidder = await ethers.getSigner(2)
+    councilMultisig = await ethers.getSigner(3)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     tbtcToken = await TestToken.deploy()
@@ -71,7 +72,8 @@ describe("RiskManagerV1", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold
+      bondAuctionThreshold,
+      councilMultisig.address
     )
     await riskManagerV1.deployed()
 
