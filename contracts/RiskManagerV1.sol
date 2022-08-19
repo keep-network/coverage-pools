@@ -183,6 +183,10 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     );
     event LiquidatedNotifierRewardUpdated(uint256 liquidatedNotifierReward);
 
+    event CouncilMultisigUpdated(
+        address councilMultisig
+    );
+
     /// @notice Reverts if called before the governance delay elapses.
     /// @param changeInitiatedTimestamp Timestamp indicating the beginning
     ///        of the change.
@@ -529,6 +533,19 @@ contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
         );
         delete newSignerBondsSwapStrategy;
         signerBondsSwapStrategyInitiated = 0;
+    }
+
+    /// TODO: add description
+    ///      - do we need a delay "onlyAfterGovernanceDelay" for updating council
+    ///        multisig?
+    function updateCouncilMultisig(address newCouncilMultisig)
+        external
+        onlyOwner
+    {
+        councilMultisig = newCouncilMultisig;
+        emit CouncilMultisigUpdated(
+            councilMultisig
+        );
     }
 
     /// @notice Withdraws the given amount of accumulated signer bonds.
