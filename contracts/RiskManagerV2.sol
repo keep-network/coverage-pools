@@ -44,7 +44,7 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
     IERC20 public immutable tbtcToken;
 
     /// @notice Council multisig is a priviledged address that can execute
-    ///         certain functionalities such as coverage claiming from the 
+    ///         certain functionalities such as coverage claiming from the
     ///         coverage pool.
     address public councilMultisig;
     address public newCouncilMultisig;
@@ -91,7 +91,7 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
     //slither-disable-next-line locked-ether
     receive() external payable {}
 
-    /// @notice Claims arbitrary coverage amount from the coverage pool. Can 
+    /// @notice Claims arbitrary coverage amount from the coverage pool. Can
     ///         be called by the council multisig only.
     /// @param  amountToSeize Amount to seize
     function claimCoverage(uint256 amountToSeize) external onlyCouncilMultisig {

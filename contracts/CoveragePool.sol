@@ -204,7 +204,7 @@ contract CoveragePool is Ownable {
 
     /// @notice Seizes funds from the coverage pool and puts them aside for the
     ///         recipient to withdraw.
-    /// @dev Here we seize a portion of the pool. `portionToSeize` value was 
+    /// @dev Here we seize a portion of the pool. `portionToSeize` value was
     ///      multiplied by `FLOATING_POINT_DIVISOR` for calculation precision
     ///      purposes. Further calculations in this function will need to take
     ///      this divisor into account.
@@ -228,7 +228,7 @@ contract CoveragePool is Ownable {
     ///         recipient to withdraw. This function in contrary to the other
     ///         'seizeFunds' accepts a specific amount to be seized from the pool
     ///         but no more than the pool holds.
-    /// @dev    Note the order of params compared to the other 'seizeFunds'. 
+    /// @dev    Note the order of params compared to the other 'seizeFunds'.
     ///         Here we seize a specific amount of funds.
     /// @param  amount Amount to be seized from the pool.
     /// @param  recipient Address that will receive the pool's seized funds.
