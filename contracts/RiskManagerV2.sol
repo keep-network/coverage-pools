@@ -43,7 +43,9 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
 
     IERC20 public immutable tbtcToken;
 
-    /// @notice TODO: add description
+    /// @notice Council multisig is a priviledged address that can execute
+    ///         certain functionalities such as coverage claiming from the 
+    ///         coverage pool.
     address public councilMultisig;
     address public newCouncilMultisig;
     uint256 public councilMultisigInitiated;
@@ -65,7 +67,7 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
         _;
     }
 
-    /// @notice TODO: Add description
+    /// @notice Reverts if called by other address than council multisig.
     modifier onlyCouncilMultisig() {
         require(
             msg.sender == councilMultisig,
@@ -89,12 +91,15 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
     //slither-disable-next-line locked-ether
     receive() external payable {}
 
-    // TODO: Add description
+    /// @notice Claims arbitrary coverage amount from the coverage pool. Can 
+    ///         be called by the council multisig only.
+    /// @param  amountToSeize Amount to seize
     function claimCoverage(uint256 amountToSeize) external onlyCouncilMultisig {
         coveragePool.seizeFunds(amountToSeize, msg.sender);
     }
 
-    /// TODO: Add description
+    /// @notice Begins council multisig address update process.
+    /// @dev    Can be called only by the contract owner.
     function beginCouncilMultisigUpdate(address _newCouncilMultisig)
         external
         onlyOwner
@@ -111,7 +116,9 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
         /* solhint-enable not-rely-on-time */
     }
 
-    /// TODO: Add description
+    /// @notice Finalizes the council multisig update process.
+    /// @dev Can be called only by the contract owner, after the governance
+    ///      delay elapses.
     function finalizeCouncilMultisigUpdate()
         external
         onlyOwner
