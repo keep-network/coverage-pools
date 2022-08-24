@@ -28,7 +28,6 @@ async function initContracts(swapStrategy) {
   const auctionLength = 86400 // 24h
 
   const rewardsManager = await ethers.getSigner(1)
-  const councilMultisig = await ethers.getSigner(2)
 
   const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
   const underwriterToken = await UnderwriterToken.deploy(
@@ -97,8 +96,7 @@ async function initContracts(swapStrategy) {
     signerBondsSwapStrategy.address,
     masterAuction.address,
     auctionLength,
-    bondAuctionThreshold,
-    councilMultisig.address
+    bondAuctionThreshold
   )
   await riskManagerV1.deployed()
   // reset to default value, since most of the tests use 66% threshold

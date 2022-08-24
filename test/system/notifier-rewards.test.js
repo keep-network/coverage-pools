@@ -37,7 +37,6 @@ describeFn("System -- notifier rewards", () => {
     notifier = await ethers.getSigner(1)
     otherNotifier = await ethers.getSigner(2)
     rewardsManager = await ethers.getSigner(3)
-    councilMultisig = await ethers.getSigner(4)
 
     const TestToken = await ethers.getContractFactory("TestToken")
     tbtcToken = await TestToken.deploy()
@@ -89,8 +88,7 @@ describeFn("System -- notifier rewards", () => {
       signerBondsSwapStrategy.address,
       masterAuction.address,
       auctionLength,
-      bondAuctionThreshold,
-      councilMultisig.address
+      bondAuctionThreshold
     )
     await riskManagerV1.deployed()
 
