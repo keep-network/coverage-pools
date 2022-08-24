@@ -13,7 +13,6 @@ describe("SignerBondsUniswapV2", () => {
     thirdParty = await ethers.getSigner(1)
     rewardsManager = await ethers.getSigner(2)
     swapper = await ethers.getSigner(3)
-    councilMultisig = await ethers.getSigner(4)
 
     const UniswapV2RouterStub = await ethers.getContractFactory(
       "UniswapV2RouterStub"
@@ -65,8 +64,7 @@ describe("SignerBondsUniswapV2", () => {
       signerBondsUniswapV2.address,
       fakeAddress,
       86400,
-      75,
-      councilMultisig.address
+      75
     )
     await riskManagerV1.deployed()
 

@@ -12,7 +12,6 @@ describe("SignerBondsManualSwap", () => {
   beforeEach(async () => {
     governance = await ethers.getSigner(0)
     recipient = await ethers.getSigner(1)
-    councilMultisig = await ethers.getSigner(2)
 
     const SignerBondsManualSwap = await ethers.getContractFactory(
       "SignerBondsManualSwap"
@@ -34,8 +33,7 @@ describe("SignerBondsManualSwap", () => {
       signerBondsManualSwap.address,
       fakeAddress,
       86400,
-      75,
-      councilMultisig.address
+      75
     )
     await riskManagerV1.deployed()
 
