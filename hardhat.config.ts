@@ -104,6 +104,9 @@ const config: HardhatUserConfig = {
       default: 2,
       mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
     },
+    tCommunityMultiSig: {
+      default: 3,
+    },
   },
   mocha: {
     timeout: 30000,

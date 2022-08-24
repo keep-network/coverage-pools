@@ -3,11 +3,11 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, helpers } = hre
-  const { deployer, keepCommunityMultiSig } = await getNamedAccounts()
+  const { deployer, tCommunityMultiSig } = await getNamedAccounts()
 
   await helpers.ownable.transferOwnership(
     "RiskManagerV2",
-    keepCommunityMultiSig,
+    tCommunityMultiSig,
     deployer
   )
 }
