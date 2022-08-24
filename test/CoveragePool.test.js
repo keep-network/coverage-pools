@@ -367,7 +367,9 @@ describe("CoveragePool", () => {
     context("when caller is not an approved Risk Manager", () => {
       it("should revert", async () => {
         await expect(
-          coveragePool.connect(riskManager).seizeFunds(recipient.address, 123)
+          coveragePool
+            .connect(riskManager)
+            ["seizeFunds(address,uint256)"](recipient.address, 123)
         ).to.be.revertedWith("Risk manager not approved")
       })
     })
@@ -387,7 +389,7 @@ describe("CoveragePool", () => {
 
         await coveragePool
           .connect(riskManager)
-          .seizeFunds(recipient.address, portionToSeize)
+          ["seizeFunds(address,uint256)"](recipient.address, portionToSeize)
         expect(await collateralToken.balanceOf(recipient.address)).to.be.equal(
           amountSeized
         )
@@ -399,7 +401,7 @@ describe("CoveragePool", () => {
         await expect(
           coveragePool
             .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
+            ["seizeFunds(address,uint256)"](recipient.address, portionToSeize)
         ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
       })
 
@@ -410,7 +412,7 @@ describe("CoveragePool", () => {
         await expect(
           coveragePool
             .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
+            ["seizeFunds(address,uint256)"](recipient.address, portionToSeize)
         ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
       })
     })
@@ -838,7 +840,7 @@ describe("CoveragePool", () => {
 
           await coveragePool
             .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
+            ["seizeFunds(address,uint256)"](recipient.address, portionToSeize)
 
           await mineBlock()
           lastFinalizedBlock = (await lastBlockNumber()) - 1
