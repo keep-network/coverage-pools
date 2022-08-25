@@ -354,7 +354,57 @@ describe("CoveragePool", () => {
     })
   })
 
-  describe("seizeFunds", () => {
+  describe("seizeFunds - amount from the pool", () => {
+    beforeEach(async () => {
+      // Deposit 400 tokens to the asset pool
+      await collateralToken.mint(underwriter1.address, to1e18(400))
+      await collateralToken
+        .connect(underwriter1)
+        .approve(assetPool.address, to1e18(400))
+      await assetPool.connect(underwriter1).deposit(to1e18(400))
+    })
+
+    context("when caller is not an approved Risk Manager", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool
+            .connect(riskManager)
+            ["seizeFunds(uint256,address)"](123, recipient.address)
+        ).to.be.revertedWith("Risk manager not approved")
+      })
+    })
+
+    context("when caller is an approved Risk Manager", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(riskManager.address)
+      })
+
+      it("transfers seized funds to recipient account", async () => {
+        const amountSeized = to1ePrecision(1300000, 14)
+
+        await coveragePool
+          .connect(riskManager)
+          ["seizeFunds(uint256,address)"](amountSeized, recipient.address)
+        expect(await collateralToken.balanceOf(recipient.address)).to.be.equal(
+          amountSeized
+        )
+      })
+
+      it("should not allow to seize more than a pool has", async () => {
+        const amountToSeize = to1e18(401)
+
+        await expect(
+          coveragePool
+            .connect(riskManager)
+            ["seizeFunds(uint256,address)"](amountToSeize, recipient.address)
+        ).to.be.revertedWith("Amount to seize exceeds the pool balance")
+      })
+    })
+  })
+
+  describe("seizeFunds - portion of the pool", () => {
     beforeEach(async () => {
       // Deposit 400 tokens to the asset pool
       await collateralToken.mint(underwriter1.address, to1e18(400))
