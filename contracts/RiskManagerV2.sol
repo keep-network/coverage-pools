@@ -17,6 +17,7 @@ pragma solidity 0.8.9;
 
 import "./interfaces/IRiskManagerV2.sol";
 import "./Auctioneer.sol";
+import "./GovernanceUtils.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -128,5 +129,20 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
         emit CouncilMultisigUpdated(newCouncilMultisig);
         newCouncilMultisig = address(0);
         councilMultisigInitiated = 0;
+    }
+
+    /// @notice Get the time remaining until the council multisig parameter
+    ///         can be updated.
+    /// @return Remaining time in seconds.
+    function getRemainingCouncilMultisigUpdateTime()
+        external
+        view
+        returns (uint256)
+    {
+        return
+            GovernanceUtils.getRemainingChangeTime(
+                councilMultisigInitiated,
+                GOVERNANCE_DELAY
+            );
     }
 }

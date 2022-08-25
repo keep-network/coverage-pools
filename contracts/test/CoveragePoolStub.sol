@@ -13,6 +13,10 @@ contract CoveragePoolStub {
         emit FundsSeized(recipient, portionToSeize);
     }
 
+    function seizeFunds(uint256 amountToSeize, address recipient) external {
+        emit FundsSeized(recipient, amountToSeize);
+    }
+
     function grantAssetPoolShares(address recipient, uint256 covAmount)
         external
     {
