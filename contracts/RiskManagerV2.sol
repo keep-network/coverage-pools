@@ -84,6 +84,11 @@ contract RiskManagerV2 is IRiskManagerV2, Auctioneer, Ownable {
         address _councilMultisig
     ) Auctioneer(_coveragePool, _masterAuction) {
         tbtcToken = _tbtcToken;
+
+        require(
+            _councilMultisig != address(0),
+            "Council multisig cannot be zero address"
+        );
         councilMultisig = _councilMultisig;
     }
 
