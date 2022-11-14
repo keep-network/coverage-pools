@@ -103,32 +103,51 @@ describe("RiskManagerV2", () => {
 
   describe("beginCouncilMultisigUpdate", () => {
     context("when the caller is the owner", () => {
-      let tx
+      context("when the T community multisig is non-zero address", () => {
+        let tx
 
-      beforeEach(async () => {
-        tx = await riskManagerV2
-          .connect(owner)
-          .beginCouncilMultisigUpdate(newTCommunityMultisig.address)
+        beforeEach(async () => {
+          tx = await riskManagerV2
+            .connect(owner)
+            .beginCouncilMultisigUpdate(newTCommunityMultisig.address)
+        })
+
+        it("should not update the council multisig", async () => {
+          expect(await riskManagerV2.councilMultisig()).to.be.equal(
+            tCommunityMultiSig
+          )
+        })
+
+        it("should start the governance delay timer", async () => {
+          expect(
+            await riskManagerV2.getRemainingCouncilMultisigUpdateTime()
+          ).to.be.equal(43200) // 12h contract governance delay
+        })
+
+        it("should emit the CouncilMultisigStarted event", async () => {
+          const blockTimestamp = (
+            await ethers.provider.getBlock(tx.blockNumber)
+          ).timestamp
+          await expect(tx)
+            .to.emit(riskManagerV2, "CouncilMultisigStarted")
+            .withArgs(newTCommunityMultisig.address, blockTimestamp)
+        })
+
+        it("should update the new council multisig address", async () => {
+          expect(await riskManagerV2.newCouncilMultisig()).to.be.equal(
+            newTCommunityMultisig.address
+          )
+        })
       })
 
-      it("should not update the council multisig", async () => {
-        expect(await riskManagerV2.councilMultisig()).to.be.equal(
-          tCommunityMultiSig
-        )
-      })
-
-      it("should start the governance delay timer", async () => {
-        expect(
-          await riskManagerV2.getRemainingCouncilMultisigUpdateTime()
-        ).to.be.equal(43200) // 12h contract governance delay
-      })
-
-      it("should emit the CouncilMultisigStarted event", async () => {
-        const blockTimestamp = (await ethers.provider.getBlock(tx.blockNumber))
-          .timestamp
-        await expect(tx)
-          .to.emit(riskManagerV2, "CouncilMultisigStarted")
-          .withArgs(newTCommunityMultisig.address, blockTimestamp)
+      context("when the T community multisig is zero address", () => {
+        it("should revert", async () => {
+          await expect(
+            riskManagerV2
+              .connect(owner)
+              .beginCouncilMultisigUpdate(ZERO_ADDRESS)
+          ).to.be.revertedWith("Invalid new council multisig address")
+        })
       })
     })
 
@@ -165,6 +184,12 @@ describe("RiskManagerV2", () => {
         it("should update the council multisig", async () => {
           expect(await riskManagerV2.councilMultisig()).to.be.equal(
             newTCommunityMultisig.address
+          )
+        })
+
+        it("should reset the new council multisig back to zero address", async () => {
+          expect(await riskManagerV2.newCouncilMultisig()).to.be.equal(
+            ZERO_ADDRESS
           )
         })
 
