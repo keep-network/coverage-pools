@@ -1,7 +1,10 @@
 const chai = require("chai")
 const expect = chai.expect
 const hre = require("hardhat")
-const { increaseTime } = require("./helpers/contract-test-helpers")
+const {
+  increaseTime,
+  ZERO_ADDRESS,
+} = require("./helpers/contract-test-helpers")
 const { getNamedAccounts } = hre
 
 const { ethers } = require("hardhat")
@@ -13,6 +16,8 @@ describe("RiskManagerV2", () => {
   let tCommunityMultiSig
   let tCommunityMultiSigSigner
   let newTCommunityMultisig
+
+  let RiskManagerV2
 
   beforeEach(async () => {
     owner = await ethers.getSigner(0)
@@ -36,7 +41,7 @@ describe("RiskManagerV2", () => {
     masterAuction = await Auction.deploy()
     await masterAuction.deployed()
 
-    const RiskManagerV2 = await ethers.getContractFactory("RiskManagerV2")
+    RiskManagerV2 = await ethers.getContractFactory("RiskManagerV2")
     riskManagerV2 = await RiskManagerV2.deploy(
       tbtcToken.address,
       coveragePoolStub.address,
@@ -44,6 +49,34 @@ describe("RiskManagerV2", () => {
       tCommunityMultiSig
     )
     await riskManagerV2.deployed()
+  })
+
+  describe("RiskManagerV2 constructor", () => {
+    context("when passing a zero address for TBTC token", () => {
+      it("should revert", async () => {
+        await expect(
+          RiskManagerV2.deploy(
+            ZERO_ADDRESS,
+            coveragePoolStub.address,
+            masterAuction.address,
+            tCommunityMultiSig
+          )
+        ).to.be.revertedWith("TBTC Token cannot be zero address")
+      })
+    })
+
+    context("when passing a zero address for council multisig", () => {
+      it("should revert", async () => {
+        await expect(
+          RiskManagerV2.deploy(
+            tbtcToken.address,
+            coveragePoolStub.address,
+            masterAuction.address,
+            ZERO_ADDRESS
+          )
+        ).to.be.revertedWith("Council multisig cannot be zero address")
+      })
+    })
   })
 
   describe("claimCoverage", () => {
