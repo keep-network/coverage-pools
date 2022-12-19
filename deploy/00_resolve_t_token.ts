@@ -6,19 +6,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { log } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const TToken = await deployments.getOrNull("TToken")
+  const T = await deployments.getOrNull("T")
 
-  if (TToken && helpers.address.isValid(TToken.address)) {
-    log(`using external TToken at ${TToken.address}`)
+  if (T && helpers.address.isValid(T.address)) {
+    log(`using external T at ${T.address}`)
   } else if (
     hre.network.name !== "hardhat" ||
     (hre.network.config as HardhatNetworkConfig).forking.enabled
   ) {
-    throw new Error("deployed TToken contract not found")
+    throw new Error("deployed T contract not found")
   } else {
-    log(`deploying TToken stub`)
+    log(`deploying T stub`)
 
-    await deployments.deploy("TToken", {
+    await deployments.deploy("T", {
       contract: "TestToken",
       from: deployer,
       log: true,
@@ -28,4 +28,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 export default func
 
-func.tags = ["TToken"]
+func.tags = ["T"]
