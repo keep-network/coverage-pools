@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
 import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.sol";

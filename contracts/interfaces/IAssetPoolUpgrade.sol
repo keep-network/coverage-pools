@@ -12,7 +12,7 @@
 
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.5;
+pragma solidity 0.8.9;
 
 /// @title Asset Pool upgrade interface
 /// @notice Interface that has to be implemented by an Asset Pool accepting
