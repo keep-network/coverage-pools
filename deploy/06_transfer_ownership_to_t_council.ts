@@ -3,11 +3,11 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, helpers } = hre
-  const { deployer, tCommunityMultiSig } = await getNamedAccounts()
+  const { deployer, thresholdCouncil } = await getNamedAccounts()
 
   await helpers.ownable.transferOwnership(
     "CoveragePool",
-    tCommunityMultiSig,
+    thresholdCouncil,
     deployer
   )
 }
