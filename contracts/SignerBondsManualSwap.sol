@@ -24,6 +24,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///         swapped and deposited back to the coverage pool as collateral.
 ///         SignerBondsManualSwap strategy allows the governance to withdraw
 ///         the bonds from the risk manager and do the swap manually.
+/// @dev This contract is used only for KEEP coverage pool in v1 that was
+///      depricated. Going forward T coverage pool will be used for v2.
+///      Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
 contract SignerBondsManualSwap is ISignerBondsSwapStrategy, Ownable {
     /// @notice Receive ETH upon withdrawal of risk manager's signer bonds.
     receive() external payable {}

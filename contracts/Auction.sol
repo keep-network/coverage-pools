@@ -31,7 +31,9 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 ///         to flash loans and other atomic constructions to take advantage of
 ///         arbitrage opportunities within a single block.
 /// @dev  This contract is used only for KEEP coverage pool in v1 that was
-///       depricated. Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
+///       depricated. Going forward T coverage pool will be used for v2.
+///       Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
+///
 ///       Auction contracts are not meant to be deployed directly, and are
 ///       instead cloned by an auction factory. Auction contracts clean up and
 ///       self-destruct on close. An auction that has run the entire length will
