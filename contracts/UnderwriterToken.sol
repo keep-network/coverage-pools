@@ -14,6 +14,7 @@
 
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.sol";
 
@@ -28,6 +29,7 @@ import "@threshold-network/solidity-contracts/contracts/governance/Checkpoints.s
 ///         Anyone can submit this signature on the user's behalf by calling the
 ///         permit function, as specified in EIP2612 standard, paying gas fees,
 ///         and possibly performing other actions in the same transaction.
+// slither-disable-next-line missing-inheritance
 contract UnderwriterToken is ERC20WithPermit, Checkpoints {
     /// @notice The EIP-712 typehash for the delegation struct used by
     ///         `delegateBySig`.
@@ -108,8 +110,6 @@ contract UnderwriterToken is ERC20WithPermit, Checkpoints {
         address to,
         uint256 amount
     ) internal override {
-        uint96 safeAmount = SafeCast.toUint96(amount);
-
         // When minting:
         if (from == address(0)) {
             // Does not allow to mint more than uint96 can fit. Otherwise, the
@@ -118,15 +118,15 @@ contract UnderwriterToken is ERC20WithPermit, Checkpoints {
                 totalSupply + amount <= maxSupply(),
                 "Maximum total supply exceeded"
             );
-            writeCheckpoint(_totalSupplyCheckpoints, add, safeAmount);
+            writeCheckpoint(_totalSupplyCheckpoints, add, amount);
         }
 
         // When burning:
         if (to == address(0)) {
-            writeCheckpoint(_totalSupplyCheckpoints, subtract, safeAmount);
+            writeCheckpoint(_totalSupplyCheckpoints, subtract, amount);
         }
 
-        moveVotingPower(delegates(from), delegates(to), safeAmount);
+        moveVotingPower(delegates(from), delegates(to), amount);
     }
 
     /// @notice Delegate votes from `delegator` to `delegatee`.

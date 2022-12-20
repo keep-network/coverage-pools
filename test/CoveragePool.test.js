@@ -4,40 +4,52 @@ const {
   to1ePrecision,
   increaseTime,
   lastBlockTime,
+  lastBlockNumber,
+  mineBlock,
 } = require("./helpers/contract-test-helpers")
 
 describe("CoveragePool", () => {
   let coveragePool
   let assetPool
-  let testToken
+  let collateralToken
   let underwriterToken
 
   let governance
-  let underwriter
+  let underwriter1
+  let underwriter2
   let recipient
   let riskManager
   let anotherRiskManager
+  let rewardsManager
   let thirdParty
+
+  // expected withdrawal delay in seconds
+  const withdrawalDelay = 21 * 24 * 3600
+  // expected reward interval in seconds
+  const rewardInterval = 7 * 24 * 3600
 
   beforeEach(async () => {
     // Governance that owns Coverage Pool
     governance = await ethers.getSigner(1)
     // Underwriter that will deposit some amount of tokens to Asset Pool
-    underwriter = await ethers.getSigner(2)
+    underwriter1 = await ethers.getSigner(2)
+    underwriter2 = await ethers.getSigner(3)
     // Recipient that will receive seized funds
-    recipient = await ethers.getSigner(3)
+    recipient = await ethers.getSigner(4)
     // The main risk manager
-    riskManager = await ethers.getSigner(4)
+    riskManager = await ethers.getSigner(5)
     // Another risk manager
-    anotherRiskManager = await ethers.getSigner(5)
+    anotherRiskManager = await ethers.getSigner(6)
     // Account that is not authorized to call functions on Coverage Pool
-    thirdParty = await ethers.getSigner(6)
+    thirdParty = await ethers.getSigner(7)
     // Account funding Asset Pool with rewards
-    const rewardsManager = await ethers.getSigner(7)
+    rewardsManager = await ethers.getSigner(8)
 
-    const TestToken = await ethers.getContractFactory("TestToken")
-    testToken = await TestToken.deploy()
-    await testToken.deployed()
+    // To test `getPastVotes` we need a token properly implementing DAO
+    // checkpoints. Using T instead of reinventing the wheel in TestToken.
+    const T = await ethers.getContractFactory("T")
+    collateralToken = await T.deploy()
+    await collateralToken.deployed()
 
     const UnderwriterToken = await ethers.getContractFactory("UnderwriterToken")
     underwriterToken = await UnderwriterToken.deploy("Underwriter Token", "COV")
@@ -45,7 +57,7 @@ describe("CoveragePool", () => {
 
     const AssetPool = await ethers.getContractFactory("AssetPool")
     assetPool = await AssetPool.deploy(
-      testToken.address,
+      collateralToken.address,
       underwriterToken.address,
       rewardsManager.address
     )
@@ -58,11 +70,6 @@ describe("CoveragePool", () => {
     await coveragePool.transferOwnership(governance.address)
     await assetPool.transferOwnership(coveragePool.address)
     await underwriterToken.transferOwnership(assetPool.address)
-
-    // Deposit 400 tokens to the asset pool
-    await testToken.mint(underwriter.address, to1e18(400))
-    await testToken.connect(underwriter).approve(assetPool.address, to1e18(400))
-    await assetPool.connect(underwriter).deposit(to1e18(400))
   })
 
   describe("approveFirstRiskManager", () => {
@@ -348,6 +355,15 @@ describe("CoveragePool", () => {
   })
 
   describe("seizeFunds", () => {
+    beforeEach(async () => {
+      // Deposit 400 tokens to the asset pool
+      await collateralToken.mint(underwriter1.address, to1e18(400))
+      await collateralToken
+        .connect(underwriter1)
+        .approve(assetPool.address, to1e18(400))
+      await assetPool.connect(underwriter1).deposit(to1e18(400))
+    })
+
     context("when caller is not an approved Risk Manager", () => {
       it("should revert", async () => {
         await expect(
@@ -372,7 +388,7 @@ describe("CoveragePool", () => {
         await coveragePool
           .connect(riskManager)
           .seizeFunds(recipient.address, portionToSeize)
-        expect(await testToken.balanceOf(recipient.address)).to.be.equal(
+        expect(await collateralToken.balanceOf(recipient.address)).to.be.equal(
           amountSeized
         )
       })
@@ -428,6 +444,430 @@ describe("CoveragePool", () => {
         expect(
           await underwriterToken.balanceOf(thirdParty.address)
         ).to.be.equal(to1e18(10))
+      })
+    })
+  })
+
+  describe("getPastVotes", async () => {
+    let lastFinalizedBlock
+
+    beforeEach(async () => {
+      await underwriterToken
+        .connect(underwriter1)
+        .delegate(underwriter1.address)
+      await underwriterToken
+        .connect(underwriter2)
+        .delegate(underwriter2.address)
+    })
+
+    context("when no tokens were deposited into the pool", () => {
+      beforeEach(async () => {
+        lastFinalizedBlock = (await lastBlockNumber()) - 1
+      })
+
+      it("should return zero", async () => {
+        expect(
+          await coveragePool.getPastVotes(
+            underwriter1.address,
+            lastFinalizedBlock
+          )
+        ).to.equal(0)
+      })
+    })
+
+    context("when underwriter did not delegate voting", () => {
+      beforeEach(async () => {
+        await collateralToken.mint(thirdParty.address, to1e18(400))
+        await collateralToken
+          .connect(thirdParty)
+          .approve(assetPool.address, to1e18(400))
+        await assetPool.connect(thirdParty).deposit(to1e18(400))
+
+        lastFinalizedBlock = (await lastBlockNumber()) - 1
+      })
+
+      it("should return zero", async () => {
+        expect(
+          await coveragePool.getPastVotes(
+            thirdParty.address,
+            lastFinalizedBlock
+          )
+        ).to.equal(0)
+      })
+    })
+
+    context("when account did not deposit into the pool", () => {
+      beforeEach(async () => {
+        await collateralToken.mint(underwriter1.address, to1e18(400))
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, to1e18(400))
+        await assetPool.connect(underwriter1).deposit(to1e18(400))
+
+        lastFinalizedBlock = (await lastBlockNumber()) - 1
+      })
+
+      it("should return zero", async () => {
+        expect(
+          await coveragePool.getPastVotes(
+            thirdParty.address,
+            lastFinalizedBlock
+          )
+        ).to.equal(0)
+      })
+    })
+
+    context("when single underwriter deposited into the pool", () => {
+      const depositedAmount = to1e18(401)
+
+      beforeEach(async () => {
+        // Mint to some unrelated account. We do it to ensure the total supply
+        // of T that exists in circulation, outside of the coverage pool
+        // deposits does not affect the voting power of underwriters.
+        await collateralToken.mint(thirdParty.address, to1e18(100000))
+
+        // Underwriter deposits into the asset pool.
+        await collateralToken.mint(underwriter1.address, depositedAmount)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, depositedAmount)
+        await assetPool.connect(underwriter1).deposit(depositedAmount)
+
+        await mineBlock()
+        lastFinalizedBlock = (await lastBlockNumber()) - 1
+      })
+
+      it("should return correct voting power", async () => {
+        expect(
+          await coveragePool.getPastVotes(
+            underwriter1.address,
+            lastFinalizedBlock
+          )
+        ).to.equal(depositedAmount)
+      })
+    })
+
+    context("when multiple underwriters deposited into the pool", () => {
+      const depositedAmount1 = to1e18(400)
+      const depositedAmount2 = to1e18(200)
+
+      beforeEach(async () => {
+        // Mint to some unrelated account. We do it to ensure the total supply
+        // of T that exists in circulation, outside of the coverage pool
+        // deposits does not affect the voting power of underwriters.
+        await collateralToken.mint(thirdParty.address, to1e18(100000))
+
+        // First underwriter deposits into the asset pool.
+        await collateralToken.mint(underwriter1.address, depositedAmount1)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, depositedAmount1)
+        await assetPool.connect(underwriter1).deposit(depositedAmount1)
+
+        // Second underwriter deposits into the asset pool.
+        await collateralToken.mint(underwriter2.address, depositedAmount2)
+        await collateralToken
+          .connect(underwriter2)
+          .approve(assetPool.address, depositedAmount2)
+        await assetPool.connect(underwriter2).deposit(depositedAmount2)
+
+        await mineBlock()
+        lastFinalizedBlock = (await lastBlockNumber()) - 1
+      })
+
+      context("when no one withdrawn, there were no claims or rewards", () => {
+        it("should return correct voting power", async () => {
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter1.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(depositedAmount1)
+
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter2.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(depositedAmount2)
+        })
+      })
+
+      context(
+        "when one underwriter delegated voting power to someone else",
+        () => {
+          beforeEach(async () => {
+            await underwriterToken
+              .connect(underwriter1)
+              .delegate(thirdParty.address)
+
+            await mineBlock()
+            lastFinalizedBlock = (await lastBlockNumber()) - 1
+          })
+
+          it("should return correct voting power", async () => {
+            expect(
+              await coveragePool.getPastVotes(
+                underwriter1.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(0)
+
+            expect(
+              await coveragePool.getPastVotes(
+                thirdParty.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(depositedAmount1)
+
+            expect(
+              await coveragePool.getPastVotes(
+                underwriter2.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(depositedAmount2)
+          })
+        }
+      )
+
+      context(
+        "when both underwriters delegated voting power to the same account",
+        () => {
+          beforeEach(async () => {
+            await underwriterToken
+              .connect(underwriter1)
+              .delegate(thirdParty.address)
+            await underwriterToken
+              .connect(underwriter2)
+              .delegate(thirdParty.address)
+
+            await mineBlock()
+            lastFinalizedBlock = (await lastBlockNumber()) - 1
+          })
+
+          it("should return correct voting power", async () => {
+            expect(
+              await coveragePool.getPastVotes(
+                underwriter1.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(0)
+
+            expect(
+              await coveragePool.getPastVotes(
+                underwriter2.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(0)
+
+            expect(
+              await coveragePool.getPastVotes(
+                thirdParty.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(depositedAmount1.add(depositedAmount2))
+          })
+        }
+      )
+
+      context(
+        "when one underwriter delegated voting power to the other underwriter",
+        () => {
+          beforeEach(async () => {
+            await underwriterToken
+              .connect(underwriter1)
+              .delegate(underwriter2.address)
+
+            await mineBlock()
+            lastFinalizedBlock = (await lastBlockNumber()) - 1
+          })
+
+          it("should return correct voting power", async () => {
+            expect(
+              await coveragePool.getPastVotes(
+                underwriter1.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(0)
+
+            expect(
+              await coveragePool.getPastVotes(
+                underwriter2.address,
+                lastFinalizedBlock
+              )
+            ).to.equal(depositedAmount1.add(depositedAmount2))
+          })
+        }
+      )
+
+      context("when one underwriter partially withdrawn", async () => {
+        // no liquidations so COV amount = withdrawn amount
+        // 400 - 100 = 300
+        const withdrawnAmount = to1e18(100)
+
+        beforeEach(async () => {
+          await underwriterToken
+            .connect(underwriter1)
+            .approve(assetPool.address, withdrawnAmount)
+          await assetPool
+            .connect(underwriter1)
+            .initiateWithdrawal(withdrawnAmount)
+          await increaseTime(withdrawalDelay)
+          await assetPool
+            .connect(underwriter1)
+            .completeWithdrawal(underwriter1.address)
+
+          await mineBlock()
+          lastFinalizedBlock = (await lastBlockNumber()) - 1
+        })
+
+        it("should return correct voting power", async () => {
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter1.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(depositedAmount1.sub(withdrawnAmount))
+
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter2.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(depositedAmount2)
+        })
+      })
+
+      context("when one underwriter completely withdrawn", async () => {
+        // no liquidations so COV amount = withdrawn amount
+        const withdrawnAmount = depositedAmount1
+
+        beforeEach(async () => {
+          await underwriterToken
+            .connect(underwriter1)
+            .approve(assetPool.address, withdrawnAmount)
+          await assetPool
+            .connect(underwriter1)
+            .initiateWithdrawal(withdrawnAmount)
+          await increaseTime(withdrawalDelay)
+          await assetPool
+            .connect(underwriter1)
+            .completeWithdrawal(underwriter1.address)
+
+          await mineBlock()
+          lastFinalizedBlock = (await lastBlockNumber()) - 1
+        })
+
+        it("should return correct voting power", async () => {
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter1.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(0)
+
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter2.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(depositedAmount2)
+        })
+      })
+
+      context("when rewards were allocated", async () => {
+        const assertionPrecision = ethers.BigNumber.from("10000000") // 0.00000000001
+        const allocatedReward = to1e18(90)
+
+        beforeEach(async () => {
+          const rewardsPoolAddress = await assetPool.rewardsPool()
+          const rewardsPool = await ethers.getContractAt(
+            "RewardsPool",
+            rewardsPoolAddress,
+            rewardsManager
+          )
+
+          // Allocate reward and wait for the entire length of the reward
+          // interval.
+          await collateralToken.mint(rewardsManager.address, allocatedReward)
+          await collateralToken
+            .connect(rewardsManager)
+            .approve(rewardsPool.address, allocatedReward)
+          await rewardsPool.connect(rewardsManager).topUpReward(allocatedReward)
+          await increaseTime(rewardInterval)
+          await rewardsPool.withdraw()
+
+          await mineBlock()
+          lastFinalizedBlock = (await lastBlockNumber()) - 1
+        })
+
+        it("should return correct voting power", async () => {
+          // underwriter 1 has 400/600 = 2/3 share of the pool
+          // underwriter 2 has 200/600 = 1/3 share of the pool
+          //
+          // they are rewarded proportionally:
+          //   underwriter 1: 90 * 2/3 = 60
+          //   underwriter 2: 90 * 1/3 = 30
+          //
+          // their voting power should increase:
+          //   underwriter 1: 400 + 60 = 460
+          //   underwriter 2: 200 + 30 = 230
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter1.address,
+              lastFinalizedBlock
+            )
+          ).to.be.closeTo(to1e18(460), assertionPrecision)
+
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter2.address,
+              lastFinalizedBlock
+            )
+          ).to.be.closeTo(to1e18(230), assertionPrecision)
+        })
+      })
+
+      context("when there was a claim", async () => {
+        const portionToSeize = to1ePrecision(1, 17) // 0.1
+
+        beforeEach(async () => {
+          await coveragePool
+            .connect(governance)
+            .approveFirstRiskManager(riskManager.address)
+
+          await coveragePool
+            .connect(riskManager)
+            .seizeFunds(recipient.address, portionToSeize)
+
+          await mineBlock()
+          lastFinalizedBlock = (await lastBlockNumber()) - 1
+        })
+
+        it("should return correct voting power", async () => {
+          // underwriter 1 has 400/600 = 2/3 share of the pool
+          // underwriter 2 has 200/600 = 1/3 share of the pool
+          //
+          // 0.1 of the coverage pool got liquidated
+          // 0.9 * 600 = 540 collateral tokens remain in the pool
+          //
+          // underwriter voting power should decrease:
+          //   underwriter 1: 2/3 * 540 = 360
+          //   underwriter 2: 1/3 * 540 = 180
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter1.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(to1e18(360))
+
+          expect(
+            await coveragePool.getPastVotes(
+              underwriter2.address,
+              lastFinalizedBlock
+            )
+          ).to.equal(to1e18(180))
+        })
       })
     })
   })

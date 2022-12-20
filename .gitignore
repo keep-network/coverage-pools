@@ -6,6 +6,7 @@ build/
 cache/
 deployments/
 export.json
+external/
 
 typechain/
 
@@ -18,3 +19,4 @@ yarn-error.log
 
 .hardhat/*
 !.hardhat/networks_TEMPLATE.ts
+hardhat-dependency-compiler/

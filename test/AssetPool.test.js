@@ -84,6 +84,14 @@ describe("AssetPool", () => {
     underwriter4 = await createUnderwriterWithTokens(7)
   })
 
+  describe("constructor", () => {
+    it("should self-delegate voting power", async () => {
+      expect(await collateralToken.delegatee(assetPool.address)).to.equal(
+        assetPool.address
+      )
+    })
+  })
+
   describe("deposit", () => {
     context("when the depositor has not enough collateral tokens", () => {
       it("should revert", async () => {
@@ -179,7 +187,20 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
         await expect(
           assetPool.connect(underwriter1).deposit(amount)
-        ).to.be.revertedWith("deposited amount must be <= 2^96 - 1")
+        ).to.be.revertedWith("Pool capacity exceeded")
+      })
+    })
+
+    context("when pool is at its max capacity", async () => {
+      it("should revert", async () => {
+        const amount = 1
+        await collateralToken.mint(assetPool.address, MAX_UINT96)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+        await expect(
+          assetPool.connect(underwriter1).deposit(amount)
+        ).to.be.revertedWith("Pool capacity exceeded")
       })
     })
 
@@ -353,7 +374,7 @@ describe("AssetPool", () => {
       it("should revert", async () => {
         await expect(
           assetPool.connect(underwriter2).deposit(3)
-        ).to.be.revertedWith("Minted tokens amount must be <= 2^96 - 1")
+        ).to.be.revertedWith("Maximum total supply exceeded")
       })
     })
   })
@@ -368,7 +389,21 @@ describe("AssetPool", () => {
           .approve(assetPool.address, amount)
         await expect(
           assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
-        ).to.be.revertedWith("deposited amount must be <= 2^96 - 1")
+        ).to.be.revertedWith("Pool capacity exceeded")
+      })
+    })
+
+    context("when pool is at its max capacity", () => {
+      it("should revert", async () => {
+        const amount = 1
+        const minCovToMint = amount
+        await collateralToken.mint(assetPool.address, MAX_UINT96)
+        await collateralToken
+          .connect(underwriter1)
+          .approve(assetPool.address, amount)
+        await expect(
+          assetPool.connect(underwriter1).depositWithMin(amount, minCovToMint)
+        ).to.be.revertedWith("Pool capacity exceeded")
       })
     })
 
@@ -495,7 +530,20 @@ describe("AssetPool", () => {
             collateralToken
               .connect(underwriter1)
               .approveAndCall(assetPool.address, amount, data)
-          ).to.be.revertedWith("deposited amount must be <= 2^96 - 1")
+          ).to.be.revertedWith("Pool capacity exceeded")
+        })
+      })
+
+      context("when pool is at its max capacity", () => {
+        it("should revert", async () => {
+          const amount = 1
+          await collateralToken.mint(assetPool.address, MAX_UINT96)
+          const data = abiCoder.encode(["uint256"], [amount])
+          await expect(
+            collateralToken
+              .connect(underwriter1)
+              .approveAndCall(assetPool.address, amount, data)
+          ).to.be.revertedWith("Pool capacity exceeded")
         })
       })
 

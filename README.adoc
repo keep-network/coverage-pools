@@ -2,6 +2,8 @@
 
 = Coverage pool
 
+https://github.com/keep-network/coverage-pools/actions/workflows/contracts.yml[image:https://img.shields.io/github/workflow/status/keep-network/coverage-pools/Solidity/main?event=push&label=Coverage%20pool%20contracts%20build[Coverage pool contracts build status]]
+
 A governable, fee-earning asset pool to cover low-likelihood on-chain events.
 
 toc::[]

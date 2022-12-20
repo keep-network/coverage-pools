@@ -16,11 +16,11 @@ pragma solidity 0.8.9;
 
 import "./interfaces/IAssetPool.sol";
 import "./interfaces/IAssetPoolUpgrade.sol";
+import "./interfaces/ICollateralToken.sol";
 import "./RewardsPool.sol";
 import "./UnderwriterToken.sol";
 import "./GovernanceUtils.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -35,10 +35,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///         can not be greater than 2^96-1 or, if that supply is greater, it is
 ///         acceptable that not all tokens can be deposited into the pool.
 contract AssetPool is Ownable, IAssetPool {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ICollateralToken;
     using SafeERC20 for UnderwriterToken;
 
-    IERC20 public immutable collateralToken;
+    ICollateralToken public immutable collateralToken;
     UnderwriterToken public immutable underwriterToken;
 
     RewardsPool public immutable rewardsPool;
@@ -130,7 +130,7 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     constructor(
-        IERC20 _collateralToken,
+        ICollateralToken _collateralToken,
         UnderwriterToken _underwriterToken,
         address rewardsManager
     ) {
@@ -142,11 +142,23 @@ contract AssetPool is Ownable, IAssetPool {
             address(this),
             rewardsManager
         );
+
+        initGovernance(_collateralToken);
+    }
+
+    /// @dev Overwrite to empty if collateral token used by the AssetPool
+    ///      does not support DAO checkpoints. Used for tests with KEEP token.
+    function initGovernance(ICollateralToken _collateralToken)
+        internal
+        virtual
+    {
+        _collateralToken.delegate(address(this));
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints underwriter tokens representing pool's ownership. The
-    ///         amount must be smaller or equal to 2^96-1.
+    ///         amount locked in the pool after accepting this deposit must
+    ///         be smaller or equal to 2^96-1; otherwise, the function reverts.
     ///         Optional data in extraData may include a minimal amount of
     ///         underwriter tokens expected to be minted for a depositor. There
     ///         are cases when an amount of minted tokens matters for a
@@ -159,8 +171,8 @@ contract AssetPool is Ownable, IAssetPool {
         bytes calldata extraData
     ) external {
         require(
-            amount <= type(uint96).max,
-            "deposited amount must be <= 2^96 - 1"
+            amount + totalValue() <= type(uint96).max,
+            "Pool capacity exceeded"
         );
         require(msg.sender == token, "Only token caller allowed");
         require(
@@ -182,7 +194,9 @@ contract AssetPool is Ownable, IAssetPool {
     }
 
     /// @notice Accepts the given amount of collateral token as a deposit and
-    ///         mints underwriter tokens representing pool's ownership.
+    ///         mints underwriter tokens representing pool's ownership. The
+    ///         amount locked in the pool after accepting this deposit must
+    ///         be smaller or equal to 2^96-1; otherwise, the function reverts.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
@@ -195,8 +209,8 @@ contract AssetPool is Ownable, IAssetPool {
         returns (uint256)
     {
         require(
-            amountToDeposit <= type(uint96).max,
-            "deposited amount must be <= 2^96 - 1"
+            amountToDeposit + totalValue() <= type(uint96).max,
+            "Pool capacity exceeded"
         );
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
         _deposit(msg.sender, amountToDeposit, toMint);
@@ -205,7 +219,9 @@ contract AssetPool is Ownable, IAssetPool {
 
     /// @notice Accepts the given amount of collateral token as a deposit and
     ///         mints at least a minAmountToMint underwriter tokens representing
-    ///         pool's ownership.
+    ///         pool's ownership. The amount locked in the pool after accepting
+    ///         this deposit must be smaller or equal to 2^96-1; otherwise, the
+    ///         function reverts.
     /// @dev Before calling this function, collateral token needs to have the
     ///      required amount accepted to transfer to the asset pool.
     /// @param amountToDeposit Collateral tokens amount that a user deposits to
@@ -221,8 +237,8 @@ contract AssetPool is Ownable, IAssetPool {
         returns (uint256)
     {
         require(
-            amountToDeposit <= type(uint96).max,
-            "deposited amount must be <= 2^96 - 1"
+            amountToDeposit + totalValue() <= type(uint96).max,
+            "Pool capacity exceeded"
         );
         uint256 toMint = _calculateTokensToMint(amountToDeposit);
 
@@ -547,7 +563,7 @@ contract AssetPool is Ownable, IAssetPool {
     ///         plus the reward amount (in collateral token) earned by the asset
     ///         pool and not yet withdrawn to the asset pool.
     /// @return The total value of asset pool in collateral token.
-    function totalValue() external view returns (uint256) {
+    function totalValue() public view returns (uint256) {
         return collateralToken.balanceOf(address(this)) + rewardsPool.earned();
     }
 
@@ -575,20 +591,7 @@ contract AssetPool is Ownable, IAssetPool {
             return amountToDeposit;
         }
 
-        uint256 tokensToMint = (amountToDeposit * covSupply) /
-            collateralBalance;
-
-        // The total supply of underwriter tokens cannot exceed `type(uint96).max`,
-        // because the maximum voting power in the underwriter token is
-        // `type(uint96).max`. Therefore the asset pool should not allow to mint
-        // more than `type(uint96).max` either. The amount of tokens to mint is
-        // stored in `uint256` just for gas efficiency.
-        require(
-            tokensToMint <= type(uint96).max,
-            "Minted tokens amount must be <= 2^96 - 1"
-        );
-
-        return tokensToMint;
+        return (amountToDeposit * covSupply) / collateralBalance;
     }
 
     function _deposit(

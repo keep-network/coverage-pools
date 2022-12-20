@@ -55,8 +55,8 @@ async function initContracts(swapStrategy) {
     depositAddress3
   )
 
-  const AssetPool = await ethers.getContractFactory("AssetPool")
-  const assetPool = await AssetPool.deploy(
+  const KeepAssetPool = await ethers.getContractFactory("KeepAssetPool")
+  const assetPool = await KeepAssetPool.deploy(
     keepTokenAddress,
     underwriterToken.address,
     rewardsManager.address
