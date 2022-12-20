@@ -83,7 +83,7 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/tbtc/artifacts",
         "./external/ropsten",
       ],
-      mainnet: ["./external/mainnet"],
+      mainnet: ["./external/mainnet-2"],
     },
   },
   namedAccounts: {
