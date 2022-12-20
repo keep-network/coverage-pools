@@ -6,25 +6,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, tCommunityMultiSig } = await getNamedAccounts()
 
   await helpers.ownable.transferOwnership(
-    "SignerBondsUniswapV2",
-    tCommunityMultiSig,
-    deployer
-  )
-
-  await helpers.ownable.transferOwnership(
-    "SignerBondsManualSwap",
-    tCommunityMultiSig,
-    deployer
-  )
-
-  await helpers.ownable.transferOwnership(
     "CoveragePool",
-    tCommunityMultiSig,
-    deployer
-  )
-
-  await helpers.ownable.transferOwnership(
-    "RiskManagerV1",
     tCommunityMultiSig,
     deployer
   )
@@ -33,12 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["TransferOwnership"]
-func.dependencies = [
-  "SignerBondsUniswapV2",
-  "SignerBondsManualSwap",
-  "CoveragePool",
-  "RiskManagerV1",
-]
+func.dependencies = ["CoveragePool"]
 func.runAtTheEnd = true
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   return hre.network.name !== "mainnet"
