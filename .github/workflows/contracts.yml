@@ -32,6 +32,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
 
+      # We need this step because the `@keep-network/tbtc` which we install in
+      # next step has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install dependencies
         run: yarn install
 
@@ -57,6 +66,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
 
+      # We need this step because the `@keep-network/tbtc` which we install in
+      # next step has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install dependencies
         run: yarn install
 
@@ -76,6 +94,15 @@ jobs:
           cache: "yarn"
           registry-url: "https://registry.npmjs.org"
 
+      # We need this step because the `@keep-network/tbtc` which we install in
+      # next step has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
@@ -87,12 +114,14 @@ jobs:
           query: |
             keep-core-contracts-version = github.com/keep-network/keep-core/solidity-v1#version
             tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+            solidity-contracts-version = github.com/threshold-network/solidity-contracts#version
 
       - name: Resolve latest contracts
         run: |
           yarn upgrade \
             @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
-            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }} \
+            @threshold-network/solidity-contracts@${{ steps.upstream-builds-query.outputs.solidity-contracts-version }}
 
       - name: Configure tenderly
         if: github.event.inputs.environment == 'ropsten'
@@ -156,6 +185,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
 
+      # We need this step because the `@keep-network/tbtc` which we install in
+      # next step has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install needed dependencies
         run: yarn install --frozen-lockfile
 
@@ -185,6 +223,15 @@ jobs:
         with:
           node-version: "14.x"
           cache: "yarn"
+
+      # We need this step because the `@keep-network/tbtc` which we install in
+      # next step has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
 
       - name: Install dependencies
         run: yarn install
@@ -221,6 +268,15 @@ jobs:
         env:
           SLITHER_VERSION: 0.8.3
         run: pip3 install slither-analyzer==$SLITHER_VERSION
+
+      # We need this step because the `@keep-network/tbtc` which we install in
+      # next step has a dependency to `@summa-tx/relay-sol@2.0.2` package, which
+      # downloads one of its sub-dependencies via unathenticated `git://`
+      # protocol. That protocol is no longer supported. Thanks to this step
+      # `https://` is used instead of `git://`.
+      - name: Configure git to don't use unauthenticated protocol
+        shell: bash
+        run: git config --global url."https://".insteadOf git://
 
       - name: Install dependencies
         run: yarn install
