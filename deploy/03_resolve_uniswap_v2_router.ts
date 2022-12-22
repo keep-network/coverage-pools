@@ -24,6 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       contract: "UniswapV2RouterStub",
       from: deployer,
       log: true,
+      waitConfirmations: 1,
     })
   }
 }

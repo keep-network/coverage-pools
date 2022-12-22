@@ -4,6 +4,7 @@ import "@keep-network/hardhat-helpers"
 import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
+import "@nomiclabs/hardhat-etherscan"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "hardhat-dependency-compiler"
@@ -44,11 +45,11 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
-    ropsten: {
+    goerli: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+      chainId: 5,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
       tags: ["tenderly"],
     },
@@ -83,21 +84,23 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
       ],
-      ropsten: [
+      goerli: [
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
-        "./external/ropsten",
+        "./external/goerli",
       ],
       mainnet: ["./external/mainnet"],
     },
   },
   namedAccounts: {
     deployer: {
-      default: 0, // take the first account as deployer
+      default: 1,
+      goerli: 0,
+      mainnet: 0,
     },
     rewardManager: {
-      default: 1,
-      ropsten: 0, // use deployer account
+      default: 2,
+      goerli: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     keepCommunityMultiSig: {

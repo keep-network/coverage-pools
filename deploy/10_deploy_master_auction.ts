@@ -11,6 +11,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     contract: "Auction",
     from: deployer,
     log: true,
+    waitConfirmations: 1,
   })
 
   if (hre.network.tags.tenderly) {

@@ -9,6 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: ["covKEEP underwriter token", "covKEEP"],
     log: true,
+    waitConfirmations: 1,
   })
 
   if (hre.network.tags.tenderly) {
