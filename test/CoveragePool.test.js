@@ -354,7 +354,7 @@ describe("CoveragePool", () => {
     })
   })
 
-  describe("seizeFunds", () => {
+  describe("seizePortion", () => {
     beforeEach(async () => {
       // Deposit 400 tokens to the asset pool
       await collateralToken.mint(underwriter1.address, to1e18(400))
@@ -367,7 +367,7 @@ describe("CoveragePool", () => {
     context("when caller is not an approved Risk Manager", () => {
       it("should revert", async () => {
         await expect(
-          coveragePool.connect(riskManager).seizeFunds(recipient.address, 123)
+          coveragePool.connect(riskManager).seizePortion(recipient.address, 123)
         ).to.be.revertedWith("Risk manager not approved")
       })
     })
@@ -387,7 +387,7 @@ describe("CoveragePool", () => {
 
         await coveragePool
           .connect(riskManager)
-          .seizeFunds(recipient.address, portionToSeize)
+          .seizePortion(recipient.address, portionToSeize)
         expect(await collateralToken.balanceOf(recipient.address)).to.be.equal(
           amountSeized
         )
@@ -399,19 +399,75 @@ describe("CoveragePool", () => {
         await expect(
           coveragePool
             .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
+            .seizePortion(recipient.address, portionToSeize)
         ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
       })
 
-      it("should not allow to seize more than a pool has", async () => {
+      it("should not allow to seize more than the pool has", async () => {
         // actual bounds are (0, 1]. to1e18(1) was used to mimic FLOATING_POINT_DIVISOR
         const portionToSeize = to1e18(1) + 1
 
         await expect(
           coveragePool
             .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
+            .seizePortion(recipient.address, portionToSeize)
         ).to.be.revertedWith("Portion to seize is not within the range (0, 1]")
+      })
+    })
+  })
+
+  describe("seizeAmount", () => {
+    beforeEach(async () => {
+      // Deposit 400 tokens to the asset pool
+      await collateralToken.mint(underwriter1.address, to1e18(400))
+      await collateralToken
+        .connect(underwriter1)
+        .approve(assetPool.address, to1e18(400))
+      await assetPool.connect(underwriter1).deposit(to1e18(400))
+    })
+
+    context("when caller is not an approved Risk Manager", () => {
+      it("should revert", async () => {
+        await expect(
+          coveragePool.connect(riskManager).seizeAmount(recipient.address, 100)
+        ).to.be.revertedWith("Risk manager not approved")
+      })
+    })
+
+    context("when caller is an approved Risk Manager", () => {
+      beforeEach(async () => {
+        await coveragePool
+          .connect(governance)
+          .approveFirstRiskManager(riskManager.address)
+      })
+
+      it("transfers seized funds to recipient account", async () => {
+        const amountToSeize = 250
+        await coveragePool
+          .connect(riskManager)
+          .seizeAmount(recipient.address, amountToSeize)
+        expect(await collateralToken.balanceOf(recipient.address)).to.be.equal(
+          amountToSeize
+        )
+      })
+
+      it("should not allow to seize zero amount", async () => {
+        const amountToSeize = 0
+        await expect(
+          coveragePool
+            .connect(riskManager)
+            .seizeAmount(recipient.address, amountToSeize)
+        ).to.be.revertedWith("Amount to seize must be >0")
+      })
+
+      it("should not allow to seize more than the pool has", async () => {
+        const poolBalance = await collateralToken.balanceOf(assetPool.address)
+
+        await expect(
+          coveragePool
+            .connect(riskManager)
+            .seizeAmount(recipient.address, poolBalance + 1)
+        ).to.be.revertedWith("Amount to seize exceeds the pool balance")
       })
     })
   })
@@ -838,7 +894,7 @@ describe("CoveragePool", () => {
 
           await coveragePool
             .connect(riskManager)
-            .seizeFunds(recipient.address, portionToSeize)
+            .seizePortion(recipient.address, portionToSeize)
 
           await mineBlock()
           lastFinalizedBlock = (await lastBlockNumber()) - 1

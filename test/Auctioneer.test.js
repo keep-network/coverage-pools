@@ -161,9 +161,9 @@ describe("Auctioneer", () => {
         })
 
         it("should seize funds from coverage pool", async () => {
-          // assert SeizeFunds emitted with the right values
-          // check whether seizeFunds was executed with the right params
-          events = pastEvents(receipt1, coveragePoolStub, "FundsSeized")
+          // assert PortionSeized emitted with the right values
+          // check whether seizePortion was executed with the right params
+          events = pastEvents(receipt1, coveragePoolStub, "PortionSeized")
           expect(events.length).to.equal(1)
           expect(events[0].args["recipient"]).to.equal(bidder.address)
           expect(events[0].args["portionToSeize"]).to.be.closeTo(
@@ -221,8 +221,8 @@ describe("Auctioneer", () => {
       })
 
       it("should seize funds from coverage pool", async () => {
-        // assert SeizeFunds emitted with the right values
-        events = pastEvents(receipt, coveragePoolStub, "FundsSeized")
+        // assert PortionSeized emitted with the right values
+        events = pastEvents(receipt, coveragePoolStub, "PortionSeized")
         expect(events.length).to.equal(1)
         expect(events[0].args["recipient"]).to.equal(bidder.address)
         expect(events[0].args["portionToSeize"]).to.be.closeTo(
