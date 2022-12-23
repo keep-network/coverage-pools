@@ -76,6 +76,9 @@ interface ISignerBondsSwapStrategy {
 ///         in liquidation and signer bonds on offer reached the specific
 ///         threshold. In practice, it means no one is willing to purchase
 ///         signer bonds for that deposit on tBTC side.
+/// @dev This contract is used only for KEEP coverage pool in v1 that was
+///      depricated. Going forward T coverage pool will be used for v2.
+///      Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
 contract RiskManagerV1 is IRiskManagerV1, Auctioneer, Ownable {
     using SafeERC20 for IERC20;
     using RiskManagerV1Rewards for RiskManagerV1Rewards.Storage;

@@ -6,8 +6,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { read } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
-  const KeepToken = await deployments.get("KeepToken")
-  const BatchedPhasedEscrow = await deployments.get("BatchedPhasedEscrow")
+  const T = await deployments.get("T")
+  // const BatchedPhasedEscrow = await deployments.get("BatchedPhasedEscrow")
 
   const RewardsPoolAddress = await read("AssetPool", "rewardsPool")
 
@@ -16,7 +16,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     {
       contract: "CoveragePoolBeneficiary",
       from: deployer,
-      args: [KeepToken.address, RewardsPoolAddress],
+      args: [T.address, RewardsPoolAddress],
       log: true,
     }
   )
@@ -28,11 +28,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     })
   }
 
-  await helpers.ownable.transferOwnership(
-    "CoveragePoolBeneficiary",
-    BatchedPhasedEscrow.address,
-    deployer
-  )
+  // TODO: depends on https://github.com/keep-network/coverage-pools/issues/220
+  //       and transfer the ownership
+  // await helpers.ownable.transferOwnership(
+  //   "CoveragePoolBeneficiary",
+  //   BatchedPhasedEscrow.address,
+  //   deployer
+  // )
 
   await helpers.ownable.transferOwnership(
     "RewardsPool",
@@ -44,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["CoveragePoolBeneficiary"]
-func.dependencies = ["KeepToken", "AssetPool"]
+func.dependencies = ["T", "AssetPool"]
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   return hre.network.name !== "mainnet"
 }

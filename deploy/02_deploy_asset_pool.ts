@@ -6,14 +6,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { read, log } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
-  const KeepToken = await deployments.get("KeepToken")
+  const T = await deployments.get("T")
   const UnderwriterToken = await deployments.get("UnderwriterToken")
 
   const RewardsPool = await deployments.getArtifact("RewardsPool")
 
   const AssetPool = await deployments.deploy("AssetPool", {
     from: deployer,
-    args: [KeepToken.address, UnderwriterToken.address, rewardManager],
+    args: [T.address, UnderwriterToken.address, rewardManager],
     log: true,
   })
 
@@ -57,4 +57,4 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["AssetPool"]
-func.dependencies = ["KeepToken", "UnderwriterToken"]
+func.dependencies = ["T", "UnderwriterToken"]

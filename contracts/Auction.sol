@@ -30,7 +30,11 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 ///         pool. Auctions can be partially filled, and are meant to be amenable
 ///         to flash loans and other atomic constructions to take advantage of
 ///         arbitrage opportunities within a single block.
-/// @dev  Auction contracts are not meant to be deployed directly, and are
+/// @dev  This contract is used only for KEEP coverage pool in v1 that was
+///       depricated. Going forward T coverage pool will be used for v2.
+///       Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
+///
+///       Auction contracts are not meant to be deployed directly, and are
 ///       instead cloned by an auction factory. Auction contracts clean up and
 ///       self-destruct on close. An auction that has run the entire length will
 ///       stay open, forever, or until priced fluctuate and it's eventually

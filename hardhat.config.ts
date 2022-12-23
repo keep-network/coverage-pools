@@ -88,7 +88,7 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/tbtc/artifacts",
         "./external/ropsten",
       ],
-      mainnet: ["./external/mainnet"],
+      mainnet: ["./external/mainnet-v2"],
     },
   },
   namedAccounts: {
@@ -100,8 +100,13 @@ const config: HardhatUserConfig = {
       ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
-    keepCommunityMultiSig: {
-      mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
+    thresholdCouncil: {
+      default: 2,
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
+    },
+    treasuryGuild: {
+      default: 3,
+      mainnet: "0x0", // tbd
     },
   },
   mocha: {

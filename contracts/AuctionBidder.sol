@@ -30,7 +30,11 @@ contract AuctionBidder {
 
     /// @notice Takes an offer from an auction buyer with a minimum required amount
     ///         of tokens to seize from the coverage pool.
-    /// @dev 'minAmountToSeize' sets a minimum amount of tokens to seize in this
+    /// @dev This contract is used only for KEEP coverage pool in v1 that was
+    ///      depricated. Going forward T coverage pool will be used for v2.
+    ///      Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
+    ///
+    ///      'minAmountToSeize' sets a minimum amount of tokens to seize in this
     ///      transaction. A bidder can call `takeOffer` directly in the Auction
     ///      contract but this function is a recommended way of taking coverage pool
     ///      auctions. It might happen that the order of transactions might be changed

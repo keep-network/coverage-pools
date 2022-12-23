@@ -22,7 +22,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Auctioneer
 /// @notice Factory for the creation of new auction clones and receiving proceeds.
-/// @dev  We avoid redeployment of auction contracts by using the clone factory.
+/// @dev  This contract is used only for KEEP coverage pool in v1 that was
+///       depricated. Going forward T coverage pool will be used for v2.
+///       Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
+///
+///       We avoid redeployment of auction contracts by using the clone factory.
 ///       Proxy delegates calls to Auction and therefore does not affect auction state.
 ///       This means that we only need to deploy the auction contracts once.
 ///       The auctioneer provides clean state for every new auction clone.
