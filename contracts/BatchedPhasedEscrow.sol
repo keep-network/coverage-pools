@@ -45,7 +45,7 @@ contract BatchedPhasedEscrow is Ownable {
         _;
     }
 
-    constructor(IERC20 _token) public {
+    constructor(IERC20 _token) {
         token = _token;
         drawee = msg.sender;
     }
@@ -77,7 +77,7 @@ contract BatchedPhasedEscrow is Ownable {
 
     /// @notice Transfers the role of drawee to another address. Can be called
     ///         only by the contract owner.
-    function setDrawee(address newDrawee) public onlyOwner {
+    function setDrawee(address newDrawee) external onlyOwner {
         require(newDrawee != address(0), "New drawee can not be zero address");
         emit DraweeRoleTransferred(drawee, newDrawee);
         drawee = newDrawee;
@@ -90,7 +90,7 @@ contract BatchedPhasedEscrow is Ownable {
         uint256 _value,
         address _token,
         bytes memory
-    ) public {
+    ) external {
         require(IERC20(_token) == token, "Unsupported token");
         token.safeTransferFrom(_from, address(this), _value);
     }
@@ -102,7 +102,7 @@ contract BatchedPhasedEscrow is Ownable {
     function batchedWithdraw(
         IBeneficiaryContract[] memory beneficiaries,
         uint256[] memory amounts
-    ) public onlyDrawee {
+    ) external onlyDrawee {
         require(
             beneficiaries.length == amounts.length,
             "Mismatched arrays length"
@@ -121,8 +121,9 @@ contract BatchedPhasedEscrow is Ownable {
     function withdraw(IBeneficiaryContract beneficiary, uint256 amount)
         private
     {
-        token.safeTransfer(address(beneficiary), amount);
         emit TokensWithdrawn(address(beneficiary), amount);
+        token.safeTransfer(address(beneficiary), amount);
+        // slither-disable-next-line calls-loop
         beneficiary.__escrowSentTokens(amount);
     }
 }
