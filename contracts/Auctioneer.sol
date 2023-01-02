@@ -98,7 +98,7 @@ contract Auctioneer is CloneFactory {
         // defined in Auction.sol
         //
         //slither-disable-next-line reentrancy-no-eth,reentrancy-events,reentrancy-benign
-        coveragePool.seizeFunds(offerTaker, portionToSeize);
+        coveragePool.seizePortion(offerTaker, portionToSeize);
 
         Auction auction = Auction(msg.sender);
         if (fullyFilled) {

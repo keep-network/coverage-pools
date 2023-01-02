@@ -202,15 +202,15 @@ contract CoveragePool is Ownable {
         assetPool.finalizeWithdrawalTimeoutUpdate();
     }
 
-    /// @notice Seizes funds from the coverage pool and puts them aside for the
-    ///         recipient to withdraw.
+    /// @notice Seizes funds from the coverage pool and sends them to the
+    ///         `recipient`.
     /// @dev `portionToSeize` value was multiplied by `FLOATING_POINT_DIVISOR`
     ///      for calculation precision purposes. Further calculations in this
     ///      function will need to take this divisor into account.
     /// @param recipient Address that will receive the pool's seized funds
     /// @param portionToSeize Portion of the pool to seize in the range (0, 1]
     ///        multiplied by `FLOATING_POINT_DIVISOR`
-    function seizeFunds(address recipient, uint256 portionToSeize)
+    function seizePortion(address recipient, uint256 portionToSeize)
         external
         onlyApprovedRiskManager
     {
@@ -221,6 +221,20 @@ contract CoveragePool is Ownable {
         );
 
         assetPool.claim(recipient, amountToSeize(portionToSeize));
+    }
+
+    /// @notice Seizes funds from the coverage pool and sends them to the
+    ///         `recipient`.
+    /// @param recipient Address that will receive the pool's seized funds
+    /// @param amountToSeize Amount to be seized from the pool
+    // slither-disable-next-line shadowing-local
+    function seizeAmount(address recipient, uint256 amountToSeize)
+        external
+        onlyApprovedRiskManager
+    {
+        require(amountToSeize > 0, "Amount to seize must be >0");
+
+        assetPool.claim(recipient, amountToSeize);
     }
 
     /// @notice Grants asset pool shares by minting a given amount of the
