@@ -430,6 +430,10 @@ contract AssetPool is Ownable, IAssetPool {
     function claim(address recipient, uint256 amount) external onlyOwner {
         emit CoverageClaimed(recipient, amount, block.timestamp);
         rewardsPool.withdraw();
+        require(
+            amount <= collateralToken.balanceOf(address(this)),
+            "Amount to seize exceeds the pool balance"
+        );
         collateralToken.safeTransfer(recipient, amount);
     }
 
