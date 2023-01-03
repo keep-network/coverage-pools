@@ -102,6 +102,7 @@ As a workaround, we advise changing Git configuration to use `https://` protocol
 instead of `git://` by executing:
 ```
 git config --global url."https://".insteadOf git://
+```
 
 === Test contracts
 

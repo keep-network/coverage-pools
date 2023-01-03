@@ -51,6 +51,14 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["tenderly"],
     },
+    mainnet: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 1,
+      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
+        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+        : undefined,
+      tags: ["etherscan", "tenderly"],
+    },
   },
   tenderly: {
     username: "thesis",
@@ -73,7 +81,7 @@ const config: HardhatUserConfig = {
     deployments: {
       // For hardhat environment we can fork the mainnet, so we need to point it
       // to the contract artifacts.
-      // hardhat: ["./external/mainnet"],
+      // hardhat: ["./external/mainnet-v2"],
       // For development environment we expect the local dependencies to be linked
       // with `yarn link` command.
       development: [
@@ -103,7 +111,7 @@ const config: HardhatUserConfig = {
     },
     treasuryGuild: {
       default: 3,
-      mainnet: "0x0", // tbd
+      mainnet: "0x71E47a4429d35827e0312AA13162197C23287546",
     },
   },
   mocha: {
