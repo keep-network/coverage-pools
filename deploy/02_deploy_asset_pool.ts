@@ -35,6 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       address: rewardsPoolAddress,
       receipt,
       transactionHash: AssetPool.transactionHash,
+      args: [T.address, AssetPool.address, rewardManager],
     },
     RewardsPool
   )
