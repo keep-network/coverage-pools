@@ -14,18 +14,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   })
 
+  await helpers.ownable.transferOwnership(
+    "AssetPool",
+    CoveragePool.address,
+    deployer
+  )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(CoveragePool)
+  }
+
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
       name: "CoveragePool",
       address: CoveragePool.address,
     })
   }
-
-  await helpers.ownable.transferOwnership(
-    "AssetPool",
-    CoveragePool.address,
-    deployer
-  )
 }
 
 export default func

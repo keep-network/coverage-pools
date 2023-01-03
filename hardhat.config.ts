@@ -7,6 +7,7 @@ import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "hardhat-dependency-compiler"
 import "solidity-coverage"
+import "@nomiclabs/hardhat-etherscan"
 import "@tenderly/hardhat-tenderly"
 
 const config: HardhatUserConfig = {

@@ -18,13 +18,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     waitConfirmations: 1,
   })
 
-  if (hre.network.tags.tenderly) {
-    await hre.tenderly.verify({
-      name: "AssetPool",
-      address: AssetPool.address,
-    })
-  }
-
   const rewardsPoolAddress = helpers.address.validate(
     await read("AssetPool", "rewardsPool")
   )
@@ -53,6 +46,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     AssetPool.address,
     deployer
   )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(
+      AssetPool,
+      // Provide contract name as a workaround for error returned by hardhat:
+      // "More than one contract was found to match the deployed bytecode."
+      "contracts/AssetPool.sol:AssetPool"
+    )
+
+    await helpers.etherscan.verify(rewardsPoolDeploymentArtifact)
+  }
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "AssetPool",
+      address: AssetPool.address,
+    })
+
+    await hre.tenderly.verify({
+      name: "RewardsPool",
+      address: rewardsPoolAddress,
+    })
+  }
 }
 
 export default func
