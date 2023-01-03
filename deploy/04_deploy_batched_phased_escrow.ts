@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
+  const { getNamedAccounts, deployments, helpers } = hre
   const { deployer } = await getNamedAccounts()
 
   const T = await deployments.get("T")
@@ -12,7 +12,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [T.address],
     log: true,
+    waitConfirmations: 1,
   })
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(BatchedPhasedEscrow)
+  }
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({

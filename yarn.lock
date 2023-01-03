@@ -1341,7 +1341,7 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.0.tgz#87de7af9c231826fdd68ac7258f77c429e0e5fcf"
   integrity sha512-wdppn25U8z/2yiaT6YGquE6X8sSv7hNMWSXYSSU1jGv/yd6XqjXgTDJ8KP4NgjTXfJ3GbRjeeb8RTV7a/VpM+w==
 
-"@keep-network/hardhat-helpers@^0.6.0-pre.15":
+"@keep-network/hardhat-helpers@^0.6.0-pre.17":
   version "0.6.0-pre.17"
   resolved "https://registry.yarnpkg.com/@keep-network/hardhat-helpers/-/hardhat-helpers-0.6.0-pre.17.tgz#de085c8f5d684cc7e4ae793fdc6c104a09fd03ce"
   integrity sha512-G3Jp+I77po8e4moOrUY/wQCRYGt/g1aBoDjL2cbxMkAWFFrb9OBu1a5Vi5eOwO4ttWthN5c9vZKWJicR6kwOLg==

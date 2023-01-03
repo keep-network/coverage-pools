@@ -18,19 +18,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       args: [T.address, RewardsPoolAddress],
       log: true,
+      waitConfirmations: 1,
     }
   )
 
-  if (hre.network.tags.tenderly) {
-    await hre.tenderly.verify({
-      name: "CoveragePoolBeneficiary",
-      address: CoveragePoolBeneficiary.address,
-    })
-  }
-
   await execute(
     "BatchedPhasedEscrow",
-    { from: deployer, log: true },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "approveBeneficiary",
     CoveragePoolBeneficiary.address
   )
@@ -46,6 +40,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     CoveragePoolBeneficiary.address,
     rewardManager
   )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(CoveragePoolBeneficiary)
+  }
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "CoveragePoolBeneficiary",
+      address: CoveragePoolBeneficiary.address,
+    })
+  }
 }
 
 export default func
