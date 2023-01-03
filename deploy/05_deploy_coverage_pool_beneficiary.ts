@@ -18,6 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       from: deployer,
       args: [T.address, RewardsPoolAddress],
       log: true,
+      waitConfirmations: 1,
     }
   )
 
@@ -30,7 +31,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "BatchedPhasedEscrow",
-    { from: deployer, log: true },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "approveBeneficiary",
     CoveragePoolBeneficiary.address
   )

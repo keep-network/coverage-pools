@@ -11,7 +11,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await execute(
     "CoveragePool",
-    { from: deployer, log: true },
+    { from: deployer, log: true, waitConfirmations: 1 },
     "approveFirstRiskManager",
     treasuryGuild
   )

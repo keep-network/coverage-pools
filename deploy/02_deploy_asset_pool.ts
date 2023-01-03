@@ -15,6 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [T.address, UnderwriterToken.address, rewardManager],
     log: true,
+    waitConfirmations: 1,
   })
 
   if (hre.network.tags.tenderly) {
