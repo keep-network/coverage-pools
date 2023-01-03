@@ -44,6 +44,14 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
+    goerli: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 5,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+        : undefined,
+      tags: ["etherscan", "tenderly"],
+    },
     ropsten: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 3,
@@ -103,15 +111,18 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
+      goerli: 0, // use deployer account
       ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     thresholdCouncil: {
       default: 2,
+      goerli: 0, // use deployer account
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
     treasuryGuild: {
       default: 3,
+      goerli: 0, // use deployer account
       mainnet: "0x71E47a4429d35827e0312AA13162197C23287546",
     },
   },
