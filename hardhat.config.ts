@@ -106,7 +106,7 @@ const config: HardhatUserConfig = {
     },
     treasuryGuild: {
       default: 3,
-      mainnet: "0x0", // tbd
+      mainnet: "0x71E47a4429d35827e0312AA13162197C23287546",
     },
   },
   mocha: {
