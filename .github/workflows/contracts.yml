@@ -113,7 +113,6 @@ jobs:
             @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
 
       - name: Configure tenderly
-        if: github.event.inputs.environment == 'ropsten'
         env:
           TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
