@@ -37,7 +37,8 @@ jobs:
         run: |
           yarn upgrade --exact \
             @keep-network/keep-core \
-            @keep-network/tbtc
+            @keep-network/tbtc \
+            @threshold-network/solidity-contracts
 
       # Deploy contracts to a local network to generate deployment artifacts that
       # are required by dashboard compilation.
