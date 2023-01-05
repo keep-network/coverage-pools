@@ -35,8 +35,8 @@
     "prepublishOnly": "./scripts/prepare-artifacts.sh --network $npm_config_network"
   },
   "dependencies": {
-    "@keep-network/keep-core": ">1.8.0-dev <1.8.0-pre",
-    "@keep-network/tbtc": ">1.1.2-dev <1.1.2-pre",
+    "@keep-network/keep-core": "development",
+    "@keep-network/tbtc": "development",
     "@openzeppelin/contracts": "^4.8",
     "@thesis/solidity-contracts": "github:thesis/solidity-contracts#4985bcf",
     "@threshold-network/solidity-contracts": "development"
