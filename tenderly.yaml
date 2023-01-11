@@ -5,4 +5,4 @@ projects:
       - "1" # mainnet
   thesis/keep-test:
     networks:
-      - "3" # ropsten
+      - "5" # goerli
