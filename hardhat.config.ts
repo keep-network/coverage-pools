@@ -92,6 +92,7 @@ const config: HardhatUserConfig = {
       goerli: [
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
         "./external/goerli",
       ],
       mainnet: ["./external/mainnet-v2"],

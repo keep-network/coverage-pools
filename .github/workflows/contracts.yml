@@ -98,19 +98,19 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Get upstream packages' versions
-        uses: keep-network/ci/actions/upstream-builds-query@v1
+        uses: keep-network/ci/actions/upstream-builds-query@v2
         id: upstream-builds-query
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
           query: |
-            keep-core-contracts-version = github.com/keep-network/keep-core/solidity-v1#version
-            tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+            threshold-contracts-version = github.com/threshold-network/solidity-contracts#version
 
       - name: Resolve latest contracts
         run: |
           yarn upgrade \
-            @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
-            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+            @keep-network/keep-core@{{ github.event.inputs.environment }} \
+            @keep-network/tbtc@{{ github.event.inputs.environment }} \
+            @threshold-network/solidity-contracts@${{ steps.upstream-builds-query.outputs.threshold-contracts-version }}
 
       - name: Configure tenderly
         env:
@@ -137,7 +137,7 @@ jobs:
         run: npm publish --access=public --network=${{ github.event.inputs.environment }} --tag ${{ github.event.inputs.environment }}
 
       - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        uses: keep-network/ci/actions/notify-workflow-completed@v2
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
