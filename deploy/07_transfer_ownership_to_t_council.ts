@@ -2,30 +2,26 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, helpers } = hre
-  const { deployer, keepCommunityMultiSig } = await getNamedAccounts()
+  const { getNamedAccounts, deployments, helpers } = hre
+  const { deployer, thresholdCouncil } = await getNamedAccounts()
+  const { execute } = deployments
 
-  await helpers.ownable.transferOwnership(
-    "SignerBondsUniswapV2",
-    keepCommunityMultiSig,
-    deployer
+  await execute(
+    "BatchedPhasedEscrow",
+    { from: deployer, log: true, waitConfirmations: 1 },
+    "setDrawee",
+    thresholdCouncil
   )
 
   await helpers.ownable.transferOwnership(
-    "SignerBondsManualSwap",
-    keepCommunityMultiSig,
+    "BatchedPhasedEscrow",
+    thresholdCouncil,
     deployer
   )
 
   await helpers.ownable.transferOwnership(
     "CoveragePool",
-    keepCommunityMultiSig,
-    deployer
-  )
-
-  await helpers.ownable.transferOwnership(
-    "RiskManagerV1",
-    keepCommunityMultiSig,
+    thresholdCouncil,
     deployer
   )
 }
@@ -33,12 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 export default func
 
 func.tags = ["TransferOwnership"]
-func.dependencies = [
-  "SignerBondsUniswapV2",
-  "SignerBondsManualSwap",
-  "CoveragePool",
-  "RiskManagerV1",
-]
+func.dependencies = ["BatchedPhasedEscrow", "CoveragePool"]
 func.runAtTheEnd = true
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   return hre.network.name !== "mainnet"

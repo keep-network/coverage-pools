@@ -3,7 +3,6 @@
 pragma solidity 0.8.9;
 
 import "../interfaces/ICollateralToken.sol";
-
 import "@thesis/solidity-contracts/contracts/token/ERC20WithPermit.sol";
 
 /// @title Test ERC-20 token

@@ -11,7 +11,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [AssetPool.address],
     log: true,
+    waitConfirmations: 1,
   })
+
+  await helpers.ownable.transferOwnership(
+    "AssetPool",
+    CoveragePool.address,
+    deployer
+  )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(CoveragePool)
+  }
 
   if (hre.network.tags.tenderly) {
     await hre.tenderly.verify({
@@ -19,12 +30,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       address: CoveragePool.address,
     })
   }
-
-  await helpers.ownable.transferOwnership(
-    "AssetPool",
-    CoveragePool.address,
-    deployer
-  )
 }
 
 export default func

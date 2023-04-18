@@ -3,10 +3,10 @@ import { DeployFunction } from "hardhat-deploy/types"
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, helpers } = hre
-  const { read } = deployments
+  const { execute, read } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
-  const KeepToken = await deployments.get("KeepToken")
+  const T = await deployments.get("T")
   const BatchedPhasedEscrow = await deployments.get("BatchedPhasedEscrow")
 
   const RewardsPoolAddress = await read("AssetPool", "rewardsPool")
@@ -16,17 +16,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     {
       contract: "CoveragePoolBeneficiary",
       from: deployer,
-      args: [KeepToken.address, RewardsPoolAddress],
+      args: [T.address, RewardsPoolAddress],
       log: true,
+      waitConfirmations: 1,
     }
   )
 
-  if (hre.network.tags.tenderly) {
-    await hre.tenderly.verify({
-      name: "CoveragePoolBeneficiary",
-      address: CoveragePoolBeneficiary.address,
-    })
-  }
+  await execute(
+    "BatchedPhasedEscrow",
+    { from: deployer, log: true, waitConfirmations: 1 },
+    "approveBeneficiary",
+    CoveragePoolBeneficiary.address
+  )
 
   await helpers.ownable.transferOwnership(
     "CoveragePoolBeneficiary",
@@ -39,12 +40,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     CoveragePoolBeneficiary.address,
     rewardManager
   )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(CoveragePoolBeneficiary)
+  }
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "CoveragePoolBeneficiary",
+      address: CoveragePoolBeneficiary.address,
+    })
+  }
 }
 
 export default func
 
 func.tags = ["CoveragePoolBeneficiary"]
-func.dependencies = ["KeepToken", "AssetPool"]
+func.dependencies = ["T", "BatchedPhasedEscrow", "AssetPool"]
 func.skip = async function (hre: HardhatRuntimeEnvironment): Promise<boolean> {
   return hre.network.name !== "mainnet"
 }

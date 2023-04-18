@@ -69,6 +69,9 @@ interface IUniswapV2Pair {
 ///         percentage impact, slippage tolerance and swap deadline, to force
 ///         reasonable swap outcomes. It is up to the governance to decide what
 ///         these values should be.
+/// @dev This contract is used only for KEEP coverage pool in v1 that was
+///      depricated. Going forward T coverage pool will be used for v2.
+///      Please see: https://forum.threshold.network/t/tip-043-coverage-pool-migration/465
 contract SignerBondsUniswapV2 is ISignerBondsSwapStrategy, Ownable {
     // One basis point is equivalent to 1/100th of a percent.
     uint256 public constant BASIS_POINTS_DIVISOR = 10000;

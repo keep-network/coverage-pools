@@ -6,23 +6,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { read, log } = deployments
   const { deployer, rewardManager } = await getNamedAccounts()
 
-  const KeepToken = await deployments.get("KeepToken")
+  const T = await deployments.get("T")
   const UnderwriterToken = await deployments.get("UnderwriterToken")
 
   const RewardsPool = await deployments.getArtifact("RewardsPool")
 
   const AssetPool = await deployments.deploy("AssetPool", {
     from: deployer,
-    args: [KeepToken.address, UnderwriterToken.address, rewardManager],
+    args: [T.address, UnderwriterToken.address, rewardManager],
     log: true,
+    waitConfirmations: 1,
   })
-
-  if (hre.network.tags.tenderly) {
-    await hre.tenderly.verify({
-      name: "AssetPool",
-      address: AssetPool.address,
-    })
-  }
 
   const rewardsPoolAddress = helpers.address.validate(
     await read("AssetPool", "rewardsPool")
@@ -41,6 +35,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       address: rewardsPoolAddress,
       receipt,
       transactionHash: AssetPool.transactionHash,
+      args: [T.address, AssetPool.address, rewardManager],
     },
     RewardsPool
   )
@@ -52,9 +47,32 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     AssetPool.address,
     deployer
   )
+
+  if (hre.network.tags.etherscan) {
+    await helpers.etherscan.verify(
+      AssetPool,
+      // Provide contract name as a workaround for error returned by hardhat:
+      // "More than one contract was found to match the deployed bytecode."
+      "contracts/AssetPool.sol:AssetPool"
+    )
+
+    await helpers.etherscan.verify(rewardsPoolDeploymentArtifact)
+  }
+
+  if (hre.network.tags.tenderly) {
+    await hre.tenderly.verify({
+      name: "AssetPool",
+      address: AssetPool.address,
+    })
+
+    await hre.tenderly.verify({
+      name: "RewardsPool",
+      address: rewardsPoolAddress,
+    })
+  }
 }
 
 export default func
 
 func.tags = ["AssetPool"]
-func.dependencies = ["KeepToken", "UnderwriterToken"]
+func.dependencies = ["T", "UnderwriterToken"]

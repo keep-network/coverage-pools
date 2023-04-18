@@ -57,6 +57,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
 
+      # This step forces Git to download dependencies using `https://` protocol,
+      # even if `yarn.json` refers to some package via `git://`. Using `git://`
+      # is no longer supported by GH. One of the `coverage-pools` dependencies
+      # by default uses `git://` and we needed to manually remove it every time
+      # it re-appeares in the lock file. Now even if it does re-appear, the
+      # `yarn install --frozen-lockfile` will not fail.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install dependencies
         run: yarn install
 
@@ -75,6 +84,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
           registry-url: "https://registry.npmjs.org"
+
+      # This step forces Git to download dependencies using `https://` protocol,
+      # even if `yarn.json` refers to some package via `git://`. Using `git://`
+      # is no longer supported by GH. One of the `coverage-pools` dependencies
+      # by default uses `git://` and we needed to manually remove it every time
+      # it re-appeares in the lock file. Now even if it does re-appear, the
+      # `yarn install --frozen-lockfile` will not fail.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -156,6 +174,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
 
+      # This step forces Git to download dependencies using `https://` protocol,
+      # even if `yarn.json` refers to some package via `git://`. Using `git://`
+      # is no longer supported by GH. One of the `coverage-pools` dependencies
+      # by default uses `git://` and we needed to manually remove it every time
+      # it re-appeares in the lock file. Now even if it does re-appear, the
+      # `yarn install --frozen-lockfile` will not fail.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install needed dependencies
         run: yarn install --frozen-lockfile
 
@@ -186,6 +213,15 @@ jobs:
           node-version: "14.x"
           cache: "yarn"
 
+      # This step forces Git to download dependencies using `https://` protocol,
+      # even if `yarn.json` refers to some package via `git://`. Using `git://`
+      # is no longer supported by GH. One of the `coverage-pools` dependencies
+      # by default uses `git://` and we needed to manually remove it every time
+      # it re-appeares in the lock file. Now even if it does re-appear, the
+      # `yarn install --frozen-lockfile` will not fail.
+      - name: Configure git to don't use unauthenticated protocol
+        run: git config --global url."https://".insteadOf git://
+
       - name: Install dependencies
         run: yarn install
 
@@ -207,11 +243,11 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.8.5
+          python-version: 3.10.8
 
       - name: Install Solidity
         env:
-          SOLC_VERSION: 0.8.5 # according to solidity.version in hardhat.config.js
+          SOLC_VERSION: 0.8.9 # according to solidity.version in hardhat.config.ts
         run: |
           pip3 install solc-select
           solc-select install $SOLC_VERSION

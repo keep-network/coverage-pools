@@ -2,6 +2,8 @@
 
 = Coverage pool
 
+https://github.com/keep-network/coverage-pools/actions/workflows/contracts.yml[image:https://img.shields.io/github/actions/workflow/status/keep-network/coverage-pools/contracts.yml?branch=main&event=push&label=Coverage%20pool%20contracts%20build[Coverage pool contracts build status]]
+
 A governable, fee-earning asset pool to cover low-likelihood on-chain events.
 
 toc::[]
@@ -88,6 +90,19 @@ Once packages are installed, you can build the smart contracts using:
 yarn build
 ```
 Compiled contracts will land in the `build/` directory.
+
+*NOTE:* The `coverage-pools` package contains an indirect dependency to
+`@summa-tx/relay-sol@2.0.2` package, which downloads one of its sub-dependencies
+via unathenticated `git://` protocol. That protocol is no longer supported by
+GitHub. This means that in certain situations installation of the package or
+update of its dependencies using Yarn may result in `The unauthenticated git
+protocol on port 9418 is no longer supported` or `unable to connect to
+github.com` error. +
+As a workaround, we advise changing Git configuration to use `https://` protocol
+instead of `git://` by executing:
+```
+git config --global url."https://".insteadOf git://
+```
 
 === Test contracts
 

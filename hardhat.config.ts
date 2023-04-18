@@ -1,13 +1,13 @@
 import { HardhatUserConfig } from "hardhat/config"
 
 import "@keep-network/hardhat-helpers"
-import "@keep-network/hardhat-local-networks-config"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
 import "hardhat-deploy"
 import "hardhat-dependency-compiler"
 import "solidity-coverage"
+import "@nomiclabs/hardhat-etherscan"
 import "@tenderly/hardhat-tenderly"
 
 const config: HardhatUserConfig = {
@@ -44,6 +44,14 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
+    goerli: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 5,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
+        : undefined,
+      tags: ["etherscan", "tenderly"],
+    },
     ropsten: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 3,
@@ -51,6 +59,14 @@ const config: HardhatUserConfig = {
         ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
         : undefined,
       tags: ["tenderly"],
+    },
+    mainnet: {
+      url: process.env.CHAIN_API_URL || "",
+      chainId: 1,
+      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
+        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+        : undefined,
+      tags: ["etherscan", "tenderly"],
     },
   },
   tenderly: {
@@ -60,8 +76,6 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
   },
-  // // Define local networks configuration file path to load networks from the file.
-  // localNetworksConfig: "./.hardhat/networks.ts",
   external: {
     contracts: [
       {
@@ -76,7 +90,7 @@ const config: HardhatUserConfig = {
     deployments: {
       // For hardhat environment we can fork the mainnet, so we need to point it
       // to the contract artifacts.
-      // hardhat: ["./external/mainnet"],
+      // hardhat: ["./external/mainnet-v2"],
       // For development environment we expect the local dependencies to be linked
       // with `yarn link` command.
       development: [
@@ -88,7 +102,7 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/tbtc/artifacts",
         "./external/ropsten",
       ],
-      mainnet: ["./external/mainnet"],
+      mainnet: ["./external/mainnet-v2"],
     },
   },
   namedAccounts: {
@@ -97,11 +111,19 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
+      goerli: 0, // use deployer account
       ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
-    keepCommunityMultiSig: {
-      mainnet: "0x19FcB32347ff4656E4E6746b4584192D185d640d",
+    thresholdCouncil: {
+      default: 2,
+      goerli: 0, // use deployer account
+      mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
+    },
+    treasuryGuild: {
+      default: 3,
+      goerli: 0, // use deployer account
+      mainnet: "0x71E47a4429d35827e0312AA13162197C23287546",
     },
   },
   mocha: {
