@@ -1,0 +1,112 @@
+= Components
+
+== The collateral pool
+
+The collateral pool is a collection of single asset pools that share losses
+if coverage is required.
+
+Each asset pool accepts a single ERC-20 token as collateral, and returns an
+underwriter token. For example, an asset pool might accept deposits in WETH in
+return for covETH underwriter tokens. Underwriter tokens represent an ownership
+share in the underlying collateral of the asset pool.
+
+Entering the collateral pool exposes an underwriter to the shared risk of
+liquidation across all asset pools, but it *doesn't* require the underwriter to
+enter into any positions relative to other assets in the pool. If an underwriter
+deposits ETH into a collateral pool that with ETH adn WBTC asset pools, the
+underwriter isn't entering into a position relative to WBTC, or suffering any
+sort of impermanent loss, as they would in an automated market maker.
+
+Underwriters are still, however, entering into positions relative to the asset
+the coverage pool is backing.
+
+== <<risk-manager.adoc,The risk manager>>
+
+The risk manager is a person or smart contract with the exclusive right to
+demand coverage from the pool.
+
+Demanding coverage is akin to filing a claim in traditional insurance... and
+processing your own claim. The risk manager holds an incredibly privileged
+position, because the ability to demand coverage of an arbitrarily large
+position could bankrupt the collateral pool.
+
+Coverage is always paid out in the pool's covered asset.
+
+== <<rewards-pool.adoc,The rewards pool>>
+
+The rewards pool is a collection of different assets
+that grows as underwriters earn fees and refunds.
+
+The rewards pool mints a single rewards token, which is periodically
+distributed across the collateral pool. Each asset pool in the collateral pool
+earns based on its rewards rate.
+
+Over a period of a week, if a collateral pool contains two asset pools — WBTC at
+a rewards rate of 2, and ETH at an rewards rate of 1 — each will be allocated
+rewards pool tokens at a rate of 2 to 1.
+
+As rewards accrue, rewards pool tokens can be withdrawn by underwriters and
+redeemed for the underlying rewards.
+
+= Efficient collateral liquidation
+
+When coverage is demanded by the risk manager, some part of the collateral
+pool must be sold to obtain enough of the covered asset to fulfill the claim.
+
+Liquidating the coverage pool fairly means selling a basket of assets, in a
+fixed ratio, with good price discovery. For this reason, collateral is
+liquidated using a Dutch auction.
+
+The portion of each asset pool on offer will increase over time, slowing until
+the entirety of the pool is on offer.
+
+The auction is meant to be flash-loan friendly, allowing easy integration with
+AMMs (automated market makers) and other on-chain liquidity sources.
+
+Once the entirety of the pool is on offer, the auction will remain open until a
+buyer is found.
+
+If the risk manager has made a fill-or-kill claim, the auction will expire and
+notify the risk manager. If not, all funds will remain locked on offer.
+
+= Governance and the market feedback loop
+
+= Solving early exits
+
+Underwriters will always be able to front-run on-chain claims against the
+coverage pool.  Rational players can withdraw their liquidity and rewards
+before a covered event, earning any fees and rewards while avoiding the risks
+a pool covers.
+
+Locking underwriter positions during a liquidation won't help, since many claims
+are foreseeable outside the system long before a risk manager makes the call to
+demand coverage.
+
+Another common approach to solve early exits involves locking underwriters for
+a fixed period when they deposit. Choosing the right fixed period is an art,
+and can devolve into cyclical deposit/withdraw games to minimize risk, as well
+as increased risk of merchanism failure at transitions.
+
+Instead of a fixed delay, we introduce exit markets.
+
+== <<exit-markets.adoc,Exit markets>>
+
+At a given moment, whether or not a liquidation is ongoing, a mass exit from
+the collateral pool implies a pending spike in risk.
+
+When an underwriter wants to exit immediately, we expect that they'd be happy to
+pay a premium to exit quickly and reduce their risk. To turn this incentive into
+a market, we can attach withdrawal fees to a bonding curve, discovering the
+price of impending risk and a potential liquidation.
+
+All withdrawals from a single-asset pool that accept a fixed delay can do so
+without a fee. Any underwriter who wants to withdraw more quickly will forfeit
+part of their collateral to the pool, with a fee rate based on their percent
+ownership of the pool.
+
+As an extreme example, an underwriter with 100% of a pool's shares would pay
+100% of their collateral to the pool to withdraw immediately.
+
+This mechanism and parameters well-chosen to a pool's covered risk should
+incentivize a smooth market, and rewards longer-term underwriters while still
+encouraging short-term market risk information to spread.

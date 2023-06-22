@@ -1,0 +1,102 @@
+= Exit markets
+
+To understand the implied risk of a coverage pool, and to dampen the deleterious
+effects of short-term underwriter behavior, we introduce exit markets.
+
+Exit markets allow underwriters to express their time preference when
+withdrawing. Rather than require all withdrawals to suffer a fixed delay,
+underwriters can withdraw more quickly for a price, in competition with each
+other.
+
+Exit markets smooth out coverage pool liquidity and the discontinuity of
+fixed-delay withdrawals, and expose a proxy for the short-term risk of the
+pool — the withdrawal fee curve.
+
+== Mechanism
+
+Instead of a fixed withdrawal delay, collateral pools are paramaterized with a
+cost-free withdrawal period, `P`. This period is how long it takes for a
+withdrawal to clear, when funds are no longer at risk and can be freely removed
+from the collateral pool.
+
+One way to turn this into a market is for the pool to continually "auction off"
+immediate withdrawals. The pool shouldn't auction off more immediate withdrawals
+than some pool-specific risk parameter; it can auction off more at some time
+between now and `P`, but it's unclear how much more.
+
+Auctioning off immediate withdrawal excludes an important risk counter-signal:
+deposits.
+
+=== A physical analog
+
+To develop intuition, consider a fixed arm on a hinge.
+
+<pic>
+
+Forces up and down along the arm counteract each other based on their position
+along the arm and their magnitude perpendicular to the arm. Multiplied together,
+the position and magnitude yield the moment of force, or torque.
+
+<pic>
+
+If we assign the arm the length of the cost-free withdrawal period, `P`, and
+place the origin at the hinge, each force perpendicular to the arm can represent
+a withdrawal or a deposit; the moment arm for each represents the immediacy of a
+withdrawal, and the magnitude of the force represents the amount to be deposited
+or withdrawn, relative to the outstanding underwriter tokens in the pool, `U`.
+
+All perpendicular forces along the fixed arm can be aggregated into one value,
+the torque. "Maximum" torque on the arm would be all the tokens `U` multiplied
+by the cost-free period `P`. Maximum torque means the pool is drained of all
+collateral immediately.
+
+<pic with rubber band>
+
+A feedback mechanism to limit maximum torque works like a rubber band on the
+arm.
+
+This analog makes a few things clear.
+
+There's an obvious aggregate of deposits and withdrawals in the analog in
+torque, or *withdrawal immediacy*. Withdrawal immediacy can be measured in
+percent-pool-days.
+
+The analog as presented only holds at a snapshot in time. As time moves on, each
+force moves closer to the origin / hinge, lessening torque or withdrawal
+immediacy from the pool.
+
+Finally, the analog presents the question: what happens in the face of net
+positive deposits over a period? Is there a fixed platform above the arm,
+preventing periods of net positives from counting toward withdrawal immediacy?
+Or does a similar rubber-band like feedback mechanism apply?
+
+=== Details
+
+Given a pool with total assets `A`, outstanding underwriter tokens `U`, and
+cost-free withdrawal period `P`, we can draw a curve between withdrawal
+immediacy (percent-pool-days) and underwriter tokens.
+
+<pic>
+
+An underwriter withdrawing the entire pool, immediately, costs the entire
+underwriter token supply `U` — not something a rational player would do.
+Withdrawing the entire pool at period `P` costs nothing.
+
+A simple curve used by popular automated market makers is the constant product,
+used as a constraint on the relationship between two sides of a market.
+
+`x * y = k`
+
+In an exit market, `x` is the supply of underwriter tokens paid toward
+withdrawal fees over the sliding window `P`. `y`, on the other hand, is
+withdrawal immediacy. To withdraw 50% of a pool in `P/2`, an underwriter must
+swap underwriter tokens such that the pool constraint is maintained, "buying"
+immediacy.
+
+As time goes on, `y` grows linearly until it hits a max of `100% of the pool *
+P days`, growing the curve constraint `k`. As withdrawals mature, `x` shrinks,
+shrinking the curve constraint `k`.
+
+As new funds enter the pool, `y` grows by `r * P` where `r` is the portion of
+the pool the new funds represent, maintaining the constraint `k`. `y` never
+exceeds `100% * P`.

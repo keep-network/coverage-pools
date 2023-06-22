@@ -1,0 +1,86 @@
+= The rewards pool
+
+A rewards pool is a contract that accepts arbitrary assets and mints a single
+reward token. Recipients of the reward token can at any time turn it in for a
+portion of the rewards in the pool.
+
+A rewards pool maintains a governable list of recipients and relative reward
+rates. For example, a rewards pool might have two recipients — a WETH
+asset pool, and a WBTC asset pool, with respective reward rates of 1 and 2.
+
+Rewards tokens are minted constantly over time and distributed according to the
+relative reward rates.
+
+== Accounting for rewards distribution
+
+Given the above scenario, at rewards pool creation. 3 rewards tokens are minted.
+1 is reserved for the WETH asset pool, and 2 for the WBTC asset pool.
+
+Every tick, an additional 3 rewards tokens are virtually minted.
+
+.Virtual rewards
+[frame="topbot",options="header"]
+|==============================================
+|Time | WETH virtual rewards | WBTC virtual rewards
+|1    |1                     |2
+|2    |2                     |4
+|3    |3                     |6
+|4    |4                     |8
+|==============================================
+
+At tick 5, if the rewards rates are changed, say to 1:1, the rewards tokens are
+realized, then the virtual minting continues at the new rate.
+
+.Virtual and real rewards
+[frame="topbot",options="header"]
+|========================================================================================================
+|Time | WETH virtual rewards | WETH real rewards | WBTC virtual rewards | WBTC real rewards | Reward rate
+|1    |1                     |1                  |2                     |2                  | 2 : 1
+|2    |2                     |1                  |4                     |2                  | 2 : 1
+|3    |3                     |1                  |6                     |2                  | 2 : 1
+|4    |4                     |1                  |8                     |2                  | 2 : 1
+|5    |5                     |5                  |9                     |9                  | 1 : 1
+|6    |6                     |5                  |10                    |9                  | 1 : 1
+|7    |7                     |5                  |11                    |9                  | 1 : 1
+|8    |8                     |5                  |12                    |9                  | 1 : 1
+|========================================================================================================
+
+Similarly, any rewards tokens that are exchanged and burned for the underlying
+pool rewards realizes all reward token minting before the exchange occurs.
+
+This structure should make it clear that reward pools scale in the number of
+ongoing reward recipients — with implications for the <<on-chain-efficiency,
+number of assets>> supported as collateral in a coverage pool.
+
+== Relation to collateral pools
+
+A coverage pool has a single rewards pool that receives and manages all
+underwriter earnings. Each asset pool in the collateral pool is assigned a
+relative rate in the rewards pool, establishing a way for governance to
+incentivize different assets to target a particular collateral pool composition.
+
+If an asset that's accepted as collateral by the coverage pool is intended as
+underwriter rewards, it should first be deposited in its asset pool, and the
+underwriter token sent to the rewards pool. Following this pattern means a more
+capital-efficient coverage rewards mechanism, though it also means rewards are
+subject to exit markets.
+
+For example, in a coverage pool meant to back claims denominated in `TBTC`, with
+a collateral pool containing `WETH` and `WBTC`, any `ETH` earned by the
+underwriters should be deposited into the reward pool as `covETH` rather than
+`WETH`.
+
+== On-chain efficiency
+
+There are two bottlenecks in efficient runtime on the EVM with this structure.
+
+The first is the number of reward recipients. Each rate change and reward token
+burn require iterating through all recipients, computing rewards, and minting
+tokens. These costs are ultimately shouldered by reward beneficiaries, and place
+a ceiling on the number of simultaneous reward recipients.
+
+The second is the number of different assets being distributed as reward. Anyone
+can send a reward pool whatever tokens they'd like. Instead of using an allowlist
+or pushing the cost onto reward token holders at redemption time, a short
+denylist can be used to avoid mischief, and reward token holders can decide
+which tokens they'd like to be sent at redemption.
