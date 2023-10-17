@@ -52,14 +52,6 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["etherscan", "tenderly"],
     },
-    ropsten: {
-      url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
-        : undefined,
-      tags: ["tenderly"],
-    },
     mainnet: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 1,
@@ -97,10 +89,11 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
       ],
-      ropsten: [
+      goerli: [
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
-        "./external/ropsten",
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
+        "./external/goerli",
       ],
       mainnet: ["./external/mainnet-v2"],
     },
@@ -112,7 +105,6 @@ const config: HardhatUserConfig = {
     rewardManager: {
       default: 1,
       goerli: 0, // use deployer account
-      ropsten: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     thresholdCouncil: {

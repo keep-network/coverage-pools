@@ -98,30 +98,30 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Get upstream packages' versions
-        uses: keep-network/ci/actions/upstream-builds-query@v1
+        uses: keep-network/ci/actions/upstream-builds-query@v2
         id: upstream-builds-query
         with:
           upstream-builds: ${{ github.event.inputs.upstream_builds }}
           query: |
-            keep-core-contracts-version = github.com/keep-network/keep-core/solidity-v1#version
-            tbtc-contracts-version = github.com/keep-network/tbtc/solidity#version
+            threshold-contracts-version = github.com/threshold-network/solidity-contracts#version
 
       - name: Resolve latest contracts
         run: |
           yarn upgrade \
-            @keep-network/keep-core@${{ steps.upstream-builds-query.outputs.keep-core-contracts-version }} \
-            @keep-network/tbtc@${{ steps.upstream-builds-query.outputs.tbtc-contracts-version }}
+            @keep-network/keep-core@{{ github.event.inputs.environment }} \
+            @keep-network/tbtc@{{ github.event.inputs.environment }} \
+            @threshold-network/solidity-contracts@${{ steps.upstream-builds-query.outputs.threshold-contracts-version }}
 
       - name: Configure tenderly
-        if: github.event.inputs.environment == 'ropsten'
         env:
           TENDERLY_TOKEN: ${{ secrets.TENDERLY_TOKEN }}
         run: ./config_tenderly.sh
 
       - name: Deploy contracts
         env:
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-          CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY: ${{ secrets.KEEP_TEST_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+          CHAIN_API_URL: ${{ secrets.GOERLI_ETH_HOSTNAME_HTTP }}
+          ACCOUNTS_PRIVATE_KEYS: ${{ secrets.GOERLI_ETH_CONTRACT_OWNER_PRIVATE_KEY }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: yarn deploy --network ${{ github.event.inputs.environment }}
 
       - name: Bump up package version
@@ -138,7 +138,7 @@ jobs:
         run: npm publish --access=public --network=${{ github.event.inputs.environment }} --tag ${{ github.event.inputs.environment }}
 
       - name: Notify CI about completion of the workflow
-        uses: keep-network/ci/actions/notify-workflow-completed@v1
+        uses: keep-network/ci/actions/notify-workflow-completed@v2
         env:
           GITHUB_TOKEN: ${{ secrets.CI_GITHUB_TOKEN }}
         with:
@@ -148,57 +148,6 @@ jobs:
           upstream_builds: ${{ github.event.inputs.upstream_builds }}
           upstream_ref: ${{ github.event.inputs.upstream_ref }}
           version: ${{ steps.npm-version-bump.outputs.version }}
-
-      - name: Upload files needed for etherscan verification
-        uses: actions/upload-artifact@v2
-        with:
-          name: Artifacts for etherscan verifcation
-          path: |
-            ./deployments
-            ./package.json
-            ./yarn.lock
-
-  contracts-etherscan-verification:
-    needs: [contracts-deployment-testnet]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Download files needed for etherscan verification
-        uses: actions/download-artifact@v2
-        with:
-          name: Artifacts for etherscan verifcation
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14.x"
-          cache: "yarn"
-
-      # This step forces Git to download dependencies using `https://` protocol,
-      # even if `yarn.json` refers to some package via `git://`. Using `git://`
-      # is no longer supported by GH. One of the `coverage-pools` dependencies
-      # by default uses `git://` and we needed to manually remove it every time
-      # it re-appeares in the lock file. Now even if it does re-appear, the
-      # `yarn install --frozen-lockfile` will not fail.
-      - name: Configure git to don't use unauthenticated protocol
-        run: git config --global url."https://".insteadOf git://
-
-      - name: Install needed dependencies
-        run: yarn install --frozen-lockfile
-
-      # If we don't remove the dependencies' contracts from `node-modules`, the
-      # `etherscan-verify` plugins tries to verify them, which is not desired.
-      - name: Prepare for verification on Etherscan
-        run: |
-          rm -rf ./node_modules/@keep-network/keep-core
-          rm -rf ./node_modules/@keep-network/tbtc
-          rm -rf ./node_modules/@threshold-network/solidity-contracts
-
-      - name: Verify contracts on Etherscan
-        env:
-          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
-          CHAIN_API_URL: ${{ secrets.KEEP_TEST_ETH_HOSTNAME_HTTP }}
-        run: yarn run hardhat --network ${{ github.event.inputs.environment }} etherscan-verify --license MIT
 
   contracts-lint:
     runs-on: ubuntu-latest
