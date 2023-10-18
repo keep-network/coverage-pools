@@ -1,3 +1,6 @@
+# This file is currently being ignored by the `hardhat-tenderly` plugin. There
+# is an open feature request to make it supported:
+# https://github.com/Tenderly/hardhat-tenderly/issues/17.
 account_id: d9a948cf-8667-43df-acb0-ce194f6dda7a
 projects:
   thesis/keep:
@@ -5,4 +8,4 @@ projects:
       - "1" # mainnet
   thesis/keep-test:
     networks:
-      - "3" # ropsten
+      - "11155111" # sepolia

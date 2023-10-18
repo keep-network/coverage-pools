@@ -130,7 +130,7 @@ code as it contains deployment details like chain ID, transaction hash, ABI or
 address for each contract.
 
 The `deployments/` directory contains a separate sub-directory for each network, e.g.
-`deployments/ropsten/`, `deployments/mainnet/`. For a convenient usage of the
+`deployments/sepolia/`, `deployments/mainnet/`. For a convenient usage of the
 package we publish the deployment artifacts in a separate package for every
 network. The package contains deployment artifacts under `artifacts/` directory,
 which is a a copy of `deployments/<network>/` directory.
@@ -229,7 +229,7 @@ Example:
     ],
     deployments: {
       // ...
-      ropsten: [
+      sepolia: [
          // ...
         "node_modules/@keep-network/keep-core/artifacts",
       ],
@@ -246,7 +246,7 @@ To add a predefined single contract dependency for a given network:
 
 1. Create a file under `external/<network>/<contract_name>.json`.
 +
-Example: `external/ropsten/UniswapV2Router.json`
+Example: `external/sepolia/UniswapV2Router.json`
 
 2. Save an address and optionally an ABI for the contract in the file.
 +
@@ -270,9 +270,9 @@ Example:
   external: {
     deployments: {
       // ...
-      ropsten: [
+      sepolia: [
          // ...
-        "./external/ropsten",
+        "./external/sepolia",
       ],
     },
   },

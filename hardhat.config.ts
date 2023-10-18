@@ -52,13 +52,13 @@ const config: HardhatUserConfig = {
         : undefined,
       tags: ["etherscan", "tenderly"],
     },
-    ropsten: {
+    sepolia: {
       url: process.env.CHAIN_API_URL || "",
-      chainId: 3,
-      accounts: process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY
-        ? [process.env.CONTRACT_OWNER_ACCOUNT_PRIVATE_KEY]
+      chainId: 11155111,
+      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
+        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
         : undefined,
-      tags: ["tenderly"],
+      tags: ["etherscan", "tenderly"],
     },
     mainnet: {
       url: process.env.CHAIN_API_URL || "",
@@ -79,6 +79,10 @@ const config: HardhatUserConfig = {
   external: {
     contracts: [
       {
+        artifacts:
+          "node_modules/@threshold-network/solidity-contracts/artifacts",
+      },
+      {
         artifacts: "node_modules/@keep-network/keep-core/artifacts",
         // Example if we want to use deployment scripts from external package:
         // deploy: "node_modules/@keep-network/keep-core/deploy",
@@ -94,13 +98,21 @@ const config: HardhatUserConfig = {
       // For development environment we expect the local dependencies to be linked
       // with `yarn link` command.
       development: [
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
       ],
-      ropsten: [
+      goerli: [
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
-        "./external/ropsten",
+        "./external/goerli",
+      ],
+      sepolia: [
+        "node_modules/@threshold-network/solidity-contracts/artifacts",
+        "node_modules/@keep-network/keep-core/artifacts",
+        "node_modules/@keep-network/tbtc/artifacts",
+        "./external/sepolia",
       ],
       mainnet: ["./external/mainnet-v2"],
     },
@@ -112,17 +124,19 @@ const config: HardhatUserConfig = {
     rewardManager: {
       default: 1,
       goerli: 0, // use deployer account
-      ropsten: 0, // use deployer account
+      sepolia: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     thresholdCouncil: {
       default: 2,
       goerli: 0, // use deployer account
+      sepolia: 0, // use deployer account
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
     treasuryGuild: {
       default: 3,
       goerli: 0, // use deployer account
+      sepolia: 0, // use deployer account
       mainnet: "0x71E47a4429d35827e0312AA13162197C23287546",
     },
   },
