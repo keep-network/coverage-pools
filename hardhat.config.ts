@@ -44,14 +44,6 @@ const config: HardhatUserConfig = {
       chainId: 1101,
       tags: ["local"],
     },
-    goerli: {
-      url: process.env.CHAIN_API_URL || "",
-      chainId: 5,
-      accounts: process.env.ACCOUNTS_PRIVATE_KEYS
-        ? process.env.ACCOUNTS_PRIVATE_KEYS.split(",")
-        : undefined,
-      tags: ["etherscan", "tenderly"],
-    },
     sepolia: {
       url: process.env.CHAIN_API_URL || "",
       chainId: 11155111,
@@ -102,12 +94,6 @@ const config: HardhatUserConfig = {
         "node_modules/@keep-network/keep-core/artifacts",
         "node_modules/@keep-network/tbtc/artifacts",
       ],
-      goerli: [
-        "node_modules/@threshold-network/solidity-contracts/artifacts",
-        "node_modules/@keep-network/keep-core/artifacts",
-        "node_modules/@keep-network/tbtc/artifacts",
-        "./external/goerli",
-      ],
       sepolia: [
         "node_modules/@threshold-network/solidity-contracts/artifacts",
         "node_modules/@keep-network/keep-core/artifacts",
@@ -123,19 +109,16 @@ const config: HardhatUserConfig = {
     },
     rewardManager: {
       default: 1,
-      goerli: 0, // use deployer account
       sepolia: 0, // use deployer account
       mainnet: 0, // use deployer account
     },
     thresholdCouncil: {
       default: 2,
-      goerli: 0, // use deployer account
       sepolia: 0, // use deployer account
       mainnet: "0x9f6e831c8f8939dc0c830c6e492e7cef4f9c2f5f",
     },
     treasuryGuild: {
       default: 3,
-      goerli: 0, // use deployer account
       sepolia: 0, // use deployer account
       mainnet: "0x71E47a4429d35827e0312AA13162197C23287546",
     },
